@@ -59,8 +59,16 @@ textarea {
   padding: 32px 0 64px;
 }
 
+.admin-shell {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+
 .hero-block,
-.section-block {
+.section-block,
+.admin-hero,
+.admin-card {
   border: 1px solid var(--line);
   background: var(--surface);
   backdrop-filter: blur(12px);
@@ -131,6 +139,47 @@ textarea {
   padding: 28px;
 }
 
+.admin-hero {
+  padding: 28px;
+  border-radius: 28px;
+}
+
+.admin-hero h1,
+.admin-card h2 {
+  font-family: var(--font-display);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.admin-hero h1 {
+  font-size: clamp(2.8rem, 6vw, 4.8rem);
+  max-width: 760px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.admin-card {
+  border-radius: 24px;
+  padding: 24px;
+  min-height: 220px;
+}
+
+.admin-card h2 {
+  font-size: 1.9rem;
+  margin: 16px 0 12px;
+}
+
+.admin-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
@@ -191,14 +240,22 @@ textarea {
     padding-top: 12px;
   }
 
+  .admin-shell {
+    width: min(100%, calc(100% - 24px));
+    padding-top: 12px;
+  }
+
   .hero-block,
   .section-block--notes,
-  .project-grid {
+  .project-grid,
+  .admin-grid {
     grid-template-columns: 1fr;
   }
 
   .hero-block,
-  .section-block {
+  .section-block,
+  .admin-hero,
+  .admin-card {
     padding: 20px;
     border-radius: 20px;
   }
