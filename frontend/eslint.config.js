@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,ts,tsx}'],
     extends: [
       js.configs.recommended,
       reactHooks.configs.flat.recommended,
@@ -19,7 +19,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/pages/admin-dashboard/components/ui/**/*.{js,jsx}'],
+    files: ['src/pages/admin-dashboard/components/ui/**/*.{js,jsx,ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },
