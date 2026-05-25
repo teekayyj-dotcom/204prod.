@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star } from "lucide-react";
-import { allProjects, categories } from "../data/mockData";
+import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star, Loader2 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 const statusColors = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50" },
@@ -11,12 +11,30 @@ const statusColors = {
 };
 export function ProjectsPage() {
     const navigate = useNavigate();
+    const [allProjects, setAllProjects] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [categoryFilter, setCategoryFilter] = useState("All");
     const [view, setView] = useState("grid");
-    const [featuredIds, setFeaturedIds] = useState(() => new Set(allProjects.filter((p) => p.featured).map((p) => p.id)));
+    const [featuredIds, setFeaturedIds] = useState(new Set());
     const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
+
+    useEffect(() => {
+        Promise.all([
+            fetchApi('/projects'),
+            fetchApi('/categories')
+        ]).then(([projectsData, categoriesData]) => {
+            setAllProjects(projectsData);
+            setCategories(categoriesData);
+            setFeaturedIds(new Set(projectsData.filter((p) => p.featured).map((p) => p.slug)));
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, []);
     const statuses = ["All", "In Progress", "Review", "Planning", "Completed"];
     const toggleFeatured = (e, id) => {
         e.stopPropagation();
@@ -29,12 +47,20 @@ export function ProjectsPage() {
     const filtered = allProjects.filter((p) => {
         const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||
             p.client.toLowerCase().includes(search.toLowerCase()) ||
-            p.category.toLowerCase().includes(search.toLowerCase());
+            p.format.toLowerCase().includes(search.toLowerCase());
         const matchStatus = statusFilter === "All" || p.status === statusFilter;
-        const matchCat = categoryFilter === "All" || p.category === categoryFilter;
-        const matchFeatured = !showFeaturedOnly || featuredIds.has(p.id);
+        const matchCat = categoryFilter === "All" || p.format === categoryFilter;
+        const matchFeatured = !showFeaturedOnly || featuredIds.has(p.slug);
         return matchSearch && matchStatus && matchCat && matchFeatured;
     });
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
+
     return (<div className="px-8 py-7">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
@@ -77,7 +103,7 @@ export function ProjectsPage() {
                         </button>))}
                     <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-1.5 rounded-lg outline-none appearance-none" style={{ background: "#241C1C", color: "#888", border: "1px solid #2E2020", fontSize: "12px" }}>
                         <option value="All">All Categories</option>
-                        {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+                        {categories.map((c) => (<option key={c.slug} value={c.name}>{c.name}</option>))}
                     </select>
                 </div>
                 <div className="flex items-center gap-2">
@@ -97,9 +123,9 @@ export function ProjectsPage() {
 
             {/* Grid View */}
             {view === "grid" && (<div className="grid grid-cols-3 gap-5">
-                    {filtered.map((project) => (<div key={project.id} className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/projects/${project.id}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                    {filtered.map((project) => (<div key={project.slug} className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                             <div className="relative h-40 overflow-hidden">
-                                <img src={project.image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                                <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
                                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}/>
                                 {/* Status badge */}
                                 <div className="absolute top-3 left-3">
@@ -113,27 +139,27 @@ export function ProjectsPage() {
                                 </div>
                                 {/* Featured star */}
                                 <button className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{
-                    background: featuredIds.has(project.id) ? "rgba(255,193,7,0.2)" : "rgba(29,22,22,0.7)",
-                    border: `1px solid ${featuredIds.has(project.id) ? "rgba(255,193,7,0.6)" : "rgba(255,255,255,0.1)"}`,
+                    background: featuredIds.has(project.slug) ? "rgba(255,193,7,0.2)" : "rgba(29,22,22,0.7)",
+                    border: `1px solid ${featuredIds.has(project.slug) ? "rgba(255,193,7,0.6)" : "rgba(255,255,255,0.1)"}`,
                     backdropFilter: "blur(6px)",
-                }} onClick={(e) => toggleFeatured(e, project.id)} title={featuredIds.has(project.id) ? "Remove from featured" : "Mark as featured"}>
-                                    <Star size={13} fill={featuredIds.has(project.id) ? "#FFC107" : "none"} color={featuredIds.has(project.id) ? "#FFC107" : "#888"}/>
+                }} onClick={(e) => toggleFeatured(e, project.slug)} title={featuredIds.has(project.slug) ? "Remove from featured" : "Mark as featured"}>
+                                    <Star size={13} fill={featuredIds.has(project.slug) ? "#FFC107" : "none"} color={featuredIds.has(project.slug) ? "#FFC107" : "#888"}/>
                                 </button>
                             </div>
                             <div className="p-4">
                                 <div className="flex items-start justify-between mb-1">
                                     <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{project.title}</h3>
-                                    {featuredIds.has(project.id) && (<span className="flex items-center gap-1 px-1.5 py-0.5 rounded ml-2 flex-shrink-0" style={{ background: "rgba(255,193,7,0.1)", color: "#FFC107", fontSize: "10px", border: "1px solid rgba(255,193,7,0.25)" }}>
+                                    {featuredIds.has(project.slug) && (<span className="flex items-center gap-1 px-1.5 py-0.5 rounded ml-2 flex-shrink-0" style={{ background: "rgba(255,193,7,0.1)", color: "#FFC107", fontSize: "10px", border: "1px solid rgba(255,193,7,0.25)" }}>
                                             <Star size={9} fill="#FFC107"/> Featured
                                         </span>)}
                                 </div>
                                 <p style={{ color: "#888", fontSize: "12px" }} className="mb-3">
-                                    {project.client} · {project.category}
+                                    {project.client} · {project.format}
                                 </p>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-1.5">
                                         <Calendar size={12} color="#666"/>
-                                        <span style={{ color: "#666", fontSize: "11px" }}>{project.dueDate}</span>
+                                        <span style={{ color: "#666", fontSize: "11px" }}>{project.year}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <DollarSign size={12} color="#D84040"/>
@@ -167,10 +193,10 @@ export function ProjectsPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((p, i) => (<tr key={p.id} className="cursor-pointer transition-colors" style={{ borderBottom: i < filtered.length - 1 ? "1px solid #2A1F1F" : "none" }} onClick={() => navigate(`/admin/projects/${p.id}`)} onMouseEnter={(e) => (e.currentTarget.style.background = "#2A1F1F")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                            {filtered.map((p, i) => (<tr key={p.slug} className="cursor-pointer transition-colors" style={{ borderBottom: i < filtered.length - 1 ? "1px solid #2A1F1F" : "none" }} onClick={() => navigate(`/admin/projects/${p.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.background = "#2A1F1F")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                                     <td className="px-5 py-3.5">
                                         <div className="flex items-center gap-2">
-                                            <img src={p.image} alt={p.title} className="w-8 h-8 rounded-lg object-cover flex-shrink-0"/>
+                                            <img src={p.cover_image} alt={p.title} className="w-8 h-8 rounded-lg object-cover flex-shrink-0"/>
                                             <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{p.title}</span>
                                         </div>
                                     </td>
@@ -178,7 +204,7 @@ export function ProjectsPage() {
                                         <span style={{ color: "#999", fontSize: "13px" }}>{p.client}</span>
                                     </td>
                                     <td className="px-5 py-3.5">
-                                        <span style={{ color: "#888", fontSize: "12px" }}>{p.category}</span>
+                                        <span style={{ color: "#888", fontSize: "12px" }}>{p.format}</span>
                                     </td>
                                     <td className="px-5 py-3.5">
                                         <span className="px-2 py-0.5 rounded-full" style={{
@@ -191,7 +217,7 @@ export function ProjectsPage() {
                                         </span>
                                     </td>
                                     <td className="px-5 py-3.5">
-                                        <span style={{ color: "#888", fontSize: "12px" }}>{p.dueDate}</span>
+                                        <span style={{ color: "#888", fontSize: "12px" }}>{p.year}</span>
                                     </td>
                                     <td className="px-5 py-3.5">
                                         <span style={{ color: "#D84040", fontSize: "13px", fontWeight: 600 }}>{p.budget}</span>
@@ -208,10 +234,10 @@ export function ProjectsPage() {
                                         </div>
                                     </td>
                                     <td className="px-5 py-3.5">
-                                        <button onClick={(e) => toggleFeatured(e, p.id)} className="w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{
-                    background: featuredIds.has(p.id) ? "rgba(255,193,7,0.12)" : "transparent",
+                                        <button onClick={(e) => toggleFeatured(e, p.slug)} className="w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{
+                    background: featuredIds.has(p.slug) ? "rgba(255,193,7,0.12)" : "transparent",
                 }}>
-                                            <Star size={14} fill={featuredIds.has(p.id) ? "#FFC107" : "none"} color={featuredIds.has(p.id) ? "#FFC107" : "#444"}/>
+                                            <Star size={14} fill={featuredIds.has(p.slug) ? "#FFC107" : "none"} color={featuredIds.has(p.slug) ? "#FFC107" : "#444"}/>
                                         </button>
                                     </td>
                                 </tr>))}

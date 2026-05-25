@@ -1,9 +1,7 @@
-from app.modules.categories.schemas import Category
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from app.modules.categories.models import Category
 
 
-def list_categories() -> list[Category]:
-    return [
-        Category(name="Fashion", slug="fashion"),
-        Category(name="Brand Film", slug="brand-film"),
-        Category(name="Documentary", slug="documentary"),
-    ]
+def list_categories(db: Session) -> list[Category]:
+    return db.scalars(select(Category)).all()

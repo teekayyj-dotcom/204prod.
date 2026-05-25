@@ -1,7 +1,11 @@
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { Zap } from "lucide-react";
 
+
 export function ClientLayout() {
+  const location = useLocation();
+  const isLandingPage = location.pathname === "/";
+
   return (
     <div className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-black flex flex-col overscroll-none no-scrollbar">
       {/* Header */}
@@ -9,13 +13,13 @@ export function ClientLayout() {
         <div className="w-full px-12 md:px-24 !py-6 grid grid-cols-5 items-center">
           <div className="flex justify-start">
             <NavLink to="/works" className="text-[15px] font-light tracking-wide hover:text-white/70 transition-colors text-white">
-              Featured Work [6]
+              Portfolio
             </NavLink>
           </div>
 
           <div className="flex justify-center">
-            <NavLink to="/works" className="text-[15px] font-light tracking-wide hover:text-white/70 transition-colors text-white">
-              Portfolio [25]
+            <NavLink to="/crew" className="text-[15px] font-light tracking-wide hover:text-white/70 transition-colors text-white">
+              Crew
             </NavLink>
           </div>
 
@@ -49,26 +53,28 @@ export function ClientLayout() {
       </div>
 
       {/* Footer */}
-      <footer className="w-full px-12 md:px-24 py-8 mt-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center text-[13px] font-light text-white/50 w-full">
-          <p>
-            © {new Date().getFullYear()} Major All rights reserved.
-          </p>
+      {!isLandingPage && (
+        <footer className="w-full px-12 md:px-24 py-8 mt-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center text-[13px] font-light text-white/50 w-full">
+            <p>
+              © {new Date().getFullYear()} 204prod All rights reserved.
+            </p>
 
-          <div className="flex items-center gap-12 mt-4 md:mt-0">
-            <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-white transition-colors">Instagram</a>
-              <a href="#" className="hover:text-white transition-colors">LinkedIn</a>
-            </div>
+            <div className="flex items-center gap-12 mt-4 md:mt-0">
+              <div className="flex items-center gap-6">
+                <a href="https://www.instagram.com/204prod.vn/" className="hover:text-white transition-colors">Instagram</a>
+                <a href="https://www.facebook.com/204prod.vn" className="hover:text-white transition-colors">Facebook</a>
+              </div>
 
-            <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Services</a>
-              <a href="#" className="hover:text-white transition-colors">Site by Stökt</a>
+              <div className="flex items-center gap-6">
+                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms of Services</a>
+                {/* <a href="#" className="hover:text-white transition-colors">Site by Teekayyj</a> */}
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

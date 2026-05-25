@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { useState } from "react";
-import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, } from "lucide-react";
-import { mediaAssets } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 const typeIcons = {
     document: FileText,
@@ -22,11 +22,30 @@ export function MediaLibraryPage() {
     const [typeFilter, setTypeFilter] = useState("All");
     const [projectFilter, setProjectFilter] = useState("All");
     const [view, setView] = useState("grid");
-    // Local assets state so items can be removed
-    const [assets, setAssets] = useState(mediaAssets);
-    // Delete modal state
+    const [assets, setAssets] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    useEffect(() => {
+        fetchApi('/media').then(data => {
+            const mapped = data.map(m => ({
+                id: m.id,
+                name: m.url.split('/').pop() || m.id,
+                type: m.kind,
+                project: "N/A", // Not directly available without deep joins
+                size: m.file_size ? `${(m.file_size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
+                uploaded: m.created_at ? new Date(m.created_at).toLocaleDateString() : "2026-05-18",
+                image: m.url
+            }));
+            setAssets(mapped);
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, []);
+
     const types = ["All", "image", "video", "document", "design", "archive"];
     const projects = ["All", ...Array.from(new Set(assets.map((a) => a.project)))];
     const filtered = assets.filter((asset) => {
@@ -49,6 +68,14 @@ export function MediaLibraryPage() {
         setIsDeleting(false);
         setDeleteTarget(null);
     };
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
+
     return (<div className="px-8 py-7">
             <DeleteConfirmModal isOpen={deleteTarget !== null} itemType="media asset" itemName={deleteTarget?.name ?? ""} onConfirm={confirmDeleteAsset} onCancel={() => setDeleteTarget(null)} isDeleting={isDeleting}/>
             {/* Header */}
@@ -58,7 +85,7 @@ export function MediaLibraryPage() {
                         Media Library
                     </h1>
                     <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">
-                        {mediaAssets.length} assets · {totalSize.toFixed(0)} MB total
+                        {assets.length} assets · {totalSize.toFixed(0)} MB total
                     </p>
                 </div>
                 <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg" style={{ background: "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}>

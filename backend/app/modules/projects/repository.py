@@ -1,44 +1,50 @@
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+from app.modules.projects.models import Client, Project, ProjectGalleryImage
 from app.modules.projects.schemas import ProjectDetail
 
 
-PROJECTS: list[ProjectDetail] = [
-    ProjectDetail(
-        title="Midnight Textile",
-        slug="midnight-textile",
-        client="Mira Atelier",
-        year=2025,
-        format="fashion",
-        featured=True,
-        cover_image="/projects/midnight-textile/cover.jpg",
-        summary="A tactile fashion film balancing sharp studio geometry with humid street atmosphere.",
-        credits=["Direction: 204PROD", "DOP: Linh Tran", "Edit: Nhat Minh"],
-        gallery=[
-            "/projects/midnight-textile/frame-01.jpg",
-            "/projects/midnight-textile/frame-02.jpg",
-            "/projects/midnight-textile/frame-03.jpg",
-        ],
-    ),
-    ProjectDetail(
-        title="Neon Harvest",
-        slug="neon-harvest",
-        client="Field Theory",
-        year=2024,
-        format="brand-film",
-        featured=True,
-        cover_image="/projects/neon-harvest/cover.jpg",
-        summary="A saturated campaign film built around movement, texture, and ritualized product framing.",
-        credits=["Direction: 204PROD", "Production Design: Kha Nguyen"],
-        gallery=[
-            "/projects/neon-harvest/frame-01.jpg",
-            "/projects/neon-harvest/frame-02.jpg",
-        ],
-    ),
-]
+def _map_to_detail(p: Project) -> ProjectDetail:
+    return ProjectDetail(
+        title=p.title,
+        slug=p.slug,
+        client=p.client.name if p.client else p.client_slug,
+        year=p.year,
+        format=p.format_category.name if p.format_category else p.format_slug,
+        featured=p.featured,
+        cover_image=p.cover_media.url if p.cover_media else "",
+        status=p.status,
+        summary=p.summary or "",
+        credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
+        gallery=[g.media_asset.url for g in p.gallery_images if g.media_asset] if getattr(p, "gallery_images", None) else []
+    )
 
 
-def list_projects() -> list[ProjectDetail]:
-    return PROJECTS
+def list_projects(db: Session) -> list[ProjectDetail]:
+    stmt = select(Project).options(
+        joinedload(Project.client),
+        joinedload(Project.format_category),
+        joinedload(Project.cover_media),
+        joinedload(Project.credits),
+        joinedload(Project.gallery_images).joinedload(ProjectGalleryImage.media_asset)
+    )
+    projects = db.scalars(stmt).unique().all()
+    return [_map_to_detail(p) for p in projects]
 
 
-def get_project_by_slug(slug: str) -> ProjectDetail | None:
-    return next((project for project in PROJECTS if project.slug == slug), None)
+def get_project_by_slug(db: Session, slug: str) -> ProjectDetail | None:
+    stmt = select(Project).where(Project.slug == slug).options(
+        joinedload(Project.client),
+        joinedload(Project.format_category),
+        joinedload(Project.cover_media),
+        joinedload(Project.credits),
+        joinedload(Project.gallery_images).joinedload(ProjectGalleryImage.media_asset)
+    )
+    p = db.scalars(stmt).unique().first()
+    if p:
+        return _map_to_detail(p)
+    return None
+
+
+def list_clients(db: Session) -> list[Client]:
+    return db.scalars(select(Client)).all()

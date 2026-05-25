@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Plus, FolderOpen, MoreHorizontal, Trash2, ChevronRight, Pencil, X, Search, Droplets, Check, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, DollarSign, } from "lucide-react";
-import { categories, allProjects } from "../data/mockData";
+import { Plus, FolderOpen, MoreHorizontal, Trash2, ChevronRight, Pencil, X, Search, Droplets, Check, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, DollarSign, Loader2 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 // ─────────────────────────────────────────────────────────────────
 // Icon catalogue
@@ -415,7 +415,28 @@ function IconPickerModal({ current, onSelect, onClose, }) {
 // ─────────────────────────────────────────────────────────────────
 export function CategoriesPage() {
     const navigate = useNavigate();
-    const [cats, setCats] = useState(categories);
+    const [cats, setCats] = useState([]);
+    const [allProjects, setAllProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        Promise.all([
+            fetchApi('/categories'),
+            fetchApi('/projects')
+        ]).then(([catsData, projsData]) => {
+            const mappedCats = catsData.map(c => ({
+                id: c.slug,
+                name: c.name,
+                projectCount: 0
+            }));
+            setCats(mappedCats);
+            setAllProjects(projsData);
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, []);
     const [iconOverrides, setIconOverrides] = useState({});
     const [colorOverrides, setColorOverrides] = useState({});
     const [iconPickerForId, setIconPickerForId] = useState(null);
@@ -462,8 +483,16 @@ export function CategoriesPage() {
     // Values for open pickers
     const iconPickerCat = cats.find((c) => c.id === iconPickerForId);
     const colorPickerCurrentHex = colorPickerForId
-        ? getCatColor(cats.find((c) => c.id === colorPickerForId))
+        ? getCatColor(cats.find((c) => c.id === colorPickerForId) || cats[0])
         : BRAND_RED;
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
     return (<div className="px-8 py-7">
             {/* ── Modals ── */}
             {iconPickerForId && iconPickerCat && (<IconPickerModal current={getCatIconName(iconPickerCat)} onSelect={handleIconSelect} onClose={() => setIconPickerForId(null)}/>)}
@@ -493,7 +522,7 @@ export function CategoriesPage() {
             {/* ── Category Grid ── */}
             <div className="grid grid-cols-3 gap-4 mb-10">
                 {cats.map((cat) => {
-            const projectsInCat = allProjects.filter((p) => p.category === cat.name);
+            const projectsInCat = allProjects.filter((p) => p.format === cat.name);
             const iconName = getCatIconName(cat);
             const IconEntry = ICON_OPTIONS.find((o) => o.name === iconName) ?? ICON_OPTIONS[0];
             const CatIcon = IconEntry.Icon;

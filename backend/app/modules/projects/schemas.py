@@ -9,6 +9,9 @@ class ProjectSummary(BaseModel):
     format: str
     featured: bool
     cover_image: str
+    status: str
+    progress: int = 100
+    budget: str = "TBD"
 
 
 class ProjectDetail(ProjectSummary):

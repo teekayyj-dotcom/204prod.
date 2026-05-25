@@ -1,15 +1,16 @@
-from app.modules.media.schemas import MediaAsset
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from app.modules.media.models import MediaAsset
 
 
-MEDIA_ASSETS = [
-    MediaAsset(
-        id="cover-midnight-textile",
-        kind="image",
-        url="/projects/midnight-textile/cover.jpg",
-        alt="Model in sculptural pose framed by diffused blue light.",
-    )
-]
+def list_media_assets(db: Session) -> list[MediaAsset]:
+    return db.scalars(select(MediaAsset)).all()
 
+def get_media_asset_by_id(db: Session, id: str):
+    return db.query(MediaAsset).filter(MediaAsset.id == id).first()
 
-def list_media_assets() -> list[MediaAsset]:
-    return MEDIA_ASSETS
+def save_media_asset(db: Session, media_asset: MediaAsset):
+    db.add(media_asset)
+    db.commit()
+    db.refresh(media_asset)
+    return media_asset

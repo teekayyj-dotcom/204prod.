@@ -1,5 +1,7 @@
-from app.modules.users.schemas import UserSummary
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from app.modules.users.models import User
 
 
-def list_users() -> list[UserSummary]:
-    return [UserSummary(id=1, username="admin", role="editor")]
+def list_users(db: Session) -> list[User]:
+    return db.scalars(select(User)).all()

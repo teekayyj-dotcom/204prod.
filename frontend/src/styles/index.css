@@ -1,3 +1,26 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+body {
+  @apply select-none;
+}
+
+.glitch-effect {
+  position: relative;
+  display: inline-block;
+}
+
+.group:hover .glitch-effect {
+  animation: glitch-anim 0.2s linear infinite;
+  color: #ff0000 !important;
+}
+
+@keyframes glitch-anim {
+  0% { transform: translate(0) }
+  20% { transform: translate(-2px, 1px) }
+  40% { transform: translate(-2px, -1px) }
+  60% { transform: translate(2px, 1px) }
+  80% { transform: translate(2px, -1px) }
+  100% { transform: translate(0) }
+}

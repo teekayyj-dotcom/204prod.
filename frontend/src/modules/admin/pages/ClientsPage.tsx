@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, Users, Mail, Briefcase, TrendingUp, Plus } from "lucide-react";
-import { clients } from "../data/mockData";
+import { Search, Users, Mail, Briefcase, TrendingUp, Plus, Loader2 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 const statusColors = {
     Active: { bg: "rgba(76,175,80,0.12)", text: "#4CAF50" },
     Paused: { bg: "rgba(232,168,56,0.12)", text: "#E8A838" },
@@ -10,8 +10,33 @@ const statusColors = {
 };
 export function ClientsPage() {
     const navigate = useNavigate();
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("All");
+
+    useEffect(() => {
+        fetchApi('/projects/clients/all')
+            .then((data) => {
+                // Map the DB Client model to the UI expected format
+                const mappedClients = data.map(c => ({
+                    ...c,
+                    contact: "Contact N/A",
+                    email: "N/A",
+                    status: "Active",
+                    since: "2026",
+                    projects: 0,
+                    budget: "N/A"
+                }));
+                setClients(mappedClients);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
+
     const statuses = ["All", "Active", "Paused", "Completed"];
     const filtered = clients.filter((c) => {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -21,9 +46,17 @@ export function ClientsPage() {
         return matchSearch && matchFilter;
     });
     const totalBudget = clients.reduce((sum, c) => {
-        const n = parseInt(c.budget.replace(/[$,]/g, ""));
+        const n = parseInt(c.budget.replace(/[$,]/g, "")) || 0;
         return sum + n;
     }, 0);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
     return (<div className="px-8 py-7">
             <div className="flex items-center justify-between mb-8">
                 <div>
@@ -79,7 +112,7 @@ export function ClientsPage() {
 
             {/* Client Cards */}
             <div className="grid grid-cols-2 gap-4">
-                {filtered.map((client) => (<div key={client.id} className="rounded-xl p-5 group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/clients/${client.id}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                {filtered.map((client) => (<div key={client.slug} className="rounded-xl p-5 group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/clients/${client.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>
@@ -120,7 +153,7 @@ export function ClientsPage() {
                                 <p style={{ color: "#666", fontSize: "11px" }}>Total Budget</p>
                                 <p style={{ color: "#D84040", fontSize: "15px", fontWeight: 600 }}>{client.budget}</p>
                             </div>
-                            <button className="px-3 py-1.5 rounded-lg" style={{ background: "#2A1F1F", color: "#888", fontSize: "12px", border: "1px solid #3A2A2A" }} onClick={(e) => { e.stopPropagation(); navigate(`/admin/clients/${client.id}`); }} onMouseEnter={(e) => {
+                            <button className="px-3 py-1.5 rounded-lg" style={{ background: "#2A1F1F", color: "#888", fontSize: "12px", border: "1px solid #3A2A2A" }} onClick={(e) => { e.stopPropagation(); navigate(`/admin/clients/${client.slug}`); }} onMouseEnter={(e) => {
                 e.currentTarget.style.background = "#D84040";
                 e.currentTarget.style.color = "#fff";
             }} onMouseLeave={(e) => {
