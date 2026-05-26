@@ -1,5 +1,5 @@
 import { recentActivity } from "../data/mockData";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const statusColors: Record<string, { bg: string; text: string }> = {
   "In Progress": { bg: "#2A1A1A", text: "#D84040" },

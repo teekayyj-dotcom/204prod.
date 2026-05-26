@@ -1,6 +1,6 @@
 import { crewMembers } from "../data/mockData";
 import { Briefcase } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 export function CrewOverview() {
   const navigate = useNavigate();

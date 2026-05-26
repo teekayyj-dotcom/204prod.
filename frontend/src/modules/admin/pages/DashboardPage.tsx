@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Plus, Bell, Search } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { OverviewMetrics } from "../dashboard/OverviewMetrics";
 import { ProjectTimeline } from "../dashboard/ProjectTimeline";
 import { RecentActivity } from "../dashboard/RecentActivity";

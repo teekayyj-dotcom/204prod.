@@ -1,9 +1,11 @@
 // @ts-nocheck
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, FolderPlus, Loader2, CheckCircle2, Tag, AlignLeft, Palette, Info, Layers } from "lucide-react";
 import { allProjects } from "../data/mockData";
+import { fetchApi } from "../utils/apiClient";
+
 const inputStyle = {
     background: "#1D1616",
     border: "1px solid #3A2A2A",
@@ -32,12 +34,28 @@ export function AddCategoryPage() {
     const nameValue = watch("name") || "";
     const descValue = watch("description") || "";
     const existingCategoryNames = [...new Set(allProjects.map((p) => p.category))];
-    const onSubmit = async (_data) => {
+    const onSubmit = async (data) => {
         setSubmitting(true);
-        await new Promise((r) => setTimeout(r, 1100));
-        setSubmitting(false);
-        setSuccess(true);
-        setTimeout(() => navigate("/admin/categories"), 1300);
+        try {
+            const payload = {
+                name: data.name,
+                slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""),
+                description: data.description || null,
+            };
+            
+            await fetchApi("/categories", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            
+            setSuccess(true);
+            setTimeout(() => navigate("/admin/categories"), 1300);
+        } catch (error) {
+            console.error("Error creating category:", error);
+            // In a real app we'd show an error toast here
+        } finally {
+            setSubmitting(false);
+        }
     };
     return (<div className="px-8 py-7 w-full">
             {/* Page Header */}

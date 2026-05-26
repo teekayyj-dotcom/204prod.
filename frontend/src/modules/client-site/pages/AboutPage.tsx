@@ -1,6 +1,6 @@
 export function AboutPage() {
   return (
-    <main className="home-shell">
+    <main className="home-shell pt-24 md:pt-32">
       <section className="section-block">
         <div className="section-head">
           <p className="eyebrow">About</p>

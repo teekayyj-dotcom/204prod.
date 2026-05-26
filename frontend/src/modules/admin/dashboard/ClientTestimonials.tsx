@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { testimonials } from "../data/mockData";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 export function ClientTestimonials() {
   const [current, setCurrent] = useState(0);

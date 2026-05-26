@@ -13,8 +13,9 @@ if TYPE_CHECKING:
 class Category(Base):
     __tablename__ = "categories"
 
-    id: Mapped[str] = mapped_column(String(120), primary_key=True)
+    slug: Mapped[str] = mapped_column(String(120), primary_key=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     type: Mapped[str] = mapped_column(String(80), nullable=False, default="format")
+    description: Mapped[str] = mapped_column(String(1000), nullable=True)
 
     projects: Mapped[list["Project"]] = relationship(back_populates="format_category")

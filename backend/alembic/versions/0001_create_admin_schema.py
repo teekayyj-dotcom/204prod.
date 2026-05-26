@@ -55,6 +55,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(length=120), nullable=False),
         sa.Column("name", sa.String(length=160), nullable=False),
         sa.Column("type", sa.String(length=80), nullable=False),
+        sa.Column("description", sa.String(length=255), nullable=True),
         sa.PrimaryKeyConstraint("slug"),
     )
 

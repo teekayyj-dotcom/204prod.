@@ -16,6 +16,8 @@ class Settings:
         f"{os.getenv('MYSQL_PORT', '3306')}/"
         f"{os.getenv('MYSQL_DATABASE', '204prod_database')}",
     )
+    backend_url: str = os.getenv("BACKEND_URL", "http://localhost:8000")
+    storage_provider: str = os.getenv("STORAGE_PROVIDER", "local")
 
 
 settings = Settings()

@@ -20,6 +20,13 @@ class Client(Base):
         ForeignKey("media_assets.id", ondelete="SET NULL"),
     )
     website: Mapped[str | None] = mapped_column(String(500))
+    contact: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    industry: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="Active")
+    since: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     logo_media: Mapped["MediaAsset | None"] = relationship(
         back_populates="logo_clients",
@@ -52,6 +59,7 @@ class Project(Base):
         String(160),
         ForeignKey("media_assets.id", ondelete="SET NULL"),
     )
+    video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text)
     seo_title: Mapped[str | None] = mapped_column(String(255))
     seo_description: Mapped[str | None] = mapped_column(String(500))

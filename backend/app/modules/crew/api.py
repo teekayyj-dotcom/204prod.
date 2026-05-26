@@ -9,3 +9,4 @@ router = APIRouter(prefix="/crew", tags=["crew"])
 @router.get("/")
 def list_crew_route(db: Session = Depends(get_db_session)):
     return get_crew_members(db)
+

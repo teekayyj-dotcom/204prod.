@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Plus, Loader2, CheckCircle2, FolderOpen, Calendar, DollarSign, AlignLeft, Tag, User, Clock, CheckSquare, Info, Video, Link2, UploadCloud, X, Play, Camera, ImagePlus } from "lucide-react";
-import { clients, categories } from "../data/mockData";
+import { fetchApi } from "../utils/apiClient";
 const inputStyle = {
     background: "#1D1616",
     border: "1px solid #3A2A2A",
@@ -34,8 +34,28 @@ export function AddProjectPage() {
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [dbClients, setDbClients] = useState([]);
+    const [dbCategories, setDbCategories] = useState([]);
+    const [mediaAssets, setMediaAssets] = useState([]);
+    const [selectedThumbnailAssetId, setSelectedThumbnailAssetId] = useState(null);
+    const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+    const [mediaModalType, setMediaModalType] = useState("image"); // "image" or "video"
+
+    useEffect(() => {
+        Promise.all([
+            fetchApi('/projects/clients/all'),
+            fetchApi('/categories'),
+            fetchApi('/media')
+        ]).then(([clientsData, categoriesData, mediaData]) => {
+            setDbClients(clientsData);
+            setDbCategories(categoriesData);
+            setMediaAssets(mediaData || []);
+        }).catch(err => console.error(err));
+    }, []);
+
     // Thumbnail state
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
+    const [thumbnailFile, setThumbnailFile] = useState(null);
     const [thumbDragActive, setThumbDragActive] = useState(false);
     const handleThumbDrag = (e) => {
         e.preventDefault();
@@ -50,8 +70,10 @@ export function AddProjectPage() {
         e.stopPropagation();
         setThumbDragActive(false);
         const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith("image/"))
+        if (file && file.type.startsWith("image/")) {
             setThumbnailPreview(URL.createObjectURL(file));
+            setThumbnailFile(file);
+        }
     };
     // Video media state
     const [videoUrl, setVideoUrl] = useState("");
@@ -78,12 +100,62 @@ export function AddProjectPage() {
     });
     const watched = watch();
     const statusInfo = statusColors[watched.status] || statusColors["Planning"];
-    const onSubmit = async (_data) => {
+    const onSubmit = async (data) => {
         setSubmitting(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        setSubmitting(false);
-        setSuccess(true);
-        setTimeout(() => navigate("/admin/projects"), 1400);
+        try {
+            let coverMediaId = selectedThumbnailAssetId;
+
+            // Upload thumbnail if selected
+            if (thumbnailFile) {
+                const formData = new FormData();
+                formData.append("file", thumbnailFile);
+                formData.append("alt", data.title || "Project Thumbnail");
+                formData.append("caption", `Thumbnail for ${data.title}`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                coverMediaId = mediaAsset.id;
+            }
+
+            // Upload video if selected
+            let finalVideoUrl = videoUrl;
+            if (uploadedVideo) {
+                const formData = new FormData();
+                formData.append("file", uploadedVideo);
+                formData.append("alt", `${data.title} Video`);
+                formData.append("caption", `Video for ${data.title}`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                finalVideoUrl = mediaAsset.url;
+            }
+
+            const payload = {
+                title: data.title,
+                slug: data.slug || null,
+                client_slug: data.client,
+                year: parseInt(new Date(data.dueDate || Date.now()).getFullYear()),
+                format_slug: data.category,
+                featured: !!data.featured,
+                status: data.status,
+                cover_media_id: coverMediaId,
+                summary: data.description || null,
+                video_url: finalVideoUrl || null,
+            };
+            await fetchApi("/projects", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            setSuccess(true);
+            setTimeout(() => navigate("/admin/projects"), 1400);
+        } catch (error) {
+            console.error("Error creating project:", error);
+            alert(error instanceof Error ? error.message : "Failed to create project.");
+        } finally {
+            setSubmitting(false);
+        }
     };
     return (<div className="px-8 py-7 w-full">
             {/* Page Header */}
@@ -116,14 +188,21 @@ export function AddProjectPage() {
                     <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-6 space-y-5">
                         {/* ── Project Thumbnail ── */}
                         <div>
-                            <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                <ImagePlus size={13} color="#D84040"/> Project Thumbnail
-                                <span className="px-1.5 py-0.5 rounded ml-1" style={{ background: "rgba(216,64,64,0.1)", color: "#888", fontSize: "10px", border: "1px solid rgba(216,64,64,0.2)" }}>Optional</span>
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="flex items-center gap-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                    <ImagePlus size={13} color="#D84040"/> Project Thumbnail
+                                    <span className="px-1.5 py-0.5 rounded ml-1" style={{ background: "rgba(216,64,64,0.1)", color: "#888", fontSize: "10px", border: "1px solid rgba(216,64,64,0.2)" }}>Optional</span>
+                                </label>
+                                <button type="button" onClick={() => { setMediaModalType("image"); setIsMediaModalOpen(true); }} className="text-xs transition-all hover:underline" style={{ color: "#D84040" }}>
+                                    Choose from Media Library
+                                </button>
+                            </div>
                             <input id="thumb-upload-add" type="file" accept="image/*" className="hidden" onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file)
+            if (file) {
                 setThumbnailPreview(URL.createObjectURL(file));
+                setThumbnailFile(file);
+            }
         }}/>
                             {!thumbnailPreview ? (<div onDragEnter={handleThumbDrag} onDragLeave={handleThumbDrag} onDragOver={handleThumbDrag} onDrop={handleThumbDrop} onClick={() => document.getElementById("thumb-upload-add")?.click()} className="rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all select-none" style={{
                 height: "148px",
@@ -145,7 +224,7 @@ export function AddProjectPage() {
                                         <button type="button" onClick={() => document.getElementById("thumb-upload-add")?.click()} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.15)", color: "#EEEEEE", fontSize: "12px", backdropFilter: "blur(6px)", border: "1px solid rgba(255,255,255,0.25)" }}>
                                             <Camera size={13}/> Change
                                         </button>
-                                        <button type="button" onClick={() => setThumbnailPreview(null)} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(216,64,64,0.35)", color: "#EEEEEE", fontSize: "12px", backdropFilter: "blur(6px)", border: "1px solid rgba(216,64,64,0.5)" }}>
+                                        <button type="button" onClick={() => { setThumbnailPreview(null); setThumbnailFile(null); setSelectedThumbnailAssetId(null); }} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(216,64,64,0.35)", color: "#EEEEEE", fontSize: "12px", backdropFilter: "blur(6px)", border: "1px solid rgba(216,64,64,0.5)" }}>
                                             <X size={13}/> Remove
                                         </button>
                                     </div>
@@ -165,7 +244,7 @@ export function AddProjectPage() {
                                 <FieldLabel icon={User} text="Client *"/>
                                 <select {...register("client", { required: "Client is required" })} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.client ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.client ? "#D84040" : "#3A2A2A")}>
                                     <option value="">Select client</option>
-                                    {clients.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                                 </select>
                                 {errors.client && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.client.message}</p>}
                             </div>
@@ -173,7 +252,7 @@ export function AddProjectPage() {
                                 <FieldLabel icon={Tag} text="Category *"/>
                                 <select {...register("category", { required: "Category is required" })} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.category ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.category ? "#D84040" : "#3A2A2A")}>
                                     <option value="">Select category</option>
-                                    {categories.map((cat) => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+                                    {dbCategories.map((cat) => <option key={cat.slug} value={cat.slug}>{cat.name}</option>)}
                                 </select>
                                 {errors.category && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.category.message}</p>}
                             </div>
@@ -193,6 +272,17 @@ export function AddProjectPage() {
                             <div>
                                 <FieldLabel icon={Calendar} text="Due Date"/>
                                 <input type="date" {...register("dueDate")} className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, colorScheme: "dark" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                            </div>
+                        </div>
+
+                        {/* Featured Option */}
+                        <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: "#1D1616", border: "1px solid #3A2A2A" }}>
+                            <div>
+                                <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Highlight / Feature Project</p>
+                                <p style={{ color: "#666", fontSize: "11px" }} className="mt-0.5">Showcase this project on the client site landing page</p>
+                            </div>
+                            <div className="relative flex items-center justify-center">
+                                <input type="checkbox" id="project-featured-checkbox" {...register("featured")} className="w-4 h-4 accent-[#D84040] cursor-pointer" />
                             </div>
                         </div>
 
@@ -216,12 +306,17 @@ export function AddProjectPage() {
 
                         {/* ── Video Media ── */}
                         <div className="pt-1" style={{ borderTop: "1px solid #2A1F1F" }}>
-                            <div className="flex items-center gap-2 mb-1">
-                                <Video size={13} color="#D84040"/>
-                                <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>Video Media</span>
-                                <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.1)", color: "#888", fontSize: "10px", border: "1px solid rgba(216,64,64,0.2)" }}>
-                                    Optional
-                                </span>
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                    <Video size={13} color="#D84040"/>
+                                    <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>Video Media</span>
+                                    <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.1)", color: "#888", fontSize: "10px", border: "1px solid rgba(216,64,64,0.2)" }}>
+                                        Optional
+                                    </span>
+                                </div>
+                                <button type="button" onClick={() => { setMediaModalType("video"); setIsMediaModalOpen(true); }} className="text-xs transition-all hover:underline" style={{ color: "#D84040" }}>
+                                    Choose from Media Library
+                                </button>
                             </div>
                             <p style={{ color: "#666", fontSize: "12px" }} className="mb-4">
                                 Link a YouTube or Vimeo video, or upload a video file directly for this project.
@@ -234,7 +329,12 @@ export function AddProjectPage() {
                                 </label>
                                 <div className="relative">
                                     <Link2 size={13} color="#555" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}/>
-                                    <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." className="px-3 py-2.5 rounded-lg outline-none transition-all" style={{ ...inputStyle, paddingLeft: "36px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                    <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." className="px-3 py-2.5 rounded-lg outline-none transition-all" style={{ ...inputStyle, paddingLeft: "36px", paddingRight: "36px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                    {videoUrl && (
+                                        <button type="button" onClick={() => setVideoUrl("")} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center bg-[#2A1F1F] hover:bg-[#3A2A2A] text-white/50 hover:text-white transition-all" title="Clear Video URL">
+                                            <X size={10}/>
+                                        </button>
+                                    )}
                                 </div>
                                 {videoUrl && (<div className="flex items-center gap-2 mt-2">
                                         <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#4CAF50" }}/>
@@ -364,5 +464,62 @@ export function AddProjectPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Media Select Modal */}
+            {isMediaModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md" style={{ background: "rgba(0,0,0,0.75)" }}>
+                    <div className="w-full max-w-2xl rounded-2xl flex flex-col max-h-[80vh] overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
+                            <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>
+                                Select {mediaModalType === "image" ? "Image" : "Video"} from Media Library
+                            </h3>
+                            <button type="button" onClick={() => setIsMediaModalOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center transition-all" style={{ background: "#1D1616", border: "1px solid #2E2020", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2E2020"; }}>
+                                <X size={15} />
+                            </button>
+                        </div>
+
+                        {/* Search & Grid Content */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                            {mediaAssets.filter(asset => asset.kind === mediaModalType).length === 0 ? (
+                                <div className="text-center py-12">
+                                    <AlignLeft className="mx-auto mb-3" size={32} color="#444" />
+                                    <p style={{ color: "#666", fontSize: "13px" }}>No {mediaModalType} assets found in the library.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-4">
+                                    {mediaAssets.filter(asset => asset.kind === mediaModalType).map(asset => (
+                                        <div key={asset.id} onClick={() => {
+                                            if (mediaModalType === "image") {
+                                                setThumbnailPreview(asset.url);
+                                                setSelectedThumbnailAssetId(asset.id);
+                                                setThumbnailFile(null); // clear uploaded file
+                                            } else {
+                                                setVideoUrl(asset.url);
+                                                setUploadedVideo(null); // clear uploaded file
+                                            }
+                                            setIsMediaModalOpen(false);
+                                        }} className="rounded-xl overflow-hidden group cursor-pointer relative transition-all" style={{ height: "120px", background: "#1D1616", border: "1px solid #2E2020" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                                            {mediaModalType === "image" ? (
+                                                <img src={asset.url} alt={asset.alt || ""} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 p-2">
+                                                    <Video size={24} color="#E8A838" />
+                                                    <span className="text-xs truncate max-w-full text-center" style={{ color: "#888" }}>
+                                                        {asset.url.split('/').pop()}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.5)" }}>
+                                                <span className="px-2 py-1 rounded text-xs" style={{ background: "#D84040", color: "#fff", fontWeight: 500 }}>Select</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>);
 }

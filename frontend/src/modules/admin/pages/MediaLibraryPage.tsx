@@ -26,6 +26,42 @@ export function MediaLibraryPage() {
     const [loading, setLoading] = useState(true);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const handleMediaUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file)
+            return;
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("alt", file.name);
+            formData.append("caption", `Uploaded via Media Library: ${file.name}`);
+            const newAsset = await fetchApi("/media/upload", {
+                method: "POST",
+                body: formData,
+            });
+            const mapped = {
+                id: newAsset.id,
+                name: newAsset.url.split("/").pop() || newAsset.id,
+                type: newAsset.kind,
+                project: "N/A",
+                size: newAsset.file_size ? `${(newAsset.file_size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
+                uploaded: newAsset.created_at ? new Date(newAsset.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+                image: newAsset.url,
+            };
+            setAssets((prev) => [mapped, ...prev]);
+        }
+        catch (err) {
+            console.error("Failed to upload media:", err);
+            alert(err instanceof Error ? err.message : "Failed to upload file.");
+        }
+        finally {
+            setUploading(false);
+            e.target.value = "";
+        }
+    };
 
     useEffect(() => {
         fetchApi('/media').then(data => {
@@ -63,10 +99,18 @@ export function MediaLibraryPage() {
         if (!deleteTarget)
             return;
         setIsDeleting(true);
-        await new Promise((r) => setTimeout(r, 700));
-        setAssets((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-        setIsDeleting(false);
-        setDeleteTarget(null);
+        try {
+            await fetchApi(`/media/${deleteTarget.id}`, {
+                method: "DELETE"
+            });
+            setAssets((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+        } catch (err) {
+            console.error("Failed to delete media asset:", err);
+            alert(err instanceof Error ? err.message : "Failed to delete asset.");
+        } finally {
+            setIsDeleting(false);
+            setDeleteTarget(null);
+        }
     };
     if (loading) {
         return (
@@ -88,9 +132,13 @@ export function MediaLibraryPage() {
                         {assets.length} assets · {totalSize.toFixed(0)} MB total
                     </p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-lg" style={{ background: "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}>
-                    <Upload size={16}/>
-                    Upload Asset
+                <input type="file" id="media-library-upload" className="hidden" onChange={handleMediaUpload}/>
+                <button onClick={() => document.getElementById("media-library-upload")?.click()} disabled={uploading} className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all" style={{ background: uploading ? "#555" : "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600, opacity: uploading ? 0.7 : 1 }} onMouseEnter={(e) => { if (!uploading) e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { if (!uploading) e.currentTarget.style.background = "#D84040"; }}>
+                    {uploading ? (
+                        <><Loader2 size={16} className="animate-spin"/> Uploading...</>
+                    ) : (
+                        <><Upload size={16}/> Upload Asset</>
+                    )}
                 </button>
             </div>
 

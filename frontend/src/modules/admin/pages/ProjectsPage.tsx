@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star, Loader2 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 const statusColors = {
@@ -36,13 +36,32 @@ export function ProjectsPage() {
         });
     }, []);
     const statuses = ["All", "In Progress", "Review", "Planning", "Completed"];
-    const toggleFeatured = (e, id) => {
+    const toggleFeatured = async (e, slug) => {
         e.stopPropagation();
+        const isFeatured = featuredIds.has(slug);
+        const nextFeatured = !isFeatured;
+
+        // Optimistically update UI
         setFeaturedIds((prev) => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            next.has(slug) ? next.delete(slug) : next.add(slug);
             return next;
         });
+
+        try {
+            await fetchApi(`/projects/${slug}`, {
+                method: "PUT",
+                body: JSON.stringify({ featured: nextFeatured }),
+            });
+        } catch (err) {
+            console.error("Failed to toggle project featured state:", err);
+            // Revert state on error
+            setFeaturedIds((prev) => {
+                const next = new Set(prev);
+                isFeatured ? next.add(slug) : next.delete(slug);
+                return next;
+            });
+        }
     };
     const filtered = allProjects.filter((p) => {
         const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||

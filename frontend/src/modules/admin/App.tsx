@@ -1,4 +1,4 @@
-import { Navigate, RouterProvider, createBrowserRouter } from "react-router";
+import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom";
 import { adminRoute } from "./routes";
 
 const router = createBrowserRouter([

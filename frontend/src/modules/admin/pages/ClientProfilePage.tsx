@@ -1,10 +1,11 @@
 // @ts-nocheck
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Edit3, Save, X, Trash2, CheckCircle2, Loader2, Mail, Phone, Globe, Building2, User, Briefcase, DollarSign, Calendar, AlertTriangle, ExternalLink, Activity, Tag, ChevronRight, Plus, Check, Camera } from "lucide-react";
 import { clients, allProjects } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
+import { fetchApi } from "../utils/apiClient";
 const statusColors = {
     Active: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
     Paused: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
@@ -26,6 +27,8 @@ const inputStyle = {
 export function ClientProfilePage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [client, setClient] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -36,40 +39,125 @@ export function ClientProfilePage() {
     const [addingIndustry, setAddingIndustry] = useState(false);
     const [industryInput, setIndustryInput] = useState("");
     const [avatarPreview, setAvatarPreview] = useState(null);
-    const client = clients.find((c) => c.id === id);
-    const clientProjects = allProjects.filter((p) => p.client === client?.name);
-    const { register, handleSubmit, watch, reset } = useForm({
-        defaultValues: client
-            ? {
-                name: client.name,
-                contact: client.contact,
-                email: client.email,
-                phone: client.phone || "",
-                website: client.website || "",
-                industry: client.industry || "",
-                status: client.status,
-                since: client.since,
-                budget: client.budget,
-                notes: client.notes || "",
-            }
-            : {},
-    });
+    const [avatarFile, setAvatarFile] = useState(null);
+
+    const { register, handleSubmit, watch, reset } = useForm({});
+
+    useEffect(() => {
+        fetchApi(`/projects/clients/${id}`)
+            .then(data => {
+                setClient(data);
+                setAvatarPreview(data.logo_media_url || null);
+                reset({
+                    name: data.name,
+                    contact: data.contact || "",
+                    email: data.email || "",
+                    phone: data.phone || "",
+                    website: data.website || "",
+                    industry: data.industry || "",
+                    status: data.status || "Active",
+                    since: data.since || "2026",
+                    budget: data.total_budget ? `$${data.total_budget.toLocaleString()}` : "N/A",
+                    notes: data.notes || "",
+                });
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, [id, reset]);
+
     const watched = watch();
     const statusInfo = statusColors[watched.status] || statusColors["Active"];
     const initials = (watched.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-    const onSave = async (_data) => {
+    const clientProjects = client?.projects || [];
+
+    const onSave = async (data) => {
         setSaving(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setSaving(false);
-        setSaved(true);
-        setTimeout(() => { setSaved(false); setIsEditing(false); }, 1400);
+        try {
+            let logoMediaId = client.logo_media_id;
+
+            // Upload logo if selected
+            if (avatarFile) {
+                const formData = new FormData();
+                formData.append("file", avatarFile);
+                formData.append("alt", `${data.name} Logo`);
+                formData.append("caption", `Logo for ${data.name}`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                logoMediaId = mediaAsset.id;
+            } else if (avatarPreview === null) {
+                logoMediaId = null;
+            }
+
+            const payload = {
+                name: data.name,
+                logo_media_id: logoMediaId,
+                website: data.website || null,
+                contact: data.contact || null,
+                email: data.email || null,
+                phone: data.phone || null,
+                industry: data.industry || null,
+                status: data.status,
+                since: data.since || null,
+                notes: data.notes || null,
+            };
+            const updated = await fetchApi(`/projects/clients/${id}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            });
+            // Reload client detail from API to refresh projects list etc.
+            const freshDetail = await fetchApi(`/projects/clients/${id}`);
+            setClient(freshDetail);
+            setAvatarPreview(freshDetail.logo_media_url || null);
+            setAvatarFile(null);
+            setSaved(true);
+            setTimeout(() => {
+                setSaved(false);
+                setIsEditing(false);
+            }, 1400);
+        } catch (error) {
+            console.error("Error updating client:", error);
+            alert(error instanceof Error ? error.message : "Failed to update client.");
+        } finally {
+            setSaving(false);
+        }
     };
+
     const handleDelete = async () => {
         setDeleting(true);
-        await new Promise((r) => setTimeout(r, 900));
-        navigate("/admin/clients");
+        try {
+            await fetchApi(`/projects/clients/${id}`, {
+                method: "DELETE"
+            });
+            navigate("/admin/clients");
+        } catch (error) {
+            console.error("Error deleting client:", error);
+            alert(error instanceof Error ? error.message : "Failed to delete client.");
+        } finally {
+            setDeleting(false);
+            setConfirmDelete(false);
+        }
     };
-    const handleCancel = () => { reset(); setIsEditing(false); };
+
+    const handleCancel = () => { 
+        reset(); 
+        setAvatarPreview(client?.logo_media_url || null);
+        setAvatarFile(null);
+        setIsEditing(false); 
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-black">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
+
     if (!client) {
         return (<div className="px-8 py-7">
                 <div className="flex items-center gap-4 mb-8">
@@ -149,8 +237,10 @@ export function ClientProfilePage() {
                                 <div className="relative group">
                                     <input id="client-profile-avatar" type="file" accept="image/*" className="hidden" onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file)
+            if (file) {
                 setAvatarPreview(URL.createObjectURL(file));
+                setAvatarFile(file);
+            }
         }}/>
                                     <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "18px", fontWeight: 700, border: "3px solid #241C1C", position: "relative", zIndex: 2 }}>
                                         {avatarPreview ? (<img src={avatarPreview} alt="Client avatar" className="w-full h-full object-cover"/>) : (initials)}
@@ -239,7 +329,7 @@ export function ClientProfilePage() {
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
                                         <DollarSign size={10} color="#D84040"/> Total Budget
                                     </label>
-                                    {isEditing ? (<input {...register("budget")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#D84040", fontSize: "15px", fontWeight: 700 }}>{client.budget}</p>)}
+                                    {isEditing ? (<input {...register("budget")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#D84040", fontSize: "15px", fontWeight: 700 }}>{client.total_budget ? `$${client.total_budget.toLocaleString()}` : "—"}</p>)}
                                 </div>
                             </div>
                         </div>
@@ -296,9 +386,9 @@ export function ClientProfilePage() {
                     <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Account Summary</p>
                         {[
-            { icon: Briefcase, label: "Total Projects", value: client.projects },
+            { icon: Briefcase, label: "Total Projects", value: clientProjects.length },
             { icon: Activity, label: "Active Projects", value: clientProjects.filter((p) => p.status === "In Progress").length },
-            { icon: DollarSign, label: "Total Budget", value: client.budget, color: "#D84040" },
+            { icon: DollarSign, label: "Total Budget", value: client.total_budget ? `$${client.total_budget.toLocaleString()}` : "—", color: "#D84040" },
             { icon: Calendar, label: "Client Since", value: client.since },
         ].map(({ icon: Icon, label, value, color }) => (<div key={label} className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid #2A1F1F" }}>
                                 <div className="flex items-center gap-2">

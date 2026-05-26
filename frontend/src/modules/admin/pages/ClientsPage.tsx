@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Search, Users, Mail, Briefcase, TrendingUp, Plus, Loader2 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 const statusColors = {
@@ -21,12 +21,13 @@ export function ClientsPage() {
                 // Map the DB Client model to the UI expected format
                 const mappedClients = data.map(c => ({
                     ...c,
-                    contact: "Contact N/A",
-                    email: "N/A",
-                    status: "Active",
-                    since: "2026",
-                    projects: 0,
-                    budget: "N/A"
+                    contact: c.contact || "Contact N/A",
+                    email: c.email || "N/A",
+                    status: c.status || "Active",
+                    since: c.since || "2026",
+                    projects: c.project_count || 0,
+                    budget: c.total_budget ? `$${c.total_budget.toLocaleString()}` : "N/A",
+                    avatar: c.logo_media_url || null
                 }));
                 setClients(mappedClients);
                 setLoading(false);
@@ -115,8 +116,12 @@ export function ClientsPage() {
                 {filtered.map((client) => (<div key={client.slug} className="rounded-xl p-5 group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/clients/${client.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>
-                                    {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                <div className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ background: "#8E1616", border: "1px solid #2E2020", color: "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>
+                                    {client.avatar ? (
+                                        <img src={client.avatar} alt="Logo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        client.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+                                    )}
                                 </div>
                                 <div>
                                     <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>

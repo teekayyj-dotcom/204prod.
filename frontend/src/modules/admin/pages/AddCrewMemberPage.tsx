@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, UserPlus, Loader2, CheckCircle2, User, Mail, Briefcase, Tag, AlignLeft, X, Plus, Info, UserCheck, Camera } from "lucide-react";
 import { crewMembers } from "../data/mockData";

@@ -1,5 +1,5 @@
 import { TrendingUp } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const statCards = [
   { label: "Active Projects", value: "24", change: "+3", positive: true, path: "/admin/projects" },

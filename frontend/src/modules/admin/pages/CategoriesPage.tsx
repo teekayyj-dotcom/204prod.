@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Plus, FolderOpen, MoreHorizontal, Trash2, ChevronRight, Pencil, X, Search, Droplets, Check, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, DollarSign, Loader2 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -452,10 +452,18 @@ export function CategoriesPage() {
         if (!deleteTarget)
             return;
         setIsDeleting(true);
-        await new Promise((r) => setTimeout(r, 700));
-        setCats((prev) => prev.filter((c) => c.id !== deleteTarget.id));
-        setIsDeleting(false);
-        setDeleteTarget(null);
+        try {
+            await fetchApi(`/categories/${deleteTarget.id}`, {
+                method: "DELETE"
+            });
+            setCats((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+        } catch (err) {
+            console.error("Failed to delete category:", err);
+            alert(err instanceof Error ? err.message : "Failed to delete category.");
+        } finally {
+            setIsDeleting(false);
+            setDeleteTarget(null);
+        }
     };
     const openIconPicker = (catId, e) => {
         e.stopPropagation();

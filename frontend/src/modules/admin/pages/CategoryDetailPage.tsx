@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { useState, useMemo } from "react";
-import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, FolderOpen, Plus, Clock, DollarSign, CheckCircle2, Activity, ChevronRight, Star, Tag, ExternalLink, LayoutGrid, List, Search, Pencil, X, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, } from "lucide-react";
-import { categories, allProjects } from "../data/mockData";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, FolderOpen, Plus, Clock, DollarSign, CheckCircle2, Activity, ChevronRight, Star, Tag, ExternalLink, LayoutGrid, List, Search, Pencil, X, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, Loader2, } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 // ── Icon catalogue for the picker ─────────────────────────────────
 const ICON_OPTIONS = [
     { name: "FolderOpen", Icon: FolderOpen },
@@ -180,13 +180,39 @@ function IconPickerModal({ current, accent, onSelect, onClose, }) {
 export function CategoryDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const category = categories.find((c) => c.id === id);
+    const [category, setCategory] = useState(null);
+    const [allProjects, setAllProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState("grid");
     // Icon customisation
-    const [selectedIconName, setSelectedIconName] = useState(() => defaultIcons[category?.name ?? ""] ?? "FolderOpen");
+    const [selectedIconName, setSelectedIconName] = useState("FolderOpen");
     const [showIconPicker, setShowIconPicker] = useState(false);
+
+    useEffect(() => {
+        Promise.all([
+            fetchApi(`/categories/${id}`),
+            fetchApi('/projects')
+        ]).then(([catData, projsData]) => {
+            setCategory(catData);
+            setAllProjects(projsData);
+            setSelectedIconName(defaultIcons[catData?.name ?? ""] ?? "FolderOpen");
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-black">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
+
     if (!category) {
         return (<div className="px-8 py-7">
                 <button onClick={() => navigate("/admin/categories")} className="w-9 h-9 rounded-lg flex items-center justify-center mb-8" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }}>
@@ -209,7 +235,7 @@ export function CategoryDetailPage() {
     const CurrentIconEntry = ICON_OPTIONS.find((o) => o.name === selectedIconName) ?? ICON_OPTIONS[0];
     const SelectedIcon = CurrentIconEntry.Icon;
     // Projects
-    const categoryProjects = allProjects.filter((p) => p.category === category.name);
+    const categoryProjects = allProjects.filter((p) => p.format === category.name || p.category === category.name);
     const filteredProjects = categoryProjects.filter((p) => {
         const matchesStatus = statusFilter === "All" || p.status === statusFilter;
         const matchesSearch = searchQuery === "" ||
@@ -218,11 +244,15 @@ export function CategoryDetailPage() {
         return matchesStatus && matchesSearch;
     });
     // Stats
-    const totalBudget = categoryProjects.reduce((s, p) => s + parseInt(p.budget.replace(/[$,]/g, "") || "0"), 0);
+    const totalBudget = categoryProjects.reduce((s, p) => {
+        const rawBudget = typeof p.budget === "string" ? p.budget.replace(/[$,]/g, "") : String(p.budget || "0");
+        const parsed = parseInt(rawBudget) || 0;
+        return s + parsed;
+    }, 0);
     const activeCount = categoryProjects.filter((p) => p.status === "In Progress").length;
     const completedCount = categoryProjects.filter((p) => p.status === "Completed").length;
     const avgProgress = categoryProjects.length
-        ? Math.round(categoryProjects.reduce((s, p) => s + p.progress, 0) / categoryProjects.length)
+        ? Math.round(categoryProjects.reduce((s, p) => s + (p.progress ?? 100), 0) / categoryProjects.length)
         : 0;
     return (<div className="px-8 py-7 w-full">
 
@@ -426,7 +456,9 @@ export function CategoryDetailPage() {
                 </div>) : viewMode === "grid" ? (<div className="grid grid-cols-3 gap-5">
                     {filteredProjects.map((project) => {
                 const sc = statusColors[project.status] ?? statusColors["Planning"];
-                return (<div key={project.id} onClick={() => navigate(`/admin/projects/${project.id}`)} className="rounded-xl overflow-hidden cursor-pointer group transition-all" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onMouseEnter={(e) => {
+                const projId = project.slug || project.id;
+                const projImg = project.cover_image || project.image;
+                return (<div key={projId} onClick={() => navigate(`/admin/projects/${projId}`)} className="rounded-xl overflow-hidden cursor-pointer group transition-all" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = `${accent.primary}60`;
                         e.currentTarget.style.transform = "translateY(-2px)";
                     }} onMouseLeave={(e) => {
@@ -435,7 +467,7 @@ export function CategoryDetailPage() {
                     }}>
                                 {/* Thumbnail */}
                                 <div className="relative" style={{ height: "160px" }}>
-                                    <img src={project.image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                                    <img src={projImg} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
                                     <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #1D1616 0%, rgba(0,0,0,0.28) 55%, transparent 100%)" }}/>
                                     {project.featured && (<div className="absolute top-3 left-3 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.4)" }}>
                                             <Star size={11} color="#FFC107" fill="#FFC107"/>
@@ -493,12 +525,14 @@ export function CategoryDetailPage() {
                     </div>
                     {filteredProjects.map((project, i) => {
                 const sc = statusColors[project.status] ?? statusColors["Planning"];
-                return (<div key={project.id} onClick={() => navigate(`/admin/projects/${project.id}`)} className="grid items-center px-5 py-3.5 cursor-pointer transition-colors" style={{
+                const projId = project.slug || project.id;
+                const projImg = project.cover_image || project.image;
+                return (<div key={projId} onClick={() => navigate(`/admin/projects/${projId}`)} className="grid items-center px-5 py-3.5 cursor-pointer transition-colors" style={{
                         gridTemplateColumns: "2fr 1fr 1fr 1fr 100px",
                         borderBottom: i < filteredProjects.length - 1 ? "1px solid #2A1F1F" : "none",
                     }} onMouseEnter={(e) => { e.currentTarget.style.background = "#2A1F1F"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                                 <div className="flex items-center gap-3">
-                                    <img src={project.image} alt={project.title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0"/>
+                                    <img src={projImg} alt={project.title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0"/>
                                     <div>
                                         <div className="flex items-center gap-1.5">
                                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{project.title}</p>

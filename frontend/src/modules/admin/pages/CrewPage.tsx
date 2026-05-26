@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Search, Plus, Briefcase, UserCheck, UserX, Mail } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 export function CrewPage() {

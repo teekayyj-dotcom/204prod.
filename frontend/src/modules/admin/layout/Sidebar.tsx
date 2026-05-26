@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -30,26 +30,11 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6" style={{ borderBottom: "1px solid #2A1F1F" }}>
-        <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: "#D84040" }}
-        >
-          <Zap size={18} color="#EEEEEE" fill="#EEEEEE" />
-        </div>
         <div>
-          <span
-            className="tracking-widest uppercase"
-            style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700, letterSpacing: "0.15em" }}
-          >
-            FRAME
-          </span>
-          <span
-            className="tracking-widest uppercase"
-            style={{ color: "#D84040", fontSize: "15px", fontWeight: 700, letterSpacing: "0.15em" }}
-          >
-            CRAFT
-          </span>
+          <img src="/favicon/android-chrome-512x512.png" alt="204 Logo" className="h-20 w-20" />
         </div>
+        <span><h1>ADMIN</h1></span>
+
       </div>
 
       {/* Navigation */}

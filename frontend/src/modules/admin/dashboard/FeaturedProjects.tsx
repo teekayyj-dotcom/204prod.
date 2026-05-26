@@ -1,5 +1,5 @@
 import { featuredProjects } from "../data/mockData";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const statusColors: Record<string, { bg: string; text: string }> = {
   "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },

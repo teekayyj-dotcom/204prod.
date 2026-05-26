@@ -1,9 +1,10 @@
 // @ts-nocheck
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, UserPlus, Loader2, CheckCircle2, Building2, User, Mail, Phone, DollarSign, AlignLeft, Globe, Briefcase, TrendingUp, Info, Camera, X } from "lucide-react";
 import { clients } from "../data/mockData";
+import { fetchApi } from "../utils/apiClient";
 const inputStyle = {
     background: "#1D1616",
     border: "1px solid #3A2A2A",
@@ -22,6 +23,7 @@ export function AddClientPage() {
     const [success, setSuccess] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState("Active");
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [avatarFile, setAvatarFile] = useState(null);
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
         defaultValues: { status: "Active", since: String(new Date().getFullYear()) },
     });
@@ -30,12 +32,49 @@ export function AddClientPage() {
     const budgetValue = watch("budget") || "";
     const initials = nameValue.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "?";
     const statusInfo = statusOptions.find((s) => s.value === selectedStatus) || statusOptions[0];
-    const onSubmit = async (_data) => {
+    const onSubmit = async (data) => {
         setSubmitting(true);
-        await new Promise((r) => setTimeout(r, 1100));
-        setSubmitting(false);
-        setSuccess(true);
-        setTimeout(() => navigate("/admin/clients"), 1300);
+        try {
+            let logoMediaId = null;
+
+            // Upload logo if selected
+            if (avatarFile) {
+                const formData = new FormData();
+                formData.append("file", avatarFile);
+                formData.append("alt", `${data.name} Logo`);
+                formData.append("caption", `Logo for ${data.name}`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                logoMediaId = mediaAsset.id;
+            }
+
+            const payload = {
+                name: data.name,
+                slug: data.slug || null,
+                logo_media_id: logoMediaId,
+                website: data.website || null,
+                contact: data.contact,
+                email: data.email,
+                phone: data.phone || null,
+                industry: data.industry || null,
+                status: selectedStatus,
+                since: data.since || null,
+                notes: data.notes || null,
+            };
+            await fetchApi("/projects/clients", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            setSuccess(true);
+            setTimeout(() => navigate("/admin/clients"), 1300);
+        } catch (error) {
+            console.error("Error creating client:", error);
+            alert(error instanceof Error ? error.message : "Failed to create client.");
+        } finally {
+            setSubmitting(false);
+        }
     };
     const totalExistingBudget = clients.reduce((s, c) => {
         return s + parseInt(c.budget.replace(/[$,]/g, ""));
@@ -72,8 +111,10 @@ export function AddClientPage() {
                         <div className="flex flex-col items-center py-2">
                             <input id="client-avatar-input" type="file" accept="image/*" className="hidden" onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file)
+            if (file) {
                 setAvatarPreview(URL.createObjectURL(file));
+                setAvatarFile(file);
+            }
         }}/>
                             <div className="relative group cursor-pointer mb-3" onClick={() => document.getElementById("client-avatar-input")?.click()}>
                                 {/* Avatar circle */}

@@ -7,15 +7,15 @@ class CrewMember(Base):
     __tablename__ = "crew_members"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    email = Column(String)
-    phone = Column(String)
-    role = Column(String)
-    avatar = Column(String)
-    bio = Column(String)
-    skills_expertise = Column(String)
+    name = Column(String(255))
+    email = Column(String(255))
+    phone = Column(String(50))
+    role = Column(String(255))
+    avatar = Column(String(500))
+    bio = Column(String(1000))
+    skills_expertise = Column(String(500))
     assigned_projects = Column(Integer, default=0)
-    status = Column(String, default="available")   # available, busy, on_leave, etc.
+    status = Column(String(50), default="available")   # available, busy, on_leave, etc.
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

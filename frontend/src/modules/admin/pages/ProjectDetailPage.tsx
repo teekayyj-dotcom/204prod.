@@ -1,10 +1,11 @@
 // @ts-nocheck
-import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Edit3, Save, X, Calendar, DollarSign, Tag, User, Briefcase, Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink, AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera } from "lucide-react";
-import { allProjects, clients, categories, crewMembers } from "../data/mockData";
+import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
+import { fetchApi } from "../utils/apiClient";
 const statusColors = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040", border: "rgba(216,64,64,0.3)" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
@@ -31,24 +32,100 @@ const inputStyle = {
 export function ProjectDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [project, setProject] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [dbClients, setDbClients] = useState([]);
+    const [dbCategories, setDbCategories] = useState([]);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState("activity");
-    const [isFeatured, setIsFeatured] = useState(() => !!allProjects.find((p) => p.id === id)?.featured);
+    const [isFeatured, setIsFeatured] = useState(false);
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeletingProject, setIsDeletingProject] = useState(false);
+    const [activities, setActivities] = useState([]);
+    const [comments, setComments] = useState([]);
+    const [assignedCrew, setAssignedCrew] = useState([]);
+
+    const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({});
+
+    useEffect(() => {
+        Promise.all([
+            fetchApi(`/projects/${id}`),
+            fetchApi('/projects/clients/all'),
+            fetchApi('/categories')
+        ]).then(([projData, clientsData, categoriesData]) => {
+            setProject(projData);
+            setIsFeatured(!!projData.featured);
+            setDbClients(clientsData);
+            setDbCategories(categoriesData);
+            reset({
+                title: projData.title,
+                client: projData.client_slug || projData.client,
+                category: projData.format_slug || projData.format,
+                status: projData.status,
+                dueDate: projData.dueDate || `${projData.year}-01-01`,
+                budget: projData.budget,
+                description: projData.summary || "",
+                progress: projData.progress,
+                videoUrl: projData.videoUrl || "",
+            });
+
+            // Determine if this is a mock project or a new project
+            const isMockProject = [
+                "proj-aurora-rebrand", "proj-slate-site", "proj-pulse-campaign", "proj-nova-ecom", "proj-aurora-motion", "proj-slate-photo",
+                "aurora-platform-rebrand", "slate-house-portfolio", "pulse-summer-campaign", "nova-goods-product-launch", "aurora-motion-toolkit", "slate-editorial-shoot"
+            ].includes(id.toLowerCase());
+
+            if (isMockProject) {
+                setActivities([
+                    { id: 1, user: "Sarah Kim", action: "updated project status to In Progress", time: "2 hours ago", avatar: "SK" },
+                    { id: 2, user: "Jake Torres", action: "pushed a new build — v0.4.1", time: "5 hours ago", avatar: "JT" },
+                    { id: 3, user: "Maya Chen", action: "uploaded revised wireframes", time: "1 day ago", avatar: "MC" },
+                    { id: 4, user: "Alex (You)", action: "created this project", time: "3 days ago", avatar: "AY" },
+                ]);
+                setComments([
+                    { id: 1, user: "Sarah Kim", text: "Client approved the direction — moving into production phase now.", time: "2 hours ago", avatar: "SK" },
+                    { id: 2, user: "Jake Torres", text: "Main components are all wired up. Need final copy from Emma before we can close the homepage.", time: "1 day ago", avatar: "JT" },
+                ]);
+                setAssignedCrew(crewMembers.slice(0, 3));
+            } else {
+                setActivities([
+                    { id: 1, user: "Alex (You)", action: "created this project", time: "Just now", avatar: "AY" }
+                ]);
+                setComments([]);
+                setAssignedCrew([]);
+            }
+
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, [id, reset]);
+
     const handleDeleteProject = async () => {
         setIsDeletingProject(true);
-        await new Promise((r) => setTimeout(r, 900));
-        navigate("/admin/projects");
+        try {
+            await fetchApi(`/projects/${id}`, {
+                method: "DELETE"
+            });
+            navigate("/admin/projects");
+        } catch (err) {
+            console.error("Failed to delete project:", err);
+            alert(err instanceof Error ? err.message : "Failed to delete project.");
+        } finally {
+            setIsDeletingProject(false);
+            setShowDeleteModal(false);
+        }
     };
     // Video media state
     const [dragActive, setDragActive] = useState(false);
     const [uploadedVideo, setUploadedVideo] = useState(null);
     // Thumbnail editing state
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
+    const [thumbnailFile, setThumbnailFile] = useState(null);
     const handleDrag = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -65,39 +142,90 @@ export function ProjectDetailPage() {
         if (file && file.type.startsWith("video/"))
             setUploadedVideo(file);
     };
-    const project = allProjects.find((p) => p.id === id);
-    const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
-        defaultValues: project
-            ? {
-                title: project.title,
-                client: project.client,
-                category: project.category,
-                status: project.status,
-                dueDate: project.dueDate,
-                budget: project.budget,
-                description: "A comprehensive creative engagement focused on delivering exceptional brand experiences and driving measurable outcomes for the client.",
-                tags: project.tags?.join(", ") || "",
-                progress: project.progress,
-                videoUrl: project.videoUrl || "",
-            }
-            : {},
-    });
+
     const watched = watch();
     const statusInfo = statusColors[watched.status] || statusColors["Planning"];
-    const onSave = async (_data) => {
+    const onSave = async (data) => {
         setSaving(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setSaving(false);
-        setSaved(true);
-        setTimeout(() => {
-            setSaved(false);
-            setIsEditing(false);
-        }, 1400);
+        try {
+            let coverMediaId = undefined;
+
+            // Upload thumbnail if selected
+            if (thumbnailFile) {
+                const formData = new FormData();
+                formData.append("file", thumbnailFile);
+                formData.append("alt", data.title || "Project Thumbnail");
+                formData.append("caption", `Thumbnail for ${data.title}`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                coverMediaId = mediaAsset.id;
+            } else if (thumbnailPreview === null) {
+                // If thumbnailPreview was explicitly set to null (i.e. removed)
+                coverMediaId = null;
+            }
+
+            // Upload video if selected
+            let finalVideoUrl = data.videoUrl;
+            if (uploadedVideo) {
+                const formData = new FormData();
+                formData.append("file", uploadedVideo);
+                formData.append("alt", `${data.title} Video`);
+                formData.append("caption", `Video for ${data.title}`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                finalVideoUrl = mediaAsset.url;
+            }
+
+            const payload = {
+                title: data.title,
+                client_slug: data.client,
+                year: parseInt(new Date(data.dueDate || Date.now()).getFullYear()),
+                format_slug: data.category,
+                featured: isFeatured,
+                status: data.status,
+                cover_media_id: coverMediaId,
+                summary: data.description || null,
+                video_url: finalVideoUrl,
+            };
+            const updated = await fetchApi(`/projects/${id}`, {
+                method: "PUT",
+                body: JSON.stringify(payload)
+            });
+            setProject(updated);
+            setSaved(true);
+            setTimeout(() => {
+                setSaved(false);
+                setIsEditing(false);
+                setThumbnailFile(null);
+                setUploadedVideo(null);
+            }, 1400);
+        } catch (err) {
+            console.error("Failed to update project:", err);
+            alert(err instanceof Error ? err.message : "Failed to update project.");
+        } finally {
+            setSaving(false);
+        }
     };
     const handleCancel = () => {
         reset();
+        setThumbnailPreview(null);
+        setThumbnailFile(null);
+        setUploadedVideo(null);
         setIsEditing(false);
     };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-black">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
+
     if (!project) {
         return (<div className="px-8 py-7">
                 <div className="flex items-center gap-4 mb-8">
@@ -115,7 +243,6 @@ export function ProjectDetailPage() {
                 </div>
             </div>);
     }
-    const assignedCrew = crewMembers.slice(0, 3);
     return (<div className="px-8 py-7 w-full">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
@@ -175,21 +302,23 @@ export function ProjectDetailPage() {
                     {/* Hero Image */}
                     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020" }}>
                         <div className="relative h-56">
-                            <img src={thumbnailPreview || project.image} alt={project.title} className="w-full h-full object-cover"/>
+                            <img src={thumbnailPreview || project.cover_image || project.image} alt={project.title} className="w-full h-full object-cover"/>
                             <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #1D1616 0%, rgba(0,0,0,0.4) 50%, transparent 100%)" }}/>
                             {/* Thumbnail edit overlay — visible only when editing */}
                             {isEditing && (<>
                                     <input id="thumb-upload-detail" type="file" accept="image/*" className="hidden" onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file)
+                if (file) {
                     setThumbnailPreview(URL.createObjectURL(file));
+                    setThumbnailFile(file);
+                }
             }}/>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "rgba(0,0,0,0.5)", zIndex: 4 }}>
                                         <div className="flex items-center gap-2">
                                             <button type="button" onClick={() => document.getElementById("thumb-upload-detail")?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "rgba(255,255,255,0.14)", color: "#EEEEEE", fontSize: "13px", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.22)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.22)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; }}>
                                                 <Camera size={14}/> Change Thumbnail
                                             </button>
-                                            {thumbnailPreview && (<button type="button" onClick={() => setThumbnailPreview(null)} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(216,64,64,0.3)", color: "#EEEEEE", fontSize: "13px", backdropFilter: "blur(8px)", border: "1px solid rgba(216,64,64,0.5)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(216,64,64,0.45)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(216,64,64,0.3)"; }}>
+                                            {thumbnailPreview && (<button type="button" onClick={() => { setThumbnailPreview(null); setThumbnailFile(null); }} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(216,64,64,0.3)", color: "#EEEEEE", fontSize: "13px", backdropFilter: "blur(8px)", border: "1px solid rgba(216,64,64,0.5)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(216,64,64,0.45)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(216,64,64,0.3)"; }}>
                                                     <X size={13}/> Reset
                                                 </button>)}
                                         </div>
@@ -257,7 +386,7 @@ export function ProjectDetailPage() {
                                         <User size={11} color="#D84040"/> Client
                                     </label>
                                     {isEditing ? (<select {...register("client")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                            {clients.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                            {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                                         </select>) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{project.client}</p>)}
                                 </div>
                                 <div>
@@ -265,13 +394,13 @@ export function ProjectDetailPage() {
                                         <Tag size={11} color="#D84040"/> Category
                                     </label>
                                     {isEditing ? (<select {...register("category")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                            {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                            {dbCategories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                                         </select>) : (<button onClick={() => {
-                const cat = categories.find((c) => c.name === project.category);
-                if (cat)
-                    navigate(`/admin/categories/${cat.id}`);
+                const catId = project.format_slug || project.category;
+                if (catId)
+                    navigate(`/admin/categories/${catId}`);
             }} className="flex items-center gap-1.5 group/cat" style={{ color: "#EEEEEE", fontSize: "14px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-                                            {project.category}
+                                            {project.format || project.category}
                                             <ExternalLink size={11} color="#555" className="opacity-0 group-hover/cat:opacity-100 transition-opacity"/>
                                         </button>)}
                                 </div>
@@ -350,7 +479,12 @@ export function ProjectDetailPage() {
                                             </label>
                                             <div className="relative">
                                                 <Link2 size={13} color="#555" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}/>
-                                                <input {...register("videoUrl")} placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." className="px-3 py-2 rounded-lg outline-none transition-all" style={{ ...inputStyle, paddingLeft: "36px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                                <input {...register("videoUrl")} placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." className="px-3 py-2 rounded-lg outline-none transition-all" style={{ ...inputStyle, paddingLeft: "36px", paddingRight: "36px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                                {watch("videoUrl") && (
+                                                    <button type="button" onClick={() => setValue("videoUrl", "")} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center bg-[#2A1F1F] hover:bg-[#3A2A2A] text-white/50 hover:text-white transition-all" title="Clear Video URL">
+                                                        <X size={10}/>
+                                                    </button>
+                                                )}
                                             </div>
                                             {watch("videoUrl") && (<div className="flex items-center gap-2 mt-2">
                                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#4CAF50" }}/>
@@ -459,14 +593,14 @@ export function ProjectDetailPage() {
                 color: activeTab === tab ? "#D84040" : "#555",
                 fontSize: "10px",
             }}>
-                                        {tab === "activity" ? mockActivity.length : mockComments.length}
+                                        {tab === "activity" ? activities.length : comments.length}
                                     </span>
                                 </button>))}
                         </div>
 
                         <div className="px-5 py-4 space-y-4">
                             {activeTab === "activity" &&
-            mockActivity.map((item) => (<div key={item.id} className="flex items-start gap-3">
+            activities.map((item) => (<div key={item.id} className="flex items-start gap-3">
                                         <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>
                                             {item.avatar}
                                         </div>
@@ -483,7 +617,7 @@ export function ProjectDetailPage() {
                                     </div>))}
 
                             {activeTab === "comments" && (<>
-                                    {mockComments.map((c) => (<div key={c.id} className="flex items-start gap-3">
+                                    {comments.map((c) => (<div key={c.id} className="flex items-start gap-3">
                                             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>
                                                 {c.avatar}
                                             </div>
@@ -501,7 +635,19 @@ export function ProjectDetailPage() {
                                         <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff", fontSize: "10px", fontWeight: 700 }}>
                                             AY
                                         </div>
-                                        <input placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
+                                        <input onKeyDown={(e) => {
+                                            if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                                                const newComment = {
+                                                    id: Date.now(),
+                                                    user: "Alex (You)",
+                                                    text: e.currentTarget.value.trim(),
+                                                    time: "Just now",
+                                                    avatar: "AY"
+                                                };
+                                                setComments((prev) => [...prev, newComment]);
+                                                e.currentTarget.value = "";
+                                            }
+                                        }} placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
                                     </div>
                                 </>)}
                         </div>
@@ -566,6 +712,9 @@ export function ProjectDetailPage() {
                                     </div>
                                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: member.status === "Active" ? "#4CAF50" : "#E8A838" }}/>
                                 </div>))}
+                            {assignedCrew.length === 0 && (
+                                <p style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>No crew assigned to this project yet.</p>
+                            )}
                         </div>
                     </div>
 
@@ -573,20 +722,20 @@ export function ProjectDetailPage() {
                     <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
                         <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }} className="mb-3">Client</p>
                         {(() => {
-            const clientData = clients.find((c) => c.name === project.client);
+            const clientData = dbClients.find((c) => c.name === project.client || c.slug === project.client_slug);
             return clientData ? (<div>
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "12px", fontWeight: 700 }}>
-                                            {clientData.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                            {(clientData.name || "Client").split(" ").map((n) => n[0]).join("").slice(0, 2)}
                                         </div>
                                         <div>
                                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{clientData.name}</p>
-                                            <p style={{ color: "#888", fontSize: "11px" }}>{clientData.contact}</p>
+                                            <p style={{ color: "#888", fontSize: "11px" }}>{clientData.contact || "Primary Contact"}</p>
                                         </div>
                                     </div>
-                                    <a href={`mailto:${clientData.email}`} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "#1D1616", color: "#888", border: "1px solid #2A1F1F", fontSize: "12px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                                    <a href={`mailto:${clientData.email || 'contact@example.com'}`} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "#1D1616", color: "#888", border: "1px solid #2A1F1F", fontSize: "12px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                                         <User size={12}/>
-                                        {clientData.email}
+                                        {clientData.email || "No Email Registered"}
                                     </a>
                                 </div>) : null;
         })()}
