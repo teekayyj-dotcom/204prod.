@@ -5,12 +5,12 @@ export function initFluid(canvas: HTMLCanvasElement) {
         SIM_RESOLUTION: 128,
         DYE_RESOLUTION: 1440,
         CAPTURE_RESOLUTION: 512,
-        DENSITY_DISSIPATION: 3.5,
-        VELOCITY_DISSIPATION: 1,
+        DENSITY_DISSIPATION: 1.5,
+        VELOCITY_DISSIPATION: 0.8,
         PRESSURE: 0.1,
         PRESSURE_ITERATIONS: 10,
         CURL: 5,
-        SPLAT_RADIUS: 0.05,
+        SPLAT_RADIUS: 0.09,
         SPLAT_FORCE: 2000,
         SHADING: true,
         // COLOR_UPDATE_SPEED: 10,
@@ -29,7 +29,7 @@ export function initFluid(canvas: HTMLCanvasElement) {
         deltaY = 0;
         down = false;
         moved = false;
-        color = { r: 0.15, g: 0.15, b: 0.15 };
+        color = { r: 0.35, g: 0.35, b: 0.35 };
     }
 
     let pointers: Pointer[] = [];
@@ -1050,7 +1050,7 @@ export function initFluid(canvas: HTMLCanvasElement) {
     }
 
     function generateColor() {
-        return { r: 0.15, g: 0.15, b: 0.15 };
+        return { r: 0.35, g: 0.35, b: 0.35 };
     }
 
     function HSVtoRGB(h: number, s: number, v: number) {

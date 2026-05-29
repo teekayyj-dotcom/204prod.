@@ -51,8 +51,16 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* scroll-behavior: smooth is removed — GSAP ScrollSmoother handles all smooth scrolling */
   overscroll-behavior-y: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 body {
@@ -60,6 +68,19 @@ body {
   min-width: 320px;
   overflow-x: hidden;
   overscroll-behavior-y: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Applied by ClientLayout when GSAP ScrollSmoother is active */
+body.gsap-scroll-active {
+  overflow: hidden;
 }
 
 a {

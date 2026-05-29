@@ -1,9 +1,10 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, UserPlus, Loader2, CheckCircle2, User, Mail, Briefcase, Tag, AlignLeft, X, Plus, Info, UserCheck, Camera } from "lucide-react";
-import { crewMembers } from "../data/mockData";
+import { ArrowLeft, UserPlus, Loader2, CheckCircle2, User, Mail, Briefcase, Tag, AlignLeft, X, Plus, Info, UserCheck, Camera, Calendar } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
+import { ImageCropperModal } from "../components/ImageCropperModal";
 const inputStyle = {
     background: "#1D1616",
     border: "1px solid #3A2A2A",
@@ -23,18 +24,64 @@ const skillSuggestions = [
 ];
 export function AddCrewMemberPage() {
     const navigate = useNavigate();
+    const [crewMembers, setCrewMembers] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [skills, setSkills] = useState([]);
     const [skillInput, setSkillInput] = useState("");
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [selectedRoles, setSelectedRoles] = useState([]);
+    const [availableRolesList, setAvailableRolesList] = useState([]);
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState(null);
+
+    const handleCropConfirm = (croppedBlob: Blob, croppedPreviewUrl: string) => {
+        const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+        setAvatarFile(croppedFile);
+        setAvatarPreview(croppedPreviewUrl);
+        setCropperOpen(false);
+    };
+
+    useEffect(() => {
+        fetchApi("/crew")
+            .then((data) => setCrewMembers(data))
+            .catch((err) => console.error("Error loading crew stats:", err));
+
+        const storedCustom = localStorage.getItem("custom_crew_roles");
+        let custom = [];
+        if (storedCustom) {
+            try { custom = JSON.parse(storedCustom); } catch (e) { console.error(e); }
+        }
+        const storedDeleted = localStorage.getItem("deleted_crew_roles");
+        let deleted = [];
+        if (storedDeleted) {
+            try { deleted = JSON.parse(storedDeleted); } catch (e) { console.error(e); }
+        }
+        const combined = Array.from(new Set([...roleOptions, ...custom])).filter(r => !deleted.includes(r));
+        setAvailableRolesList(combined);
+    }, []);
+
+    const addRole = (role) => {
+        if (role && !selectedRoles.includes(role)) {
+            setSelectedRoles(prev => [...prev, role]);
+        }
+    };
+
+    const removeRole = (role) => {
+        setSelectedRoles(prev => prev.filter(r => r !== role));
+    };
+
     const { register, handleSubmit, watch, formState: { errors } } = useForm({
-        defaultValues: { status: "Active" },
+        defaultValues: {
+            status: "Active",
+            created_at: new Date().toISOString().split("T")[0]
+        },
     });
     const nameValue = watch("name") || "";
-    const roleValue = watch("role") || "";
     const statusValue = watch("status") || "Active";
     const initials = nameValue.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+    const roleValue = selectedRoles.join(", ");
     const addSkill = (skill) => {
         const trimmed = skill.trim();
         if (trimmed && !skills.includes(trimmed))
@@ -42,12 +89,44 @@ export function AddCrewMemberPage() {
         setSkillInput("");
     };
     const removeSkill = (skill) => setSkills((prev) => prev.filter((s) => s !== skill));
-    const onSubmit = async (_data) => {
+    const onSubmit = async (data) => {
         setSubmitting(true);
-        await new Promise((r) => setTimeout(r, 1100));
-        setSubmitting(false);
-        setSuccess(true);
-        setTimeout(() => navigate("/admin/crew"), 1300);
+        try {
+            let avatarUrl = "";
+            if (avatarFile) {
+                const formData = new FormData();
+                formData.append("file", avatarFile);
+                formData.append("alt", `${data.name} Avatar`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                avatarUrl = mediaAsset.url;
+            }
+            const payload = {
+                name: data.name,
+                email: data.email,
+                phone: "",
+                role: selectedRoles.join(", "),
+                avatar: avatarUrl,
+                bio: data.bio || "",
+                skills_expertise: skills.join(","),
+                assigned_projects: 0,
+                status: data.status || "Active",
+                created_at: data.created_at ? new Date(data.created_at).toISOString() : null,
+            };
+            await fetchApi("/crew", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            setSuccess(true);
+            setTimeout(() => navigate("/admin/crew"), 1300);
+        } catch (error) {
+            console.error("Error creating crew member:", error);
+            alert(error instanceof Error ? error.message : "Failed to create crew member.");
+        } finally {
+            setSubmitting(false);
+        }
     };
     return (<div className="px-8 py-7 w-full">
             {/* Header */}
@@ -81,8 +160,11 @@ export function AddCrewMemberPage() {
                         <div className="flex flex-col items-center py-2">
                             <input id="crew-avatar-input" type="file" accept="image/*" className="hidden" onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file)
-                setAvatarPreview(URL.createObjectURL(file));
+            if (file) {
+                setRawImageSrc(URL.createObjectURL(file));
+                setCropperOpen(true);
+            }
+            e.target.value = "";
         }}/>
                             <div className="relative group cursor-pointer mb-3" onClick={() => document.getElementById("crew-avatar-input")?.click()}>
                                 <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden" style={{ background: "#8E1616", border: "3px solid #3A2A2A" }}>
@@ -101,7 +183,7 @@ export function AddCrewMemberPage() {
                                 </button>
                                 {avatarPreview && (<>
                                         <span style={{ color: "#3A2A2A" }}>·</span>
-                                        <button type="button" onClick={() => setAvatarPreview(null)} className="flex items-center gap-1" style={{ color: "#666", fontSize: "12px" }}>
+                                        <button type="button" onClick={() => { setAvatarPreview(null); setAvatarFile(null); }} className="flex items-center gap-1" style={{ color: "#666", fontSize: "12px" }}>
                                             <X size={11}/> Remove
                                         </button>
                                     </>)}
@@ -119,18 +201,43 @@ export function AddCrewMemberPage() {
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <Briefcase size={13} color="#D84040"/> Role / Title *
+                                    <Briefcase size={13} color="#D84040"/> Roles / Titles *
                                 </label>
-                                <select {...register("role", { required: "Role is required" })} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.role ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.role ? "#D84040" : "#3A2A2A")}>
-                                    <option value="">Select role</option>
-                                    {roleOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+                                <input type="hidden" {...register("role", { validate: () => selectedRoles.length > 0 || "At least one role is required" })} />
+                                {selectedRoles.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {selectedRoles.map((role) => (
+                                            <span key={role} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
+                                                {role}
+                                                <button type="button" onClick={() => removeRole(role)} className="ml-1 hover:opacity-75">
+                                                    <X size={10}/>
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <select 
+                                    value="" 
+                                    onChange={(e) => {
+                                        addRole(e.target.value);
+                                        e.target.value = "";
+                                    }} 
+                                    className="px-3 py-2.5 rounded-lg outline-none appearance-none cursor-pointer" 
+                                    style={{ ...inputStyle, borderColor: selectedRoles.length === 0 && errors.role ? "#D84040" : "#3A2A2A" }} 
+                                    onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
+                                    onBlur={(e) => (e.target.style.borderColor = selectedRoles.length === 0 && errors.role ? "#D84040" : "#3A2A2A")}
+                                >
+                                    <option value="">Select roles...</option>
+                                    {availableRolesList.filter(r => !selectedRoles.includes(r)).map((r) => (
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
                                 </select>
-                                {errors.role && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.role.message}</p>}
+                                {selectedRoles.length === 0 && errors.role && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.role.message}</p>}
                             </div>
                         </div>
 
-                        {/* Email + Status */}
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Email + Status + Join Date */}
+                        <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Mail size={13} color="#D84040"/> Email *
@@ -146,6 +253,12 @@ export function AddCrewMemberPage() {
                                     <option value="Active">Active</option>
                                     <option value="On Leave">On Leave</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                    <Calendar size={13} color="#D84040"/> Join Date
+                                </label>
+                                <input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                             </div>
                         </div>
 
@@ -263,5 +376,13 @@ export function AddCrewMemberPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Image Cropper Modal */}
+            <ImageCropperModal
+                isOpen={cropperOpen}
+                imageSrc={rawImageSrc || ""}
+                onConfirm={handleCropConfirm}
+                onCancel={() => setCropperOpen(false)}
+            />
         </div>);
 }

@@ -1,10 +1,12 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Edit3, Save, X, Trash2, CheckCircle2, Loader2, Mail, Briefcase, User, AlertTriangle, Tag, Plus, Activity, Calendar, Star, Check, Camera } from "lucide-react";
-import { crewMembers, allProjects } from "../data/mockData";
+import { allProjects } from "../data/mockData";
+import { fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
+import { ImageCropperModal } from "../components/ImageCropperModal";
 const projectStatusColors = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50" },
@@ -31,33 +33,90 @@ const inputStyle = {
 export function CrewProfilePage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [member, setMember] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const member = crewMembers.find((m) => m.id === id);
-    const [skills, setSkills] = useState(member?.skills || []);
+    const [skills, setSkills] = useState([]);
     const [skillInput, setSkillInput] = useState("");
     // Add Role state
-    const [customRoles, setCustomRoles] = useState([]);
     const [addingRole, setAddingRole] = useState(false);
     const [roleInput, setRoleInput] = useState("");
-    const [primaryRoleVisible, setPrimaryRoleVisible] = useState(true);
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [customRolesList, setCustomRolesList] = useState([]);
+    const [deletedRolesList, setDeletedRolesList] = useState([]);
+    const [selectedRoles, setSelectedRoles] = useState([]);
+    const [cropperOpen, setCropperOpen] = useState(false);
+    const [rawImageSrc, setRawImageSrc] = useState(null);
+
+    const handleCropConfirm = (croppedBlob: Blob, croppedPreviewUrl: string) => {
+        const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
+        setAvatarFile(croppedFile);
+        setAvatarPreview(croppedPreviewUrl);
+        setCropperOpen(false);
+    };
     const assignedProjects = allProjects.slice(0, member?.projects || 0);
-    const { register, handleSubmit, watch, reset } = useForm({
-        defaultValues: member
-            ? {
-                name: member.name,
-                role: member.role,
-                email: member.email || "",
-                status: member.status,
-                bio: member.bio || "",
-            }
-            : {},
-    });
+
+    const { register, handleSubmit, watch, reset, setValue } = useForm();
     const watched = watch();
+
+    useEffect(() => {
+        const storedCustom = localStorage.getItem("custom_crew_roles");
+        if (storedCustom) {
+            try { setCustomRolesList(JSON.parse(storedCustom)); } catch (e) { console.error(e); }
+        }
+        const storedDeleted = localStorage.getItem("deleted_crew_roles");
+        if (storedDeleted) {
+            try { setDeletedRolesList(JSON.parse(storedDeleted)); } catch (e) { console.error(e); }
+        }
+    }, []);
+
+    const memberRolesList = member?.role ? member.role.split(",").map(r => r.trim()) : [];
+    const availableRoles = Array.from(
+        new Set([...roleOptions, ...customRolesList, ...memberRolesList].filter(Boolean))
+    ).filter(role => !deletedRolesList.includes(role) || memberRolesList.includes(role));
+
+    const addRole = (role) => {
+        if (role && !selectedRoles.includes(role)) {
+            setSelectedRoles(prev => [...prev, role]);
+        }
+    };
+
+    const removeRole = (role) => {
+        setSelectedRoles(prev => prev.filter(r => r !== role));
+    };
+
+    useEffect(() => {
+        setLoading(true);
+        fetchApi(`/crew/${id}`)
+            .then((data) => {
+                setMember(data);
+                const memberSkills = data.skills_expertise ? data.skills_expertise.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                setSkills(memberSkills);
+                const memberRoles = data.role ? data.role.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                setSelectedRoles(memberRoles);
+                setAvatarPreview(data.avatar || null);
+                const dateOnly = data.created_at ? data.created_at.split("T")[0] : new Date().toISOString().split("T")[0];
+                reset({
+                    name: data.name,
+                    role: data.role,
+                    email: data.email || "",
+                    status: data.status || "Active",
+                    bio: data.bio || "",
+                    created_at: dateOnly,
+                });
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error("Error fetching crew member:", err);
+                setLoading(false);
+            });
+    }, [id, reset]);
+
     const initials = (watched.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
     const addSkill = (skill) => {
         const trimmed = skill.trim();
@@ -66,19 +125,86 @@ export function CrewProfilePage() {
         setSkillInput("");
     };
     const removeSkill = (skill) => setSkills((p) => p.filter((s) => s !== skill));
-    const onSave = async (_data) => {
+    const onSave = async (data) => {
         setSaving(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setSaving(false);
-        setSaved(true);
-        setTimeout(() => { setSaved(false); setIsEditing(false); }, 1400);
+        try {
+            let avatarUrl = avatarPreview;
+            if (avatarFile) {
+                const formData = new FormData();
+                formData.append("file", avatarFile);
+                formData.append("alt", `${data.name} Avatar`);
+                const mediaAsset = await fetchApi("/media/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+                avatarUrl = mediaAsset.url;
+            }
+            const payload = {
+                name: data.name,
+                email: data.email,
+                phone: member?.phone || "",
+                role: selectedRoles.join(", "),
+                avatar: avatarUrl || "",
+                bio: data.bio || "",
+                skills_expertise: skills.join(","),
+                assigned_projects: member?.assigned_projects || 0,
+                status: data.status || "Active",
+                created_at: data.created_at ? new Date(data.created_at).toISOString() : null,
+            };
+            const updatedMember = await fetchApi(`/crew/${id}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            });
+            setMember(updatedMember);
+            setSaved(true);
+            setTimeout(() => { setSaved(false); setIsEditing(false); }, 1400);
+        } catch (error) {
+            console.error("Error updating crew member:", error);
+            alert(error instanceof Error ? error.message : "Failed to update crew member.");
+        } finally {
+            setSaving(false);
+        }
     };
     const handleDelete = async () => {
         setDeleting(true);
-        await new Promise((r) => setTimeout(r, 900));
-        navigate("/admin/crew");
+        try {
+            await fetchApi(`/crew/${id}`, {
+                method: "DELETE",
+            });
+            navigate("/admin/crew");
+        } catch (error) {
+            console.error("Error deleting crew member:", error);
+            alert(error instanceof Error ? error.message : "Failed to delete crew member.");
+            setDeleting(false);
+        }
     };
-    const handleCancel = () => { reset(); setIsEditing(false); };
+    const handleCancel = () => {
+        if (member) {
+            const dateOnly = member.created_at ? member.created_at.split("T")[0] : "";
+            reset({
+                name: member.name,
+                role: member.role,
+                email: member.email || "",
+                status: member.status || "Active",
+                bio: member.bio || "",
+                created_at: dateOnly,
+            });
+            const memberSkills = member.skills_expertise ? member.skills_expertise.split(",").map((s) => s.trim()).filter(Boolean) : [];
+            setSkills(memberSkills);
+            const memberRoles = member.role ? member.role.split(",").map((s) => s.trim()).filter(Boolean) : [];
+            setSelectedRoles(memberRoles);
+            setAvatarPreview(member.avatar || null);
+            setAvatarFile(null);
+        }
+        setIsEditing(false);
+    };
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+        );
+    }
     if (!member) {
         return (<div className="px-8 py-7">
                 <div className="flex items-center gap-4 mb-8">
@@ -93,12 +219,18 @@ export function CrewProfilePage() {
                 </div>
             </div>);
     }
-    const yearsWithAgency = new Date().getFullYear() - parseInt(member.joined || "2022");
-    const allRoles = [...roleOptions, ...customRoles];
+    const joinedYear = member.created_at ? new Date(member.created_at).getFullYear() : 2026;
+    const yearsWithAgency = new Date().getFullYear() - joinedYear;
+    const joinedDateStr = member.created_at 
+        ? new Date(member.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) 
+        : "May 2026";
     const saveRole = () => {
         const trimmed = roleInput.trim();
-        if (trimmed && !customRoles.includes(trimmed) && trimmed !== (watched.role || member.role)) {
-            setCustomRoles((prev) => [...prev, trimmed]);
+        if (trimmed) {
+            const updatedCustomList = Array.from(new Set([...customRolesList, trimmed]));
+            setCustomRolesList(updatedCustomList);
+            localStorage.setItem("custom_crew_roles", JSON.stringify(updatedCustomList));
+            addRole(trimmed);
         }
         setRoleInput("");
         setAddingRole(false);
@@ -174,8 +306,11 @@ export function CrewProfilePage() {
                                 <div className="relative group" style={{ zIndex: 2 }}>
                                     <input id="crew-profile-avatar" type="file" accept="image/*" className="hidden" onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file)
-                setAvatarPreview(URL.createObjectURL(file));
+            if (file) {
+                setRawImageSrc(URL.createObjectURL(file));
+                setCropperOpen(true);
+            }
+            e.target.value = "";
         }}/>
                                     <img src={avatarPreview || member.avatar} alt={member.name} className="w-20 h-20 rounded-full object-cover" style={{ border: "3px solid #241C1C" }}/>
                                     {/* Camera overlay — only in edit mode */}
@@ -194,30 +329,71 @@ export function CrewProfilePage() {
                                                 <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Full Name</label>
                                                 <input {...register("name")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                                             </div>
-                                            {/* Avatar change link beneath name input */}
+                                            <div className="mb-2">
+                                                <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Roles / Titles</label>
+                                                <input type="hidden" {...register("role", { validate: () => selectedRoles.length > 0 || "At least one role is required" })} />
+                                                {selectedRoles.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                                        {selectedRoles.map((role) => (
+                                                            <span key={role} className="flex items-center gap-1 px-2 py-0.5 rounded text-xs" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
+                                                                {role}
+                                                                <button type="button" onClick={() => removeRole(role)} className="ml-1 hover:opacity-75">
+                                                                    <X size={10}/>
+                                                                </button>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <select 
+                                                    value="" 
+                                                    onChange={(e) => {
+                                                        addRole(e.target.value);
+                                                        e.target.value = "";
+                                                    }}
+                                                    className="px-3 py-2 rounded-lg outline-none appearance-none cursor-pointer" 
+                                                    style={inputStyle} 
+                                                    onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
+                                                    onBlur={(e) => (e.target.style.borderColor = selectedRoles.length === 0 && errors?.role ? "#D84040" : "#3A2A2A")}
+                                                >
+                                                    <option value="">Select roles...</option>
+                                                    {availableRoles.filter(r => !selectedRoles.includes(r)).map((r) => (
+                                                        <option key={r} value={r}>{r}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            {/* Avatar change link beneath select input */}
                                             <div className="flex items-center gap-2">
                                                 <button type="button" onClick={() => document.getElementById("crew-profile-avatar")?.click()} style={{ color: "#D84040", fontSize: "11px", fontWeight: 500 }}>
                                                     {avatarPreview ? "Change Photo" : "Upload Photo"}
                                                 </button>
                                                 {avatarPreview && (<>
-                                                        <span style={{ color: "#3A2A2A", fontSize: "10px" }}>·</span>
-                                                        <button type="button" onClick={() => setAvatarPreview(null)} style={{ color: "#666", fontSize: "11px" }}>
-                                                            Reset
-                                                        </button>
-                                                    </>)}
-                                            </div>
-                                        </div>) : (<>
-                                            <h2 style={{ color: "#EEEEEE", fontSize: "20px", fontWeight: 700 }}>{watched.name}</h2>
-                                            <p style={{ color: "#D84040", fontSize: "14px" }}>{watched.role}</p>
-                                        </>)}
+                                                         <span style={{ color: "#3A2A2A", fontSize: "10px" }}>·</span>
+                                                         <button type="button" onClick={() => { setAvatarPreview(null); setAvatarFile(null); }} style={{ color: "#666", fontSize: "11px" }}>
+                                                             Reset
+                                                         </button>
+                                                     </>)}
+                                             </div>
+                                         </div>) : (<>
+                                             <h2 style={{ color: "#EEEEEE", fontSize: "20px", fontWeight: 700 }}>{watched.name}</h2>
+                                             <div className="flex flex-wrap gap-1 mt-1">
+                                                 {selectedRoles.map((r) => (
+                                                     <span key={r} className="px-2 py-0.5 rounded text-xs" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.2)" }}>
+                                                         {r}
+                                                     </span>
+                                                 ))}
+                                                 {selectedRoles.length === 0 && (
+                                                     <span style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>No role assigned</span>
+                                                 )}
+                                             </div>
+                                         </>)}
                                 </div>
                                 {isEditing && (<span className="px-2 py-0.5 rounded mb-1 flex-shrink-0" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", fontSize: "11px" }}>
                                         Editing
                                     </span>)}
                             </div>
 
-                            {/* Email + Status */}
-                            <div className="grid grid-cols-2 gap-4 pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
+                            {/* Email + Status + Join Date */}
+                            <div className="grid grid-cols-3 gap-4 pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
                                         <Mail size={10} color="#D84040"/> Email
@@ -238,6 +414,12 @@ export function CrewProfilePage() {
             }}>
                                             {member.status}
                                         </span>)}
+                                </div>
+                                <div>
+                                    <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
+                                        <Calendar size={10} color="#D84040"/> Join Date
+                                    </label>
+                                    {isEditing ? (<input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "13px" }}>{joinedDateStr}</p>)}
                                 </div>
                             </div>
                         </div>
@@ -317,7 +499,7 @@ export function CrewProfilePage() {
                         {[
             { icon: Briefcase, label: "Projects", value: member.projects, color: "#D84040" },
             { icon: Tag, label: "Skills", value: skills.length },
-            { icon: Calendar, label: "Joined", value: member.joined || "2022" },
+            { icon: Calendar, label: "Joined", value: joinedDateStr },
             { icon: Star, label: "Years w/ Agency", value: yearsWithAgency > 0 ? `${yearsWithAgency}yr${yearsWithAgency !== 1 ? "s" : ""}` : "< 1yr" },
         ].map(({ icon: Icon, label, value, color }) => (<div key={label} className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid #2A1F1F" }}>
                                 <div className="flex items-center gap-2">
@@ -343,55 +525,92 @@ export function CrewProfilePage() {
                             <Trash2 size={14}/>
                             Remove from Crew
                         </button>
-                    </div>
-
                     {/* Role badge — with Add Role */}
                     <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
-                        <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Current Role</p>
+                        <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Current Roles</p>
 
-                        {/* Primary role + any custom role badges */}
-                        <div className="flex flex-wrap gap-2 mb-3">
-                            {primaryRoleVisible && (<span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg group" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)", fontSize: "12px", fontWeight: 500 }}>
-                                    <User size={12}/> {watched.role || member.role}
-                                    <button type="button" title="Remove role" onClick={() => setPrimaryRoleVisible(false)} className="ml-0.5 opacity-40 hover:opacity-100 transition-opacity" style={{ color: "#D84040" }}>
-                                        <X size={10}/>
-                                    </button>
-                                </span>)}
-                            {!primaryRoleVisible && (<p style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>No primary role assigned</p>)}
-                            {customRoles.map((r) => (<span key={r} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: "rgba(142,22,22,0.12)", color: "#C0585A", border: "1px solid rgba(142,22,22,0.3)", fontSize: "12px", fontWeight: 500 }}>
-                                    <Tag size={11}/> {r}
-                                    <button type="button" onClick={() => setCustomRoles((prev) => prev.filter((x) => x !== r))} className="ml-0.5 opacity-60 hover:opacity-100">
-                                        <X size={10}/>
-                                    </button>
-                                </span>))}
-                        </div>
-
-                        {/* Inline add-role input */}
-                        {addingRole ? (<div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <input autoFocus value={roleInput} onChange={(e) => setRoleInput(e.target.value)} onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveRole();
-                }
-                if (e.key === "Escape") {
-                    setAddingRole(false);
-                    setRoleInput("");
-                }
-            }} placeholder="e.g. Brand Strategist..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #D84040", color: "#EEEEEE", fontSize: "13px" }}/>
-                                    <button type="button" onClick={saveRole} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff" }}>
-                                        <Check size={13}/>
-                                    </button>
-                                    <button type="button" onClick={() => { setAddingRole(false); setRoleInput(""); }} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#2A1F1F", color: "#888", border: "1px solid #3A2A2A" }}>
-                                        <X size={13}/>
-                                    </button>
+                        {isEditing ? (
+                            <div className="space-y-3">
+                                <div>
+                                    {selectedRoles.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mb-2">
+                                            {selectedRoles.map((role) => (
+                                                <span key={role} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
+                                                    {role}
+                                                    <button type="button" onClick={() => removeRole(role)} className="ml-1 hover:opacity-75">
+                                                        <X size={10}/>
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <select 
+                                        value="" 
+                                        onChange={(e) => {
+                                            addRole(e.target.value);
+                                            e.target.value = "";
+                                        }}
+                                        className="px-3 py-2 rounded-lg outline-none appearance-none cursor-pointer" 
+                                        style={inputStyle}
+                                    >
+                                        <option value="">Select roles...</option>
+                                        {availableRoles.filter(r => !selectedRoles.includes(r)).map((r) => (
+                                            <option key={r} value={r}>{r}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <p style={{ color: "#666", fontSize: "11px" }}>Press Enter to save · Esc to cancel</p>
-                            </div>) : (<button type="button" onClick={() => setAddingRole(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg w-full transition-all" style={{ background: "transparent", color: "#666", border: "1px dashed #3A2A2A", fontSize: "12px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; }}>
-                                <Plus size={12}/> Add Role
-                            </button>)}
+                                
+                                {addingRole ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <input autoFocus value={roleInput} onChange={(e) => setRoleInput(e.target.value)} onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    saveRole();
+                                                }
+                                                if (e.key === "Escape") {
+                                                    setAddingRole(false);
+                                                    setRoleInput("");
+                                                }
+                                            }} placeholder="e.g. Brand Strategist..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #D84040", color: "#EEEEEE", fontSize: "13px" }}/>
+                                            <button type="button" onClick={saveRole} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff" }}>
+                                                <Check size={13}/>
+                                            </button>
+                                            <button type="button" onClick={() => { setAddingRole(false); setRoleInput(""); }} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#2A1F1F", color: "#888", border: "1px solid #3A2A2A" }}>
+                                                <X size={13}/>
+                                            </button>
+                                        </div>
+                                        <p style={{ color: "#666", fontSize: "11px" }}>Press Enter to save · Esc to cancel</p>
+                                    </div>
+                                ) : (
+                                    <button type="button" onClick={() => setAddingRole(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg w-full transition-all" style={{ background: "transparent", color: "#666", border: "1px dashed #3A2A2A", fontSize: "12px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; }}>
+                                        <Plus size={12}/> Add Custom Option
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                                {selectedRoles.map((r) => (
+                                    <span key={r} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)", fontSize: "12px", fontWeight: 500 }}>
+                                        <User size={12}/> {r}
+                                    </span>
+                                ))}
+                                {selectedRoles.length === 0 && (
+                                    <span style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>No role assigned</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     </div>
                 </div>
             </div>
+
+            {/* Image Cropper Modal */}
+            <ImageCropperModal
+                isOpen={cropperOpen}
+                imageSrc={rawImageSrc || ""}
+                onConfirm={handleCropConfirm}
+                onCancel={() => setCropperOpen(false)}
+            />
         </div>);
 }

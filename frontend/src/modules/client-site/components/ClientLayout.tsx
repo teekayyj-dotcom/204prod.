@@ -12,6 +12,7 @@ export function ClientLayout() {
   const [time, setTime] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [hideHeader, setHideHeader] = useState(false);
+  const hideHeaderRef = useRef(false);
   const [letterOffsets, setLetterOffsets] = useState<Array<{ x: number; y: number; skewX: number; skewY: number }>>(
     Array(8).fill({ x: 0, y: 0, skewX: 0, skewY: 0 })
   );
@@ -75,9 +76,43 @@ export function ClientLayout() {
   }, []);
 
   useEffect(() => {
+    let headerFrame = 0;
+
+    const updateHeader = (scrollTop: number, maxScroll: number) => {
+      const shouldHide = !isLandingPage && maxScroll > 50 && scrollTop >= maxScroll - 100;
+
+      if (hideHeaderRef.current !== shouldHide) {
+        hideHeaderRef.current = shouldHide;
+        setHideHeader(shouldHide);
+      }
+    };
+
+    const handleNativeScroll = () => {
+      if (headerFrame) return;
+
+      headerFrame = window.requestAnimationFrame(() => {
+        headerFrame = 0;
+        const target = scrollContainerRef.current;
+        if (!target) return;
+        updateHeader(target.scrollTop, target.scrollHeight - target.clientHeight);
+      });
+    };
+
+    const target = scrollContainerRef.current;
+    target?.addEventListener("scroll", handleNativeScroll, { passive: true });
+
+    return () => {
+      target?.removeEventListener("scroll", handleNativeScroll);
+      if (headerFrame) window.cancelAnimationFrame(headerFrame);
+    };
+  }, [isLandingPage, location.pathname]);
+
+  useEffect(() => {
+    // Reset scroll to top on route change
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
+    hideHeaderRef.current = false;
     setHideHeader(false);
   }, [location.pathname]);
 
@@ -91,27 +126,18 @@ export function ClientLayout() {
     return cleanup;
   }, [isLandingPage]);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isLandingPage) return;
-    const target = e.currentTarget;
-    const maxScroll = target.scrollHeight - target.clientHeight;
-    if (maxScroll > 50) {
-      // Hide header when we have scrolled down near the bottom (within 100px of max scroll)
-      setHideHeader(target.scrollTop >= maxScroll - 100);
-    } else {
-      setHideHeader(false);
-    }
-  };
-
   return (
     <div 
       ref={scrollContainerRef}
-      onScroll={handleScroll}
-      className="fixed inset-0 overflow-y-auto overflow-x-hidden bg-black flex flex-col overscroll-none no-scrollbar"
+      data-client-scroll-root="true"
+      className={isLandingPage 
+        ? "fixed inset-0 overflow-hidden bg-black flex flex-col" 
+        : "fixed inset-0 overflow-y-auto overflow-x-hidden bg-black flex flex-col overscroll-none no-scrollbar"
+      }
     >
       {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-500 ease-in-out ${hideHeader ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"}`}>
-        <div className="w-full px-12 md:px-24 !py-6 grid grid-cols-5 items-center">
+      <header className={`fixed top-0 left-0 right-0 h-[10vh] z-50 bg-transparent transition-all duration-500 ease-in-out ${hideHeader ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"}`}>
+        <div className="w-full h-full px-12 md:px-24 grid grid-cols-5 items-center">
           <div className="flex justify-start">
             <NavLink to="/works" className="text-[15px] font-light tracking-wide hover:text-white/70 transition-colors text-white">
               Portfolio
@@ -129,7 +155,7 @@ export function ClientLayout() {
               <img
                 src="/favicon/android-chrome-512x512.png"
                 alt="Logo"
-                className="h-24 w-auto object-contain"
+                className="h-[8vh] max-h-[8vh] w-auto object-contain"
               />
             </NavLink>
           </div>
@@ -147,11 +173,12 @@ export function ClientLayout() {
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
-      <div className="flex-1">
-        <Outlet />
-      </div>
+ 
+      <div className="w-full flex flex-col min-h-screen">
+        {/* Main Content */}
+        <div className="flex-1">
+          <Outlet />
+        </div>
 
       {/* Footer */}
       {isLandingPage ? (
@@ -185,6 +212,9 @@ export function ClientLayout() {
         }}>
           {/* Canvas for WebGL fluid simulation smoke cursor */}
           <canvas id="fluid" className="absolute inset-0 w-full h-full pointer-events-none z-0" />
+
+          {/* Gradient overlay: black to transparent */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black to-transparent pointer-events-none z-0" />
 
           {/* Top segment: Links (left) and Newsletter subscription (right) */}
           <div className="flex flex-col md:flex-row justify-between items-start w-full gap-12 mt-12 md:mt-6 relative z-10">
@@ -263,6 +293,7 @@ export function ClientLayout() {
           </div>
         </footer>
       )}
+      </div>
     </div>
   );
 }

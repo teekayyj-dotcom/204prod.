@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "motion/react";
 import { Square, List, LayoutGrid, Search, ChevronDown } from "lucide-react";
 
@@ -658,6 +659,7 @@ export function WorksPage() {
               services: proj.format || "Production",
               category: proj.format || "Production",
               image: proj.cover_media?.url || proj.cover_image || shot("photo-1516321318423-f06f85e504b3"),
+              video: proj.video_url || proj.videoUrl || null,
               description: proj.summary || "A creative production showcase."
             }));
             setProjects(mapped);
@@ -686,6 +688,7 @@ export function WorksPage() {
           services: "Fashion Film",
           category: "Fashion Film",
           image: shot("photo-1516321318423-f06f85e504b3"),
+          video: "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c93159318eca11d331cfb51138ec3783&profile_id=139&oauth2_token_id=57447761",
           description: "A sharply lit studio piece balancing tactile wardrobe detail with humid city-night energy."
         },
         {
@@ -697,6 +700,7 @@ export function WorksPage() {
           services: "Brand Film",
           category: "Brand Film",
           image: shot("photo-1518005020951-eccb494ad742"),
+          video: "https://player.vimeo.com/external/435674703.sd.mp4?s=7fdf70a2569e2c6599db733575971485600ff0a9&profile_id=165&oauth2_token_id=57447761",
           description: "A saturated campaign world built around ritualized product framing and sculpted motion."
         },
         {
@@ -708,6 +712,7 @@ export function WorksPage() {
           services: "Digital Campaign",
           category: "Digital Campaign",
           image: shot("photo-1524758631624-e2822e304c36"),
+          video: "https://player.vimeo.com/external/340338356.sd.mp4?s=cfd3b5b63488820c85c2763c8be0a5fa70cb9e49&profile_id=165&oauth2_token_id=57447761",
           description: "A graphic product narrative using modular sets, hard edges, and close texture study."
         }
       ];
@@ -871,9 +876,11 @@ export function WorksPage() {
                       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div className="flex flex-col gap-2">
                           <span className="text-[#EB5B00] font-sans text-lg md:text-xl font-bold">{project.number}</span>
-                          <h3 className="text-white font-syne font-black text-4xl md:text-6xl uppercase tracking-tight leading-none hover:text-[#EB5B00] transition-colors duration-300">
-                            {project.title}
-                          </h3>
+                          <Link to={`/works/${project.id}`} className="hover:text-[#EB5B00] transition-colors duration-300">
+                            <h3 className="text-white font-syne font-black text-4xl md:text-6xl uppercase tracking-tight leading-none">
+                              {project.title}
+                            </h3>
+                          </Link>
                         </div>
                         <div className="text-left md:text-right text-white/70 font-sans text-sm font-semibold uppercase tracking-widest leading-relaxed">
                           <p>{project.client} &mdash; {project.year}</p>
@@ -881,13 +888,64 @@ export function WorksPage() {
                         </div>
                       </div>
                       
-                      <div className="w-full aspect-[4/5] md:aspect-[21/9] bg-zinc-950 overflow-hidden relative group rounded-2xl border border-white/5">
+                      <Link 
+                        to={`/works/${project.id}`}
+                        className="w-full aspect-[4/5] md:aspect-[21/9] bg-zinc-950 overflow-hidden relative group rounded-2xl border border-white/5 cursor-pointer block"
+                        onMouseEnter={() => setHoveredProject(project.id)}
+                        onMouseLeave={() => setHoveredProject(null)}
+                      >
                         <ImageWithFallback 
                           src={project.image} 
                           alt={project.title} 
                           className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 ease-out opacity-90 group-hover:opacity-100" 
                         />
-                      </div>
+                        
+                        <AnimatePresence>
+                          {hoveredProject === project.id && project.video && (
+                            <motion.div 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="absolute inset-0 w-full h-full z-10 pointer-events-none"
+                            >
+                              {(() => {
+                                const videoUrl = project.video;
+                                const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+                                const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+                                const embedUrl = ytMatch
+                                  ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`
+                                  : vmMatch
+                                    ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`
+                                    : null;
+                                
+                                if (embedUrl) {
+                                  return (
+                                    <iframe
+                                      src={embedUrl}
+                                      className="w-full h-full object-cover scale-105"
+                                      style={{ border: "none" }}
+                                      allow="autoplay; fullscreen; picture-in-picture"
+                                      title={project.title}
+                                    />
+                                  );
+                                } else {
+                                  return (
+                                    <video
+                                      src={videoUrl}
+                                      autoPlay
+                                      loop
+                                      muted
+                                      playsInline
+                                      className="w-full h-full object-cover"
+                                    />
+                                  );
+                                }
+                              })()}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </Link>
                       
                       <div className="max-w-3xl">
                         <p className="text-white/80 font-sans text-lg md:text-xl font-medium leading-relaxed">
@@ -907,34 +965,35 @@ export function WorksPage() {
                   onMouseLeave={() => setHoveredProject(null)}
                 >
                   {filteredProjects.map((project) => (
-                    <motion.div 
-                      key={project.id} 
-                      variants={itemVariants}
-                      onMouseEnter={() => setHoveredProject(project.id)}
-                      className="group relative border-b border-white/10 py-6 md:py-8 cursor-pointer flex items-center"
-                    >
-                      {/* Subtle Background change */}
-                      <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                      
-                      {/* Text Row */}
-                      <div className="relative z-10 flex flex-wrap md:flex-nowrap items-center gap-x-4 md:gap-x-6 text-white/80 font-sans text-sm md:text-base font-semibold uppercase tracking-widest w-full px-4 pointer-events-none">
-                        <span className="text-[#EB5B00] min-w-[3rem] font-bold">{project.number}</span>
-                        <span className="hidden md:inline text-white/30">&mdash;</span>
+                    <Link key={project.id} to={`/works/${project.id}`} className="block">
+                      <motion.div 
+                        variants={itemVariants}
+                        onMouseEnter={() => setHoveredProject(project.id)}
+                        className="group relative border-b border-white/10 py-6 md:py-8 cursor-pointer flex items-center"
+                      >
+                        {/* Subtle Background change */}
+                        <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                         
-                        <span className="text-white font-syne font-bold text-2xl md:text-3xl group-hover:text-[#EB5B00] transition-colors duration-300 md:min-w-[300px]">
-                          {project.title}
-                        </span>
-                        
-                        <div className="hidden md:flex items-center gap-6 flex-1 justify-end text-xs lg:text-sm">
-                          <span>&mdash;</span>
-                          <span className="w-48 text-right truncate">{project.client}</span>
-                          <span>&mdash;</span>
-                          <span className="w-64 text-right truncate">{project.services}</span>
-                          <span>&mdash;</span>
-                          <span>{project.year}</span>
+                        {/* Text Row */}
+                        <div className="relative z-10 flex flex-wrap md:flex-nowrap items-center gap-x-4 md:gap-x-6 text-white/80 font-sans text-sm md:text-base font-semibold uppercase tracking-widest w-full px-4 pointer-events-none">
+                          <span className="text-[#EB5B00] min-w-[3rem] font-bold">{project.number}</span>
+                          <span className="hidden md:inline text-white/30">&mdash;</span>
+                          
+                          <span className="text-white font-syne font-bold text-2xl md:text-3xl group-hover:text-[#EB5B00] transition-colors duration-300 md:min-w-[300px]">
+                            {project.title}
+                          </span>
+                          
+                          <div className="hidden md:flex items-center gap-6 flex-1 justify-end text-xs lg:text-sm">
+                            <span>&mdash;</span>
+                            <span className="w-48 text-right truncate">{project.client}</span>
+                            <span>&mdash;</span>
+                            <span className="w-64 text-right truncate">{project.services}</span>
+                            <span>&mdash;</span>
+                            <span>{project.year}</span>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -943,22 +1002,24 @@ export function WorksPage() {
               {view === 'gallery' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProjects.map((project) => (
-                    <motion.div key={project.id} variants={itemVariants} className="relative group aspect-square md:aspect-[4/5] bg-zinc-950 overflow-hidden cursor-pointer rounded-2xl border border-white/5">
-                      <ImageWithFallback 
-                        src={project.image} 
-                        alt={project.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-80 group-hover:opacity-40" 
-                      />
-                      
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                        <h3 className="text-white font-syne font-bold text-2xl md:text-3xl uppercase tracking-tighter leading-tight drop-shadow-lg">
-                          {project.title}
-                        </h3>
-                        <p className="text-[#EB5B00] font-sans text-xs md:text-sm font-bold uppercase tracking-widest mt-4 drop-shadow-md">
-                          {project.category}
-                        </p>
-                      </div>
-                    </motion.div>
+                    <Link key={project.id} to={`/works/${project.id}`} className="block">
+                      <motion.div variants={itemVariants} className="relative group aspect-square md:aspect-[4/5] bg-zinc-950 overflow-hidden cursor-pointer rounded-2xl border border-white/5">
+                        <ImageWithFallback 
+                          src={project.image} 
+                          alt={project.title} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-80 group-hover:opacity-40" 
+                        />
+                        
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                          <h3 className="text-white font-syne font-bold text-2xl md:text-3xl uppercase tracking-tighter leading-tight drop-shadow-lg">
+                            {project.title}
+                          </h3>
+                          <p className="text-[#EB5B00] font-sans text-xs md:text-sm font-bold uppercase tracking-widest mt-4 drop-shadow-md">
+                            {project.category}
+                          </p>
+                        </div>
+                      </motion.div>
+                    </Link>
                   ))}
                 </div>
               )}

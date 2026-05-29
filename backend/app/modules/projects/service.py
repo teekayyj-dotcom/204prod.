@@ -53,6 +53,31 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
         seo_description=project.seo_description,
     )
     db.add(db_project)
+    
+    if project.credits:
+        from app.modules.projects.models import ProjectCredit
+        for i, cred_str in enumerate(project.credits):
+            if ":" in cred_str:
+                role, name = cred_str.split(":", 1)
+                db_credit = ProjectCredit(
+                    project_slug=slug,
+                    role=role.strip(),
+                    name=name.strip(),
+                    sort_order=i
+                )
+                db.add(db_credit)
+
+    if project.gallery_media_ids:
+        from app.modules.projects.models import ProjectGalleryImage
+        for i, media_id in enumerate(project.gallery_media_ids):
+            db_gallery_image = ProjectGalleryImage(
+                project_slug=slug,
+                media_asset_id=media_id,
+                sort_order=i,
+                is_featured=False
+            )
+            db.add(db_gallery_image)
+
     db.commit()
     db.refresh(db_project)
     return db_project
@@ -85,6 +110,36 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
         existing_project.seo_title = project.seo_title
     if project.seo_description is not None:
         existing_project.seo_description = project.seo_description
+        
+    if project.credits is not None:
+        from app.modules.projects.models import ProjectCredit
+        # Delete existing credits
+        db.query(ProjectCredit).filter(ProjectCredit.project_slug == existing_project.slug).delete()
+        # Add new ones
+        for i, cred_str in enumerate(project.credits):
+            if ":" in cred_str:
+                role, name = cred_str.split(":", 1)
+                db_credit = ProjectCredit(
+                    project_slug=existing_project.slug,
+                    role=role.strip(),
+                    name=name.strip(),
+                    sort_order=i
+                )
+                db.add(db_credit)
+
+    if project.gallery_media_ids is not None:
+        from app.modules.projects.models import ProjectGalleryImage
+        # Delete existing gallery images
+        db.query(ProjectGalleryImage).filter(ProjectGalleryImage.project_slug == existing_project.slug).delete()
+        # Add new ones
+        for i, media_id in enumerate(project.gallery_media_ids):
+            db_gallery_image = ProjectGalleryImage(
+                project_slug=existing_project.slug,
+                media_asset_id=media_id,
+                sort_order=i,
+                is_featured=False
+            )
+            db.add(db_gallery_image)
         
     db.commit()
     db.refresh(existing_project)

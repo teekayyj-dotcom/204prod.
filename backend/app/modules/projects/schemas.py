@@ -19,10 +19,15 @@ class ProjectSummary(BaseModel):
     videoUrl: str | None = None
 
 
+class GalleryImageDetail(BaseModel):
+    id: str
+    url: str
+
+
 class ProjectDetail(ProjectSummary):
     summary: str
     credits: list[str]
-    gallery: list[str]
+    gallery: list[GalleryImageDetail]
 
 
 class ProjectCreate(BaseModel):
@@ -38,6 +43,8 @@ class ProjectCreate(BaseModel):
     seo_title: str | None = None
     seo_description: str | None = None
     video_url: str | None = None
+    credits: list[str] | None = None
+    gallery_media_ids: list[str] | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -53,6 +60,8 @@ class ProjectUpdate(BaseModel):
     seo_title: str | None = None
     seo_description: str | None = None
     video_url: str | None = None
+    credits: list[str] | None = None
+    gallery_media_ids: list[str] | None = None
 
 
 class ClientSummary(BaseModel):

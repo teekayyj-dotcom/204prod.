@@ -1,289 +1,691 @@
-export function ProjectShowcase() {
-  const [view, setView] = useState<'single' | 'row' | 'gallery'>('single');
-  const [hoveredProject, setHoveredProject] = useState<string | null>(null);
+javascript: 
+        const imageUrls = [
+'https://images.unsplash.com/photo-1638959882708-9503b1cd595f?w=800&q=80',
+'https://images.unsplash.com/photo-1644469709847-454ef12d5144?w=800&q=80',
+'https://images.unsplash.com/photo-1731848356615-90cba9fdc862?w=800&q=80',
+'https://images.unsplash.com/photo-1688388040015-c3985c83a12d?w=800&q=80',
+'https://images.unsplash.com/photo-1726591383648-5b5cbe1da1a2?w=800&q=80',
+'https://images.unsplash.com/photo-1651745314014-a9432659af40?w=800&q=80',
+'https://images.unsplash.com/photo-1635585244467-134d68caad51?w=800&q=80',
+'https://images.unsplash.com/photo-1517498327491-f903e1e281cd?w=800&q=80',
+'https://images.unsplash.com/photo-1584969405346-5230ae2bc4fc?w=800&q=80',
+'https://images.unsplash.com/photo-1615212049275-95561aebe1b4?w=800&q=80',
+'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800&q=80',
+'https://images.unsplash.com/photo-1516727003284-a96541e51e9c?w=800&q=80',
+'https://images.unsplash.com/photo-1530735038726-a73fd6e6a349?w=800&q=80',
+'https://images.unsplash.com/photo-1548918901-9b31223c5c3a?w=800&q=80',
+'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80',
+'https://images.unsplash.com/photo-1553544260-f87e671974ee?w=800&q=80',
+'https://images.unsplash.com/photo-1512084747998-038941f49b84?w=800&q=80',
+'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80',
+'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=800&q=80',
+'https://images.unsplash.com/photo-1532170579297-281918c8ae72?w=800&q=80',
+'https://images.unsplash.com/photo-1536924430914-91f9e2041b83?w=800&q=80',
+'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=800&q=80',
+'https://images.unsplash.com/photo-1593010932917-92bd21088dee?w=800&q=80',
+        ];
+        
+        const numberOfImages = imageUrls.length;
+        let scene, camera, renderer, spiralMesh, tiltGroup, shaderMaterial;
+        let scrollOffset = 0;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let dragRotation = { x: 0, z: 0 };
+        let baseRotation = { x: 0, z: 0 };
+        let imageRatios = [];
+        
+        let inertiaParams = {
+            friction: 0.94,
+            strength: 0.8,
+            maxSpeed: 0.05,
+            directionSmoothing: 0.92,
+            scrollSensitivity: 0.0008
+        };
+        
+        let config = {
+            imageHeight: 7,
+            curvature: -0.030,
+            gapSize: 0,
+            spiralRadius: 3.5,
+            spiralTurns: 2.8 + (numberOfImages - 21) * 0.1,
+            spiralHeight: 12 + (numberOfImages - 21) * 0.25,
+            centerX: 2.2,
+            centerY: 4.38,
+            centerZ: 0
+        };
 
-  // Filter State
-  const [activeFilter, setActiveFilter] = useState<'service' | 'client' | 'year' | null>(null);
-  
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedClients, setSelectedClients] = useState<string[]>([]);
-  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+        let originalPositions = [];
+        
+        let targetVelocity = 0;
+        let currentVelocity = 0;
+        let lastDelta = 0;
 
-  const cursorX = useMotionValue(-1000);
-  const cursorY = useMotionValue(-1000);
-
-  const springConfig = { damping: 25, stiffness: 200 };
-  const cursorXSpring = useSpring(cursorX, springConfig);
-  const cursorYSpring = useSpring(cursorY, springConfig);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    cursorX.set(e.clientX);
-    cursorY.set(e.clientY);
-  };
-
-  const toggleFilter = (
-    value: string, 
-    selectedState: string[], 
-    setFn: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setFn(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 }
-    },
-    exit: {
-      opacity: 0,
-      transition: { duration: 0.2 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }
-    },
-    exit: { opacity: 0, y: -10, transition: { duration: 0.2 } }
-  };
-
-  return (
-    <section id="portfolio" className="bg-black pt-24 pb-32 min-h-screen">
-      <div className="container mx-auto px-6 md:px-12">
-        {/* Header & View Controls */}
-        <div className="flex flex-col gap-8 mb-16">
-          <h2 className="text-white font-[Space_Grotesk] font-bold text-3xl md:text-5xl uppercase tracking-tighter">
-            Selected Works
-          </h2>
-          
-          {/* Portfolio Control Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-y border-white/10 py-4">
-            {/* Left: View Controls */}
-            <div className="flex items-center gap-4">
-              <span className="text-white/40 font-sans text-xs font-semibold uppercase tracking-widest mr-2">
-                View
-              </span>
-              <button 
-                onClick={() => setView('single')} 
-                className={`p-2 transition-colors duration-300 rounded-md hover:bg-white/5 ${view === 'single' ? 'text-orange-500 bg-white/[0.02]' : 'text-white/30 hover:text-white'}`}
-                aria-label="Single View"
-              >
-                <Square size={18} />
-              </button>
-              <button 
-                onClick={() => setView('row')} 
-                className={`p-2 transition-colors duration-300 rounded-md hover:bg-white/5 ${view === 'row' ? 'text-orange-500 bg-white/[0.02]' : 'text-white/30 hover:text-white'}`}
-                aria-label="Row View"
-              >
-                <List size={18} />
-              </button>
-              <button 
-                onClick={() => setView('gallery')} 
-                className={`p-2 transition-colors duration-300 rounded-md hover:bg-white/5 ${view === 'gallery' ? 'text-orange-500 bg-white/[0.02]' : 'text-white/30 hover:text-white'}`}
-                aria-label="Gallery View"
-              >
-                <LayoutGrid size={18} />
-              </button>
-            </div>
-
-            {/* Right: Search and Filters */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-              {/* Compact Search Input */}
-              <div className="flex items-center gap-2 bg-zinc-900/50 px-3 py-2 rounded border border-white/10 focus-within:border-white/30 focus-within:bg-zinc-900 transition-all group">
-                <Search size={16} className="text-white/40 group-focus-within:text-white/70" />
-                <input 
-                  type="text" 
-                  placeholder="Search..." 
-                  className="bg-transparent border-none outline-none text-sm text-white placeholder:text-white/40 w-32 focus:w-48 transition-all"
-                />
-              </div>
-
-              {/* Filter Buttons */}
-              <div className="flex items-center gap-2">
-                <FilterDropdown 
-                  label="Service"
-                  options={serviceOptions}
-                  selected={selectedServices}
-                  toggleOption={(opt) => toggleFilter(opt, selectedServices, setSelectedServices)}
-                  isOpen={activeFilter === 'service'}
-                  setIsOpen={(open) => setActiveFilter(open ? 'service' : null)}
-                />
+        let touchStartY = 0;
+        let touchLastY = 0;
+        let touchVelocity = 0;
+        let touchAcceleration = 0;
+        let isTouching = false;
+        let lastTouchTimestamp = 0;
+				console.log("&Toc on codepen - https://codepen.io/ol-ivier");
+        
+        function setupTouchControls() {
+            const container = document.getElementById('webgl-container');
+            container.style.pointerEvents = 'auto';
+            
+            container.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                isTouching = true;
+                touchStartY = e.touches[0].clientY;
+                touchLastY = touchStartY;
+                touchVelocity = 0;
+                touchAcceleration = 0;
+                lastTouchTimestamp = performance.now();
+                container.style.cursor = 'grabbing';
+            }, { passive: false });
+            
+            container.addEventListener('touchmove', (e) => {
+                if (!isTouching) return;
+                e.preventDefault();
                 
-                <FilterDropdown 
-                  label="Client"
-                  options={clientOptions}
-                  selected={selectedClients}
-                  toggleOption={(opt) => toggleFilter(opt, selectedClients, setSelectedClients)}
-                  isOpen={activeFilter === 'client'}
-                  setIsOpen={(open) => setActiveFilter(open ? 'client' : null)}
-                />
+                const now = performance.now();
+                let deltaTime = Math.min(32, now - lastTouchTimestamp);
+                if (deltaTime < 1) deltaTime = 16;
+                lastTouchTimestamp = now;
+                
+                const currentY = e.touches[0].clientY;
+                const deltaY = currentY - touchLastY;
+                
+                const rawVelocity = deltaY * inertiaParams.scrollSensitivity * inertiaParams.strength * 0.5;
+                touchVelocity = touchVelocity * 0.7 + rawVelocity * 0.3;
+                
+                let deltaScroll = deltaY * inertiaParams.scrollSensitivity * inertiaParams.strength * 0.8;
+                scrollOffset += deltaScroll;
+                updateUVOffset();
+                
+                touchLastY = currentY;
+            }, { passive: false });
+            
+            container.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                isTouching = false;
+                container.style.cursor = 'grab';
+                
+                if (Math.abs(touchVelocity) > 0.001) {
+                    targetVelocity = touchVelocity * 1.2;
+                    targetVelocity = Math.max(-inertiaParams.maxSpeed * 1.5, Math.min(inertiaParams.maxSpeed * 1.5, targetVelocity));
+                }
+                touchVelocity = 0;
+            });
+            
+            let touchDragStartX = 0;
+            let touchDragStartY = 0;
+            let isDraggingTouch = false;
+            
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    isDraggingTouch = true;
+                    touchDragStartX = e.touches[1].clientX;
+                    touchDragStartY = e.touches[1].clientY;
+                }
+            });
+            
+            container.addEventListener('touchmove', (e) => {
+                if (isDraggingTouch && e.touches.length === 2) {
+                    e.preventDefault();
+                    const dx = e.touches[1].clientX - touchDragStartX;
+                    const dy = e.touches[1].clientY - touchDragStartY;
+                    dragRotation.z += dx * 0.003;
+                    dragRotation.x -= dy * 0.003;
+                    dragRotation.x = Math.max(-0.35, Math.min(0.35, dragRotation.x));
+                    dragRotation.z = Math.max(-0.35, Math.min(0.35, dragRotation.z));
+                    tiltGroup.rotation.x = baseRotation.x + dragRotation.x;
+                    tiltGroup.rotation.z = baseRotation.z + dragRotation.z;
+                    touchDragStartX = e.touches[1].clientX;
+                    touchDragStartY = e.touches[1].clientY;
+                }
+            });
+            
+            container.addEventListener('touchend', (e) => {
+                isDraggingTouch = false;
+            });
+        }
+        
+        function updateTouchInertia() {
+            if (!isTouching) {
+                touchVelocity *= 0.95;
+                if (Math.abs(touchVelocity) > 0.0001) {
+                    scrollOffset += touchVelocity * 0.5;
+                    updateUVOffset();
+                } else {
+                    touchVelocity = 0;
+                }
+            }
+        }
+        
+        function rebuildGeometry() {
+            if (!spiralMesh) return;
+            
+            const totalSlots = imageRatios.length;
+            const widths = imageRatios.map(r => r * config.imageHeight);
+            const totalWidth = widths.reduce((a, b) => a + b, 0);
+            const segmentsW = 200 + totalSlots * 20;
+            const segmentsH = 24;
+            
+            const geometry = new THREE.PlaneGeometry(totalWidth, config.imageHeight, segmentsW, segmentsH);
+            const positions = geometry.attributes.position;
+            const uvs = geometry.attributes.uv;
+            
+            let origX = [];
+            let origY = [];
+            for (let i = 0; i < positions.count; i++) {
+                origX.push(positions.getX(i));
+                origY.push(positions.getY(i));
+            }
+            
+            let cumulative = [0];
+            for (let i = 0; i < totalSlots; i++) {
+                cumulative.push(cumulative[i] + widths[i] / totalWidth);
+            }
+            
+            const imageRatio = 1 - config.gapSize;
+            
+            for (let i = 0; i < uvs.count; i++) {
+                let u = uvs.getX(i);
+                u = Math.max(0, Math.min(0.999999, u));
+                
+                let found = false;
+                for (let j = 0; j < totalSlots; j++) {
+                    if (u >= cumulative[j] && u < cumulative[j + 1]) {
+                        let localU = (u - cumulative[j]) / (cumulative[j + 1] - cumulative[j]);
+                        
+                        if (localU > imageRatio) {
+                            uvs.setX(i, cumulative[j + 1] - 0.001);
+                        } else {
+                            let scaledU = localU / imageRatio;
+                            const edgeMargin = 0.001;
+                            scaledU = Math.max(edgeMargin, Math.min(1 - edgeMargin, scaledU));
+                            let newU = cumulative[j] + scaledU * (cumulative[j + 1] - cumulative[j]);
+                            uvs.setX(i, newU);
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    uvs.setX(i, cumulative[totalSlots] - 0.001);
+                }
+            }
+            
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const y = positions.getY(i);
+                const nx = x / (totalWidth / 2);
+                const curve = config.curvature * 0.4 * (nx * nx - 1);
+                positions.setXYZ(i, x, y, -curve);
+            }
+            
+            for (let i = 0; i < positions.count; i++) {
+                const x = origX[i];
+                const y = origY[i];
+                let t = (x + totalWidth / 2) / totalWidth;
+                t = Math.max(0, Math.min(1, t));
+                
+                const angle = t * Math.PI * 2 * config.spiralTurns;
+                const radius = config.spiralRadius * (1 - t * 0.12);
+                let px = Math.sin(angle) * radius;
+                let pz = Math.cos(angle) * radius;
+                let py = (t - 0.5) * config.spiralHeight + y * 0.35;
+                
+                if (!originalPositions[i]) {
+                    originalPositions[i] = { 
+                        x: px, y: py, z: pz, 
+                        offsetX: (Math.random() - 0.5) * 0.001, 
+                        offsetY: (Math.random() - 0.5) * 0.001, 
+                        offsetZ: (Math.random() - 0.5) * 0.001 
+                    };
+                }
+                
+                px += originalPositions[i].offsetX;
+                py += originalPositions[i].offsetY;
+                pz += originalPositions[i].offsetZ;
+                
+                positions.setXYZ(i, px, py, pz);
+            }
+            
+            geometry.computeVertexNormals();
+            
+            const oldGeo = spiralMesh.geometry;
+            spiralMesh.geometry = geometry;
+            if (oldGeo) oldGeo.dispose();
+            
+            if (shaderMaterial) {
+                shaderMaterial.uniforms.gap.value = config.gapSize;
+            }
+        }
+        
+        function updateUVOffset() {
+            if (!shaderMaterial) return;
+            let offset = scrollOffset;
+            while (offset >= 1.0) offset -= 1.0;
+            while (offset < 0) offset += 1.0;
+            shaderMaterial.uniforms.offset.value = offset;
+        }
 
-                <FilterDropdown 
-                  label="Year"
-                  options={yearOptions}
-                  selected={selectedYears}
-                  toggleOption={(opt) => toggleFilter(opt, selectedYears, setSelectedYears)}
-                  isOpen={activeFilter === 'year'}
-                  setIsOpen={(open) => setActiveFilter(open ? 'year' : null)}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        function createMasterTexture() {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const baseHeight = 500;
+                let loaded = 0;
+                let images = [];
 
-        {/* Content Area */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={view}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="w-full"
-          >
-            {/* SINGLE VIEW */}
-            {view === 'single' && (
-              <div className="flex flex-col gap-32">
-                {projects.map((project) => (
-                  <motion.div key={project.id} variants={itemVariants} className="flex flex-col gap-8">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-white/50 font-sans text-lg md:text-xl font-semibold">{project.number}</span>
-                        <h3 className="text-white font-[Space_Grotesk] font-bold text-4xl md:text-6xl uppercase tracking-tighter leading-none hover:text-orange-500 transition-colors">
-                          {project.title}
-                        </h3>
-                      </div>
-                      <div className="text-left md:text-right text-white/70 font-sans text-sm font-semibold uppercase tracking-widest leading-relaxed">
-                        <p>{project.client} &mdash; {project.year}</p>
-                        <p className="text-white/40 mt-1">{project.services}</p>
-                      </div>
-                    </div>
+                imageUrls.forEach((url, idx) => {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous';
+
+                    img.onload = () => {
+                        const ratio = img.naturalWidth / img.naturalHeight;
+                        imageRatios[idx] = ratio;
+                        const width = baseHeight * ratio;
+                        
+                        images[idx] = { img, width, height: baseHeight };
+
+                        loaded++;
+
+                        if (loaded === numberOfImages) {
+                            const totalWidth = images.reduce((sum, i) => sum + i.width, 0);
+                            canvas.width = totalWidth;
+                            canvas.height = baseHeight;
+                            ctx.fillStyle = '#000000';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            let offsetX = 0;
+                            images.forEach((data) => {
+                                if (data && data.img) {
+                                    ctx.drawImage(data.img, offsetX, 0, data.width, data.height);
+                                }
+                                offsetX += data.width;
+                            });
+                            
+                            const tex = new THREE.CanvasTexture(canvas);
+                            tex.wrapS = THREE.RepeatWrapping;
+                            tex.wrapT = THREE.ClampToEdgeWrapping;
+                            tex.minFilter = THREE.LinearFilter;
+                            tex.magFilter = THREE.LinearFilter;
+                            tex.generateMipmaps = false;
+                            resolve(tex);
+                        }
+                    };
+
+                    img.onerror = () => {
+                        imageRatios[idx] = 0.8;
+                        loaded++;
+                        if (loaded === numberOfImages) {
+                            const tex = new THREE.CanvasTexture(canvas);
+                            resolve(tex);
+                        }
+                    };
+
+                    img.src = url;
+                });
+            });
+        }
+
+        async function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3.5, 9);
+            
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('webgl-canvas'), 
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            mainLight.position.set(5, 8, 5);
+            scene.add(mainLight);
+            
+            tiltGroup = new THREE.Group();
+            baseRotation = { x: -0.18, z: 0.12 };
+            tiltGroup.rotation.x = baseRotation.x;
+            tiltGroup.rotation.z = baseRotation.z;
+            scene.add(tiltGroup);
+            
+            const texture = await createMasterTexture();
+            
+            shaderMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    map: { value: texture },
+                    gap: { value: config.gapSize },
+                    offset: { value: 0.0 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D map;
+                    uniform float gap;
+                    uniform float offset;
+                    varying vec2 vUv;
                     
-                    <div className="w-full aspect-[4/5] md:aspect-[21/9] bg-zinc-900 overflow-hidden relative group">
-                      <ImageWithFallback 
-                        src={project.image} 
-                        alt={project.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out opacity-90 group-hover:opacity-100" 
-                      />
-                    </div>
+                    void main() {
+                        float u = vUv.x + offset;
+                        
+                        if (u >= 1.0) u -= 1.0;
+                        if (u < 0.0) u += 1.0;
+                        
+                        vec4 color = texture2D(map, vec2(u, vUv.y));
+                        gl_FragColor = color;
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            spiralMesh = new THREE.Mesh(new THREE.BufferGeometry(), shaderMaterial);
+            spiralMesh.position.set(config.centerX, config.centerY, config.centerZ);
+            spiralMesh.rotation.x = 0.35;
+            spiralMesh.rotation.y = 0;
+            tiltGroup.add(spiralMesh);
+            
+            rebuildGeometry();
+            
+            window.addEventListener('resize', onResize);
+            setupFluidInertia();
+            setupDrag();
+            setupArrowKeysZoom();
+            setupTouchControls(); 
+            createBTSPanel();
+            
+            animate();
+        }
+
+        function createBTSPanel() {
+            const container = document.getElementById('webgl-container') || document.body;
+            
+            const bts = document.createElement('div');
+            bts.id = 'bts-sidebar';
+            
+            bts.innerHTML = `
+                <div class="bts-header">
+                    <span class="bts-tag">Production Study</span>
+                    <h1 class="bts-title">Behind the Scenes</h1>
+                    <p class="bts-subtitle">Visual Breakdown & Concept Art</p>
+                </div>
+                
+                <div class="bts-content">
+                    <p class="bts-desc">
+                        An interactive exploration of cinematic lighting, material styling, and modular set designs. 
+                        Use the <strong>mouse wheel</strong> or <strong>drag vertically</strong> to navigate the asset spiral.
+                    </p>
                     
-                    <div className="max-w-3xl">
-                      <p className="text-white/80 font-sans text-lg md:text-xl font-medium leading-relaxed">
-                        {project.description}
-                      </p>
+                    <div class="bts-meta-grid">
+                        <div class="bts-meta-item">
+                            <span class="bts-meta-label">Camera</span>
+                            <span class="bts-meta-val">RED V-Raptor 8K</span>
+                        </div>
+                        <div class="bts-meta-item">
+                            <span class="bts-meta-label">Color Space</span>
+                            <span class="bts-meta-val">ACEScg / Rec.709</span>
+                        </div>
+                        <div class="bts-meta-item">
+                            <span class="bts-meta-label">Ratio</span>
+                            <span class="bts-meta-val">2.39:1 Anamorphic</span>
+                        </div>
+                        <div class="bts-meta-item">
+                            <span class="bts-meta-label">Format</span>
+                            <span class="bts-meta-val">Cinematic Film Stills</span>
+                        </div>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* ROW VIEW */}
-            {view === 'row' && (
-              <div 
-                className="flex flex-col border-t border-white/10"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={() => setHoveredProject(null)}
-              >
-                {projects.map((project) => (
-                  <motion.div 
-                    key={project.id} 
-                    variants={itemVariants}
-                    onMouseEnter={() => setHoveredProject(project.id)}
-                    className="group relative border-b border-white/10 py-6 md:py-8 cursor-pointer flex items-center"
-                  >
-                    {/* Subtle Background change */}
-                    <div className="absolute inset-0 bg-white/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                    
-                    {/* Text Row */}
-                    <div className="relative z-10 flex flex-wrap md:flex-nowrap items-center gap-x-4 md:gap-x-6 text-white/80 font-sans text-sm md:text-base font-semibold uppercase tracking-widest w-full px-4 pointer-events-none">
-                      <span className="text-white/40 min-w-[3rem]">{project.number}</span>
-                      <span className="hidden md:inline text-white/30">&mdash;</span>
-                      
-                      <span className="text-white font-[Space_Grotesk] font-bold text-2xl md:text-3xl group-hover:text-orange-500 transition-colors md:min-w-[300px]">
-                        {project.title}
-                      </span>
-                      
-                      <div className="hidden md:flex items-center gap-6 flex-1 justify-end text-xs lg:text-sm">
-                        <span>&mdash;</span>
-                        <span className="w-48 text-right truncate">{project.client}</span>
-                        <span>&mdash;</span>
-                        <span className="w-64 text-right truncate">{project.services}</span>
-                        <span>&mdash;</span>
-                        <span>{project.year}</span>
-                      </div>
+                </div>
+                
+                <div class="bts-footer">
+                    <div class="bts-control-hint">
+                        <span class="bts-hint-icon">🖱️</span> Drag anywhere to rotate & tilt 3D spiral
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
+                </div>
+            `;
+            container.appendChild(bts);
+        }
+        
+        function setupFluidInertia() {
+            let lastTimestamp = 0;
+            let acceleration = 0;
+            
+            window.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                const now = performance.now();
+                let deltaTime = Math.min(32, now - lastTimestamp);
+                if (deltaTime < 1) deltaTime = 16;
+                lastTimestamp = now;
+                
+                const rawDelta = e.deltaY * inertiaParams.scrollSensitivity * inertiaParams.strength;
+                
+                let maxAccel = 0.015;
+                let deltaAccel = rawDelta - acceleration;
+                deltaAccel = Math.max(-maxAccel, Math.min(maxAccel, deltaAccel));
+                acceleration += deltaAccel;
+                
+                acceleration = Math.max(-0.03, Math.min(0.03, acceleration));
+                
+                let targetDelta = acceleration;
+                targetVelocity = targetVelocity * inertiaParams.directionSmoothing + targetDelta * (1 - inertiaParams.directionSmoothing);
+                
+                targetVelocity = Math.max(-inertiaParams.maxSpeed, Math.min(inertiaParams.maxSpeed, targetVelocity));
+                
+            }, { passive: false });
+            
+            function updateInertia() {
+                targetVelocity *= inertiaParams.friction;
+                
+                currentVelocity = currentVelocity * 0.85 + targetVelocity * 0.15;
+                
+                if (Math.abs(currentVelocity) > 0.0001) {
+                    scrollOffset += currentVelocity;
+                    updateUVOffset();
+                } else {
+                    currentVelocity = 0;
+                    targetVelocity = 0;
+                    acceleration = 0;
+                }
+                
+                updateTouchInertia();
+            }
+            
+            window._updateInertia = updateInertia;
+        }
+        
+       
+        
+        function setupArrowKeysZoom() {
+            let zoomLevel = 1.0;
+            const minZoom = 0.84;
+            const maxZoom = 1;
+            
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    zoomLevel += 0.05;
+                    if (zoomLevel > maxZoom) zoomLevel = maxZoom;
+                    camera.position.z = 9 / zoomLevel;
+                    camera.position.y = 3.5 / zoomLevel;
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    zoomLevel -= 0.05;
+                    if (zoomLevel < minZoom) zoomLevel = minZoom;
+                    camera.position.z = 9 / zoomLevel;
+                    camera.position.y = 3.5 / zoomLevel;
+                }
+            });
+        }
+        
+        function setupDrag() {
+            const container = document.getElementById('webgl-container');
+            container.style.pointerEvents = 'auto';
+            container.style.cursor = 'grab';
+            
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+                container.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - previousMousePosition.x;
+                const dy = e.clientY - previousMousePosition.y;
+                dragRotation.z += dx * 0.002;
+                dragRotation.x -= dy * 0.002;
+                dragRotation.x = Math.max(-0.35, Math.min(0.35, dragRotation.x));
+                dragRotation.z = Math.max(-0.35, Math.min(0.35, dragRotation.z));
+                tiltGroup.rotation.x = baseRotation.x + dragRotation.x;
+                tiltGroup.rotation.z = baseRotation.z + dragRotation.z;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            window.addEventListener('mouseup', () => { 
+                isDragging = false;
+                container.style.cursor = 'grab';
+            });
+        }
+        
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (window._updateInertia) {
+                window._updateInertia();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        init();
 
-            {/* GALLERY VIEW */}
-            {view === 'gallery' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                  <motion.div key={project.id} variants={itemVariants} className="relative group aspect-square md:aspect-[4/5] bg-zinc-900 overflow-hidden cursor-pointer">
-                    <ImageWithFallback 
-                      src={project.image} 
-                      alt={project.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-80 group-hover:opacity-40" 
-                    />
-                    
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                      <h3 className="text-white font-[Space_Grotesk] font-bold text-2xl md:text-3xl uppercase tracking-tighter leading-tight drop-shadow-lg">
-                        {project.title}
-                      </h3>
-                      <p className="text-white font-sans text-xs md:text-sm font-semibold uppercase tracking-widest mt-4 drop-shadow-md">
-                        {project.category}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+css:
+  @import url('https://fonts.googleapis.com/css2?family=Monoton&display=swap');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        {/* Load More Button */}
-        <div className="mt-16 flex justify-center">
-          <button className="group relative overflow-hidden px-8 py-4 bg-zinc-900 border border-white/10 hover:border-orange-500/50 transition-colors duration-300 rounded-sm">
-            <div className="absolute inset-0 bg-orange-500/10 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-            <span className="relative text-white/80 group-hover:text-white font-sans text-xs font-semibold uppercase tracking-widest transition-colors duration-300">
-              Load More
-            </span>
-          </button>
-        </div>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: black;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            height: 100vh;
+            overflow-y: hidden;
+        }
 
-        {/* Floating Cursor Image for Row View */}
-        <AnimatePresence>
-          {view === 'row' && hoveredProject && (
-            <motion.div
-              className="fixed pointer-events-none z-50 w-72 aspect-video overflow-hidden shadow-2xl hidden md:block border border-white/10 rounded-md"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-              style={{ 
-                left: 0, 
-                top: 0,
-                x: cursorXSpring, 
-                y: cursorYSpring,
-                translateX: "32px", // Offset slightly to the right of the cursor
-                translateY: "-50%"  // Center vertically on cursor
-              }}
-            >
-              <ImageWithFallback 
-                src={projects.find(p => p.id === hoveredProject)?.image || ''} 
-                alt="Project Preview" 
-                className="w-full h-full object-cover"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </section>
-  );
-}
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+
+        #credits {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgb(30 30 30 / .9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 2;
+        }
+
+        #instructions {
+            position: fixed;
+            max-width: 251px;
+            top: 20px;
+            right: 20px;
+            background: rgb(30 30 30 / .9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #fff;
+            font-family: "Monoton", sans-serif;
+            text-transform: uppercase;
+            font-size: 3em;
+            text-align: right;
+            z-index: 2;
+        }
+
+        @media (max-width: 768px) {
+            #instructions {
+                display: none;
+            }
+        }
+
+        .copy {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #000;
+            background: rgb(255 255 255 / .7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 2;
+        }
+
+				.infos {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #000;
+    cursor: pointer
+		}
+
+        a {
+        color: tomato;
+        text-decoration: none;
+        }
+
+        a:hover {
+        color: #10cbea;;
+        transition: all 1s ease;
+        }
+        
+       
+    

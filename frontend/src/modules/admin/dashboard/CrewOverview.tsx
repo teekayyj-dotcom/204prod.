@@ -1,9 +1,39 @@
-import { crewMembers } from "../data/mockData";
+import { useState, useEffect } from "react";
 import { Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { fetchApi } from "../utils/apiClient";
 
 export function CrewOverview() {
   const navigate = useNavigate();
+  const [crewMembers, setCrewMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchApi("/crew")
+      .then((data) => {
+        const mapped = data.map(m => ({
+          ...m,
+          projects: m.assigned_projects || 0
+        }));
+        setCrewMembers(mapped.slice(0, 4));
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error loading crew overview:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div
+        className="rounded-xl p-8 text-center"
+        style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#666", fontSize: "14px" }}
+      >
+        Loading crew...
+      </div>
+    );
+  }
 
   return (
     <div
@@ -28,7 +58,7 @@ export function CrewOverview() {
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
           >
             <img
-              src={member.avatar}
+              src={member.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80"}
               alt={member.name}
               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
               style={{ border: "2px solid #2A1F1F" }}
@@ -46,7 +76,7 @@ export function CrewOverview() {
                 />
               </div>
               <p style={{ color: "#888", fontSize: "12px" }} className="mt-0.5">
-                {member.role}
+                {member.role ? member.role.split(',').map(r => r.trim()).join(' · ') : 'No role assigned'}
               </p>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -55,6 +85,11 @@ export function CrewOverview() {
             </div>
           </div>
         ))}
+        {crewMembers.length === 0 && (
+          <div className="text-center py-6" style={{ color: "#666", fontSize: "13px" }}>
+            No crew members registered
+          </div>
+        )}
       </div>
     </div>
   );

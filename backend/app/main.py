@@ -32,6 +32,7 @@ app.include_router(categories_router, prefix=settings.api_v1_prefix)
 app.include_router(contacts_router, prefix=settings.api_v1_prefix)
 app.include_router(auth_router, prefix=settings.api_v1_prefix)
 app.include_router(users_router, prefix=settings.api_v1_prefix)
+app.include_router(crew_router, prefix=settings.api_v1_prefix)
 
 from fastapi.staticfiles import StaticFiles
 import os

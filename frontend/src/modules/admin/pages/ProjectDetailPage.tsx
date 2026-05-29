@@ -47,19 +47,24 @@ export function ProjectDetailPage() {
     const [activities, setActivities] = useState([]);
     const [comments, setComments] = useState([]);
     const [assignedCrew, setAssignedCrew] = useState([]);
+    const [dbCrew, setDbCrew] = useState([]);
+    const [galleryImages, setGalleryImages] = useState([]);
 
-    const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({});
+    const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm({});
 
     useEffect(() => {
         Promise.all([
             fetchApi(`/projects/${id}`),
             fetchApi('/projects/clients/all'),
-            fetchApi('/categories')
-        ]).then(([projData, clientsData, categoriesData]) => {
+            fetchApi('/categories'),
+            fetchApi('/crew')
+        ]).then(([projData, clientsData, categoriesData, crewData]) => {
             setProject(projData);
             setIsFeatured(!!projData.featured);
             setDbClients(clientsData);
             setDbCategories(categoriesData);
+            setDbCrew(crewData);
+            setGalleryImages(projData.gallery || []);
             reset({
                 title: projData.title,
                 client: projData.client_slug || projData.client,
@@ -78,7 +83,16 @@ export function ProjectDetailPage() {
                 "aurora-platform-rebrand", "slate-house-portfolio", "pulse-summer-campaign", "nova-goods-product-launch", "aurora-motion-toolkit", "slate-editorial-shoot"
             ].includes(id.toLowerCase());
 
-            if (isMockProject) {
+            const loadedCredits = projData.credits || [];
+            if (loadedCredits.length > 0) {
+                const parsedCrew = loadedCredits.map((credStr, idx) => {
+                    const parts = credStr.split(":");
+                    const role = parts[0]?.trim() || "";
+                    const name = parts[1]?.trim() || "";
+                    return { id: `cred-${idx}-${Date.now()}`, name, role };
+                });
+                setAssignedCrew(parsedCrew);
+            } else if (isMockProject) {
                 setActivities([
                     { id: 1, user: "Sarah Kim", action: "updated project status to In Progress", time: "2 hours ago", avatar: "SK" },
                     { id: 2, user: "Jake Torres", action: "pushed a new build — v0.4.1", time: "5 hours ago", avatar: "JT" },
@@ -180,6 +194,24 @@ export function ProjectDetailPage() {
                 finalVideoUrl = mediaAsset.url;
             }
 
+            // Upload new gallery files
+            const finalGalleryMediaIds = [];
+            for (const img of galleryImages) {
+                if (img.file) {
+                    const formData = new FormData();
+                    formData.append("file", img.file);
+                    formData.append("alt", `${data.title} Behind the Scenes`);
+                    formData.append("caption", `Behind the Scenes for ${data.title}`);
+                    const mediaAsset = await fetchApi("/media/upload", {
+                        method: "POST",
+                        body: formData,
+                    });
+                    finalGalleryMediaIds.push(mediaAsset.id);
+                } else {
+                    finalGalleryMediaIds.push(img.id);
+                }
+            }
+
             const payload = {
                 title: data.title,
                 client_slug: data.client,
@@ -190,6 +222,8 @@ export function ProjectDetailPage() {
                 cover_media_id: coverMediaId,
                 summary: data.description || null,
                 video_url: finalVideoUrl,
+                credits: assignedCrew.map(c => `${c.role}: ${c.name}`),
+                gallery_media_ids: finalGalleryMediaIds,
             };
             const updated = await fetchApi(`/projects/${id}`, {
                 method: "PUT",
@@ -215,6 +249,7 @@ export function ProjectDetailPage() {
         setThumbnailPreview(null);
         setThumbnailFile(null);
         setUploadedVideo(null);
+        setGalleryImages(project.gallery || []);
         setIsEditing(false);
     };
 
@@ -576,6 +611,87 @@ export function ProjectDetailPage() {
                         </div>
                     </div>
 
+                    {/* Behind the Scenes Images */}
+                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
+                            <div className="flex items-center gap-2">
+                                <Camera size={14} color="#D84040"/>
+                                <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Behind the Scenes Images</p>
+                            </div>
+                            <span style={{ color: "#888", fontSize: "12px" }}>{galleryImages.length} images</span>
+                        </div>
+                        <div className="p-5">
+                            {isEditing ? (
+                                <div className="space-y-4">
+                                    <div 
+                                        onClick={() => document.getElementById("gallery-upload-input")?.click()}
+                                        className="rounded-xl flex flex-col items-center justify-center py-6 cursor-pointer transition-all select-none"
+                                        style={{
+                                            border: "2px dashed #3A2A2A",
+                                            background: "rgba(29,22,22,0.4)"
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; }}
+                                    >
+                                        <input 
+                                            id="gallery-upload-input" 
+                                            type="file" 
+                                            accept="image/*" 
+                                            multiple 
+                                            className="hidden" 
+                                            onChange={(e) => {
+                                                const files = e.target.files;
+                                                if (files) {
+                                                    Array.from(files).forEach(file => {
+                                                        const previewUrl = URL.createObjectURL(file);
+                                                        setGalleryImages(prev => [...prev, { id: `new-${Date.now()}-${Math.random()}`, url: previewUrl, file }]);
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                        <UploadCloud size={20} color="#555" className="mb-2"/>
+                                        <p style={{ color: "#888", fontSize: "12px", fontWeight: 500 }}>Click to upload multiple images</p>
+                                        <p style={{ color: "#555", fontSize: "10px" }} className="mt-0.5">PNG, JPG or WebP</p>
+                                    </div>
+
+                                    {galleryImages.length > 0 ? (
+                                        <div className="grid grid-cols-4 gap-3 mt-4">
+                                            {galleryImages.map((img) => (
+                                                <div key={img.id} className="relative aspect-video rounded-lg overflow-hidden group" style={{ border: "1px solid #3A2A2A" }}>
+                                                    <img src={img.url} alt="BTS" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setGalleryImages(prev => prev.filter(item => item.id !== img.id))}
+                                                            className="p-1.5 rounded-full bg-red-600/90 text-white hover:bg-red-700 transition-colors"
+                                                            title="Delete image"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }} className="text-center py-2">No images uploaded yet.</p>
+                                    )}
+                                </div>
+                            ) : (
+                                galleryImages.length > 0 ? (
+                                    <div className="grid grid-cols-4 gap-3">
+                                        {galleryImages.map((img) => (
+                                            <div key={img.id} className="relative aspect-video rounded-lg overflow-hidden" style={{ border: "1px solid #2E2020" }}>
+                                                <img src={img.url} alt="Behind the Scenes" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-all duration-300" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }}>No behind the scenes images uploaded for this project.</p>
+                                )
+                            )}
+                        </div>
+                    </div>
+
                     {/* Activity / Comments Tabs */}
                     <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
                         <div className="flex" style={{ borderBottom: "1px solid #2A1F1F" }}>
@@ -703,19 +819,164 @@ export function ProjectDetailPage() {
                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Assigned Crew</p>
                             <span style={{ color: "#D84040", fontSize: "12px" }}>{assignedCrew.length} members</span>
                         </div>
-                        <div className="space-y-3">
-                            {assignedCrew.map((member) => (<div key={member.id} className="flex items-center gap-3">
-                                    <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F" }}/>
-                                    <div className="flex-1 min-w-0">
-                                        <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{member.name}</p>
-                                        <p style={{ color: "#D84040", fontSize: "11px" }}>{member.role}</p>
+                        
+                        {isEditing ? (
+                            <div className="space-y-3">
+                                {/* List of assigned crew with remove buttons */}
+                                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                    {assignedCrew.map((c) => {
+                                        const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+                                        const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
+                                        const avatarUrl = realMember?.avatar || null;
+                                        
+                                        return (
+                                            <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "#1D1616", border: "1px solid #2A1F1F" }}>
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    {avatarUrl ? (
+                                                        <img src={avatarUrl} alt={c.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                                                    ) : (
+                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "#8E1616", color: "#EEEEEE" }}>
+                                                            {initials}
+                                                        </div>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }} className="truncate">{c.name}</p>
+                                                        <p style={{ color: "#D84040", fontSize: "10px" }} className="truncate">{c.role}</p>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setAssignedCrew(prev => prev.filter(item => item.id !== c.id))}
+                                                    className="text-gray-500 hover:text-red-500 transition-colors p-1"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                    {assignedCrew.length === 0 && (
+                                        <p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="py-2">No crew assigned yet.</p>
+                                    )}
+                                </div>
+                                
+                                {/* Dropdown select to assign registered crew member */}
+                                <div className="mt-3 pt-3 border-t border-[#2A1F1F]">
+                                    <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Assign Crew Member</label>
+                                    <select 
+                                        value="" 
+                                        onChange={(e) => {
+                                            const selectedId = e.target.value;
+                                            const selectedMember = dbCrew.find(m => m.id.toString() === selectedId);
+                                            if (selectedMember) {
+                                                const primaryRole = selectedMember.role ? selectedMember.role.split(",")[0].trim() : "Crew Member";
+                                                setAssignedCrew(prev => [
+                                                    ...prev, 
+                                                    { 
+                                                        id: `crew-${selectedMember.id}-${Date.now()}`, 
+                                                        name: selectedMember.name, 
+                                                        role: primaryRole 
+                                                    }
+                                                ]);
+                                            }
+                                            e.target.value = "";
+                                        }}
+                                        className="px-3 py-2 rounded-lg outline-none appearance-none cursor-pointer"
+                                        style={inputStyle}
+                                    >
+                                        <option value="">Select registered crew...</option>
+                                        {dbCrew
+                                            .filter(m => !assignedCrew.some(ac => ac.name.toLowerCase() === m.name.toLowerCase()))
+                                            .map((m) => (
+                                                <option key={m.id} value={m.id}>{m.name} ({m.role ? m.role.split(",")[0].trim() : "No Role"})</option>
+                                            ))}
+                                    </select>
+                                </div>
+                                
+                                {/* Custom write-in credit */}
+                                <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">
+                                    <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Add Custom Credit</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            id="custom-credit-role" 
+                                            placeholder="Role: e.g. Sound Designer" 
+                                            className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" 
+                                            style={inputStyle}
+                                        />
+                                        <input 
+                                            id="custom-credit-name" 
+                                            placeholder="Name: e.g. John Doe" 
+                                            className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" 
+                                            style={inputStyle}
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                const roleEl = document.getElementById("custom-credit-role");
+                                                const nameEl = document.getElementById("custom-credit-name");
+                                                const roleVal = roleEl?.value.trim();
+                                                const nameVal = nameEl?.value.trim();
+                                                if (roleVal && nameVal) {
+                                                    setAssignedCrew(prev => [
+                                                        ...prev, 
+                                                        { id: `custom-${Date.now()}`, name: nameVal, role: roleVal }
+                                                    ]);
+                                                    if (roleEl) roleEl.value = "";
+                                                    if (nameEl) nameEl.value = "";
+                                                } else {
+                                                    alert("Please enter both a role and a name.");
+                                                }
+                                            }}
+                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold" 
+                                            style={{ background: "#D84040", color: "#fff" }}
+                                        >
+                                            Add
+                                        </button>
                                     </div>
-                                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: member.status === "Active" ? "#4CAF50" : "#E8A838" }}/>
-                                </div>))}
-                            {assignedCrew.length === 0 && (
-                                <p style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>No crew assigned to this project yet.</p>
-                            )}
-                        </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {assignedCrew.map((c) => {
+                                    const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
+                                    const avatarUrl = realMember?.avatar || null;
+                                    const status = realMember?.status || "Active";
+                                    const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+                                    
+                                    return (
+                                        <div key={c.id} className="flex items-center gap-3">
+                                            {avatarUrl ? (
+                                                <img src={avatarUrl} alt={c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F" }}/>
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>
+                                                    {initials}
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                {realMember ? (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => navigate(`/admin/crew/${realMember.id}`)}
+                                                        className="text-left hover:text-[#D84040] transition-colors"
+                                                        style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}
+                                                    >
+                                                        {c.name}
+                                                    </button>
+                                                ) : (
+                                                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</p>
+                                                )}
+                                                <p style={{ color: "#D84040", fontSize: "11px" }}>{c.role}</p>
+                                            </div>
+                                            {realMember && (
+                                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: status === "Active" ? "#4CAF50" : "#E8A838" }}/>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {assignedCrew.length === 0 && (
+                                    <p style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>No crew assigned to this project yet.</p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Client Info */}

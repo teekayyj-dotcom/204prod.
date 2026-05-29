@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2 } from "lucide-react";
-import { fetchApi } from "../utils/apiClient";
+import { API_BASE_URL, fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 const typeIcons = {
     document: FileText,
@@ -16,6 +16,11 @@ const typeColors = {
     video: "#E8A838",
     archive: "#888",
     design: "#D84040",
+};
+const getImagePreviewUrl = (asset) => {
+    if (asset.kind !== "image" && asset.type !== "image")
+        return asset.url;
+    return `${API_BASE_URL}/media/${asset.id}/proxy?width=420`;
 };
 export function MediaLibraryPage() {
     const [search, setSearch] = useState("");
@@ -50,6 +55,7 @@ export function MediaLibraryPage() {
                 size: newAsset.file_size ? `${(newAsset.file_size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
                 uploaded: newAsset.created_at ? new Date(newAsset.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
                 image: newAsset.url,
+                previewImage: getImagePreviewUrl(newAsset),
             };
             setAssets((prev) => [mapped, ...prev]);
         }
@@ -72,7 +78,8 @@ export function MediaLibraryPage() {
                 project: "N/A", // Not directly available without deep joins
                 size: m.file_size ? `${(m.file_size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
                 uploaded: m.created_at ? new Date(m.created_at).toLocaleDateString() : "2026-05-18",
-                image: m.url
+                image: m.url,
+                previewImage: getImagePreviewUrl(m)
             }));
             setAssets(mapped);
             setLoading(false);
@@ -206,7 +213,7 @@ export function MediaLibraryPage() {
                 return (<div key={asset.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                                 {/* Preview */}
                                 <div className="relative h-36 overflow-hidden" style={{ background: "#1D1616" }}>
-                                    {asset.type === "image" ? (<img src={asset.image} alt={asset.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: `${typeColors[asset.type]}10` }}>
+                                    {asset.type === "image" ? (<img src={asset.previewImage || asset.image} alt={asset.name} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: `${typeColors[asset.type]}10` }}>
                                             <IconComp size={36} color={typeColors[asset.type]}/>
                                             <span className="px-2 py-0.5 rounded uppercase" style={{ background: `${typeColors[asset.type]}20`, color: typeColors[asset.type], fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }}>
                                                 {asset.type}

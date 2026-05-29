@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 interface Project {
@@ -235,11 +236,13 @@ export function LandingPage() {
       {/* Center Content */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {currentProject ? (
-          <div
+          <Link
             key={currentIndex}
-            className="group flex flex-col items-center justify-center text-center pointer-events-auto"
+            to={`/works/${currentProject.slug}`}
+            className="group flex flex-col items-center justify-center text-center pointer-events-auto cursor-none select-none"
             style={{
-              "--landing-anim": scrollDirection === "down" ? "landingDropDown" : "landingFlyIn"
+              "--landing-anim": scrollDirection === "down" ? "landingDropDown" : "landingFlyIn",
+              textDecoration: "none"
             } as React.CSSProperties}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
@@ -279,7 +282,7 @@ export function LandingPage() {
             <div className="animate-item-year text-white/80 text-lg md:text-xl tracking-widest mt-2 transition-colors group-hover:text-[#FF0000]">
               {currentProject.year}
             </div>
-          </div>
+          </Link>
         ) : (
           <div className="flex flex-col items-center justify-center text-center">
             <h2 className="text-white/30 text-3xl font-light tracking-[0.2em] uppercase">

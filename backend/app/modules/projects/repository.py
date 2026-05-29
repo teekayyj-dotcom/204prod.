@@ -24,7 +24,11 @@ def _map_to_detail(p: Project) -> ProjectDetail:
         status=p.status,
         summary=p.summary or "",
         credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
-        gallery=[g.media_asset.url for g in p.gallery_images if g.media_asset] if getattr(p, "gallery_images", None) else []
+        gallery=[
+            {"id": g.media_asset_id, "url": g.media_asset.url}
+            for g in p.gallery_images
+            if g.media_asset
+        ] if getattr(p, "gallery_images", None) else []
     )
 
 
