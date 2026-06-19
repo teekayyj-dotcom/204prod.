@@ -49,7 +49,7 @@ javascript:
             spiralRadius: 3.5,
             spiralTurns: 2.8 + (numberOfImages - 21) * 0.1,
             spiralHeight: 12 + (numberOfImages - 21) * 0.25,
-            centerX: 2.2,
+            centerX: -2,
             centerY: 4.38,
             centerZ: 0
         };
