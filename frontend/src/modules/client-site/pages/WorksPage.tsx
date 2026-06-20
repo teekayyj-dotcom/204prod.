@@ -646,7 +646,7 @@ export function WorksPage() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/v1/projects");
+        const response = await fetch("/api/v1/projects");
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {

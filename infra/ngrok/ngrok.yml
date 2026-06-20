@@ -1,0 +1,7 @@
+version: 3
+agent:
+  authtoken: 3FMPckwE6YK34TNpA0XXTvcoYrv_3AW4WUtL5S6mAR94MTdYx
+tunnels:
+  app:
+    proto: http
+    addr: nginx:80

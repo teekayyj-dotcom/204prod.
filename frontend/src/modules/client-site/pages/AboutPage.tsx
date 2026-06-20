@@ -7,7 +7,7 @@ export function AboutPage() {
           <h2>Our Story</h2>
         </div>
         <p className="description mt-4">
-          Learn more about FRAMECRAFT and our vision.
+          Learn more about 204PROD. and our vision.
         </p>
       </section>
     </main>

@@ -578,7 +578,7 @@ export function ProjectDetail() {
     const getProject = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/projects/${id}`);
+        const response = await fetch(`/api/v1/projects/${id}`);
         if (response.ok) {
           const data = await response.json();
           setProject({

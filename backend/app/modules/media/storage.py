@@ -32,7 +32,7 @@ class LocalStorageProvider(BaseStorageProvider):
             f.write(file_content)
             
         # Return URL
-        return f"{settings.backend_url.rstrip('/')}/uploads/{unique_filename}"
+        return f"/uploads/{unique_filename}"
 
     def delete_file(self, file_url: str) -> bool:
         # Extract filename from URL

@@ -125,7 +125,7 @@ export function LandingPage() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/v1/projects");
+        const response = await fetch("/api/v1/projects");
         if (response.ok) {
           const data: Project[] = await response.json();
           const featured = data.filter((p) => p.featured);
