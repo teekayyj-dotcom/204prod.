@@ -166,6 +166,12 @@ export function CrewPage() {
     <main className="home-shell bg-[#050505] min-h-screen">
       {!showDetail ? (
         <div id="crew-list-view">
+          <style>{`
+            #overlay-crew-cloud:hover button {
+              transition-delay: 0s !important;
+              transition-duration: 150ms !important;
+            }
+          `}</style>
           <section className="relative min-h-screen px-6 flex items-center justify-center overflow-hidden bg-[#050505]">
             <div className="absolute inset-0 z-0 overflow-hidden">
               <canvas
