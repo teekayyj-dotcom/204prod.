@@ -14,6 +14,7 @@ export const clientSiteRoute = {
     { path: "works", Component: WorksPage },
     { path: "works/:id", Component: ProjectDetail },
     { path: "crew", Component: CrewPage },
+    { path: "crew/:id", Component: CrewPage },
     { path: "about", Component: AboutPage },
     { path: "contact", Component: ContactPage },
   ],
