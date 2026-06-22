@@ -31,7 +31,7 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
           aspect-ratio: 4/5;
         }
         @media (max-width: 1024px) {
-          .parallax-scene-container 
+          .parallax-scene-container {
             max-width: 380px;
           }
         }
