@@ -109,11 +109,7 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
             rotateY(calc(var(--di) * var(--ma)));
           
           box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.6);
-          background: 
-            conic-gradient(from 90deg at var(--l) var(--l), 
-                rgba(255, 255, 255, 0.08) 25%, transparent 0%) 
-              0 / var(--g) var(--g), 
-            var(--back);
+          background: var(--back);
           
           transition: transform 0.4s var(--fn);
         }
@@ -127,10 +123,33 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
           background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
           transition: inherit;
           transition-property: translate, opacity;
-          opacity: calc(min(var(--i, -1) + 1, 1));
+          opacity: 0;
           content: '';
           pointer-events: none;
           z-index: 1;
+        }
+
+        .parallax-scene:hover .parallax-card::before {
+          opacity: 1;
+        }
+
+        /* Grid overlay */
+        .parallax-card::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: 
+            conic-gradient(from 90deg at var(--l) var(--l), 
+                rgba(255, 255, 255, 0.08) 25%, transparent 0%) 
+              0 / var(--g) var(--g);
+          opacity: 0;
+          transition: opacity 0.4s ease;
+          pointer-events: none;
+          z-index: 2;
+        }
+
+        .parallax-scene:hover .parallax-card::after {
+          opacity: 1;
         }
       `}</style>
       <div className="max-w-[1400px] mx-auto px-6 md:px-16">
