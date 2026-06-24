@@ -120,14 +120,14 @@ export function ProjectsPage() {
             }}>
                             {s}
                         </button>))}
-                    <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-1.5 rounded-lg outline-none appearance-none" style={{ background: "#241C1C", color: "#888", border: "1px solid #2E2020", fontSize: "12px" }}>
+                    <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="px-3 py-1.5 rounded-lg outline-none appearance-none" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "12px" }}>
                         <option value="All">All Categories</option>
                         {categories.map((c) => (<option key={c.slug} value={c.name}>{c.name}</option>))}
                     </select>
                 </div>
                 <div className="flex items-center gap-2">
                     {/* Search */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <Search size={14} color="#666"/>
                         <input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "160px" }}/>
                     </div>
@@ -142,7 +142,7 @@ export function ProjectsPage() {
 
             {/* Grid View */}
             {view === "grid" && (<div className="grid grid-cols-3 gap-5">
-                    {filtered.map((project) => (<div key={project.slug} className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                    {filtered.map((project) => (<div key={project.slug} className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                             <div className="relative h-40 overflow-hidden">
                                 <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
                                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}/>
@@ -202,7 +202,7 @@ export function ProjectsPage() {
                 </div>)}
 
             {/* List View */}
-            {view === "list" && (<div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+            {view === "list" && (<div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <table className="w-full">
                         <thead>
                             <tr style={{ borderBottom: "1px solid #2A1F1F" }}>

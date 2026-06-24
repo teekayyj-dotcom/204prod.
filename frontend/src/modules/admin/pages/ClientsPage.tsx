@@ -81,7 +81,7 @@ export function ClientsPage() {
             { label: "Active", value: clients.filter((c) => c.status === "Active").length, icon: TrendingUp },
             { label: "Total Projects", value: clients.reduce((s, c) => s + c.projects, 0), icon: Briefcase },
             { label: "Total Budget", value: `$${(totalBudget / 1000).toFixed(0)}K`, icon: TrendingUp },
-        ].map((stat) => (<div key={stat.label} className="rounded-xl p-4 flex items-center gap-3" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+        ].map((stat) => (<div key={stat.label} className="rounded-xl p-4 flex items-center gap-3" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(216,64,64,0.12)" }}>
                             <stat.icon size={18} color="#D84040"/>
                         </div>
@@ -105,7 +105,7 @@ export function ClientsPage() {
                             {s}
                         </button>))}
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <Search size={14} color="#666"/>
                     <input placeholder="Search clients..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "180px" }}/>
                 </div>
@@ -113,7 +113,7 @@ export function ClientsPage() {
 
             {/* Client Cards */}
             <div className="grid grid-cols-2 gap-4">
-                {filtered.map((client) => (<div key={client.slug} className="rounded-xl p-5 group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/clients/${client.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                {filtered.map((client) => (<div key={client.slug} className="rounded-xl p-5 group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/clients/${client.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ background: "#8E1616", border: "1px solid #2E2020", color: "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>

@@ -14,8 +14,8 @@ export function ClientTestimonials() {
 
   return (
     <div
-      className="rounded-xl p-5"
-      style={{ background: "#241C1C", border: "1px solid #2E2020" }}
+      className="rounded-xl p-5 backdrop-blur-md"
+      style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
     >
       <div className="flex items-center justify-between mb-4">
         <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>
@@ -31,14 +31,14 @@ export function ClientTestimonials() {
         <div className="flex gap-2">
           <button
             onClick={prev}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{ background: "#2A1F1F", color: "#888" }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border border-white/5"
+            style={{ background: "rgba(42, 31, 31, 0.6)", color: "#888" }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.background = "#8E1616";
               (e.currentTarget as HTMLElement).style.color = "#EEEEEE";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "#2A1F1F";
+              (e.currentTarget as HTMLElement).style.background = "rgba(42, 31, 31, 0.6)";
               (e.currentTarget as HTMLElement).style.color = "#888";
             }}
           >
@@ -46,14 +46,14 @@ export function ClientTestimonials() {
           </button>
           <button
             onClick={next}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{ background: "#2A1F1F", color: "#888" }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors border border-white/5"
+            style={{ background: "rgba(42, 31, 31, 0.6)", color: "#888" }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.background = "#8E1616";
               (e.currentTarget as HTMLElement).style.color = "#EEEEEE";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "#2A1F1F";
+              (e.currentTarget as HTMLElement).style.background = "rgba(42, 31, 31, 0.6)";
               (e.currentTarget as HTMLElement).style.color = "#888";
             }}
           >

@@ -13,8 +13,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div
-        className="rounded-lg px-3 py-2"
-        style={{ background: "#2A1F1F", border: "1px solid #8E1616" }}
+        className="rounded-lg px-3 py-2 backdrop-blur-md"
+        style={{ background: "rgba(42, 31, 31, 0.7)", border: "1px solid rgba(142, 22, 22, 0.6)" }}
       >
         <p style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{label}</p>
         <p style={{ color: "#EEEEEE", fontSize: "12px" }}>
@@ -32,8 +32,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function ProjectTimeline() {
   return (
     <div
-      className="rounded-xl p-5"
-      style={{ background: "#241C1C", border: "1px solid #2E2020" }}
+      className="rounded-xl p-5 backdrop-blur-md"
+      style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
     >
       <div className="flex items-center justify-between mb-5">
         <div>

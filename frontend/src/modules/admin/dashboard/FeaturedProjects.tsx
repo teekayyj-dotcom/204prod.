@@ -30,8 +30,8 @@ export function FeaturedProjects() {
           <div
             key={project.id}
             onClick={() => navigate(`/admin/projects/${project.id}`)}
-            className="rounded-xl overflow-hidden group cursor-pointer"
-            style={{ background: "#241C1C", border: "1px solid #2E2020" }}
+            className="rounded-xl overflow-hidden group cursor-pointer backdrop-blur-md transition-all duration-300 hover:border-[#D84040]/70"
+            style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
           >
             <div className="relative h-36 overflow-hidden">
               <img
@@ -41,7 +41,7 @@ export function FeaturedProjects() {
               />
               <div
                 className="absolute inset-0"
-                style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}
+                style={{ background: "linear-gradient(to top, rgba(36, 28, 28, 0.7) 0%, transparent 60%)" }}
               />
               <div className="absolute top-3 right-3">
                 <span

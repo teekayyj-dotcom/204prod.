@@ -223,3 +223,61 @@ def delete_client(db: Session, slug: str) -> bool:
     db.delete(db_client)
     db.commit()
     return True
+
+
+def get_feedbacks(db: Session, project_slug: str):
+    from app.modules.projects.models import ProjectFeedback
+    return db.query(ProjectFeedback).filter(ProjectFeedback.project_slug == project_slug).order_by(ProjectFeedback.timecode).all()
+
+
+def create_feedback(db: Session, project_slug: str, req):
+    from app.modules.projects.models import ProjectFeedback
+    db_feedback = ProjectFeedback(
+        project_slug=project_slug,
+        user_id=req.user_id,
+        timecode=req.timecode,
+        position_x=req.position_x,
+        position_y=req.position_y,
+        content=req.content,
+        status=req.status
+    )
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback
+
+
+def delete_feedback(db: Session, feedback_id: int) -> bool:
+    from app.modules.projects.models import ProjectFeedback
+    db_feedback = db.query(ProjectFeedback).filter(ProjectFeedback.id == feedback_id).first()
+    if not db_feedback:
+        return False
+    db.delete(db_feedback)
+    db.commit()
+    return True
+
+
+def update_feedback_status(db: Session, feedback_id: int, status: str):
+    from app.modules.projects.models import ProjectFeedback
+    db_feedback = db.query(ProjectFeedback).filter(ProjectFeedback.id == feedback_id).first()
+    if not db_feedback:
+        return None
+    db_feedback.status = status
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback
+
+
+def reply_feedback(db: Session, feedback_id: int, reply_content: str, reply_author: str):
+    from app.modules.projects.models import ProjectFeedback
+    from datetime import datetime, timezone
+    db_feedback = db.query(ProjectFeedback).filter(ProjectFeedback.id == feedback_id).first()
+    if not db_feedback:
+        return None
+    db_feedback.reply_content = reply_content
+    db_feedback.reply_author = reply_author
+    db_feedback.reply_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback
+

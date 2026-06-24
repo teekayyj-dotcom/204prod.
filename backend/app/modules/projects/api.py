@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
 from app.modules.projects.service import get_project, get_projects, create_project, delete_project, update_project
-from app.modules.projects.schemas import ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate
+from app.modules.projects.schemas import ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate, ProjectFeedbackCreate
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -76,5 +76,45 @@ def delete_project_route(slug: str, db: Session = Depends(get_db_session)):
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return None
+
+
+@router.get("/{slug}/feedback")
+def list_feedback_route(slug: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import get_feedbacks
+    return get_feedbacks(db, slug)
+
+
+@router.post("/{slug}/feedback")
+def create_feedback_route(slug: str, req: ProjectFeedbackCreate, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import create_feedback
+    return create_feedback(db, slug, req)
+
+
+@router.delete("/feedback/{feedback_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_feedback_route(feedback_id: int, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import delete_feedback
+    success = delete_feedback(db, feedback_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found")
+    return None
+
+
+@router.put("/feedback/{feedback_id}/status")
+def update_feedback_status_route(feedback_id: int, status_val: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import update_feedback_status
+    updated = update_feedback_status(db, feedback_id, status_val)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found")
+    return updated
+
+
+@router.put("/feedback/{feedback_id}/reply")
+def reply_feedback_route(feedback_id: int, reply_content: str = Body(..., embed=True), reply_author: str = Body("Admin", embed=True), db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import reply_feedback
+    updated = reply_feedback(db, feedback_id, reply_content, reply_author)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found")
+    return updated
+
 
 

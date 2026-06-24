@@ -123,9 +123,7 @@ function ColorPickerModal({ current, onSelect, onClose, }) {
     };
     const isDefault = hex === BRAND_RED;
     return (<div className="fixed inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.72)", zIndex: 9999 }} onClick={onClose}>
-            <div className="rounded-2xl overflow-hidden" style={{
-            background: "#241C1C",
-            border: "1px solid #2E2020",
+            <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             width: "360px",
             boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
         }} onClick={(e) => e.stopPropagation()}>
@@ -220,8 +218,7 @@ function ColorPickerModal({ current, onSelect, onClose, }) {
             transition: "background 0.15s",
         }}/>
                         <div className="relative flex-1">
-                            <input value={hexInput} onChange={(e) => handleHexChange(e.target.value)} placeholder="#D84040" maxLength={7} className="w-full px-3 py-2 rounded-lg outline-none" style={{
-            background: "#1D1616",
+                            <input value={hexInput} onChange={(e) => handleHexChange(e.target.value)} placeholder="#D84040" maxLength={7} className="w-full px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             border: `1px solid ${hexError ? "#D84040" : "#3A2A2A"}`,
             color: "#EEEEEE",
             fontSize: "13px",
@@ -281,9 +278,7 @@ function IconPickerModal({ current, onSelect, onClose, }) {
     const [query, setQuery] = useState("");
     const filtered = useMemo(() => ICON_OPTIONS.filter((o) => o.name.toLowerCase().includes(query.toLowerCase())), [query]);
     return (<div className="fixed inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.72)", zIndex: 9999 }} onClick={onClose}>
-            <div className="rounded-2xl overflow-hidden" style={{
-            background: "#241C1C",
-            border: "1px solid #2E2020",
+            <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             width: "520px",
             maxHeight: "80vh",
             display: "flex",
@@ -327,8 +322,7 @@ function IconPickerModal({ current, onSelect, onClose, }) {
             transform: "translateY(-50%)",
             pointerEvents: "none",
         }}/>
-                        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search icons…" className="w-full pl-8 pr-4 py-2 rounded-lg outline-none" style={{
-            background: "#1D1616",
+                        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search icons…" className="w-full pl-8 pr-4 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             border: "1px solid #3A2A2A",
             color: "#EEEEEE",
             fontSize: "13px",
@@ -537,7 +531,7 @@ export function CategoriesPage() {
             const catColor = getCatColor(cat);
             const catColorBg = hexToRgba(catColor, 0.12);
             const isCustomColor = colorOverrides[cat.id] != null && colorOverrides[cat.id] !== BRAND_RED;
-            return (<div key={cat.id} onClick={() => navigate(`/admin/categories/${cat.id}`)} className="rounded-xl p-5 group relative cursor-pointer transition-all" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onMouseEnter={(e) => {
+            return (<div key={cat.id} onClick={() => navigate(`/admin/categories/${cat.id}`)} className="rounded-xl p-5 group relative cursor-pointer transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = catColor;
                     e.currentTarget.style.transform =
                         "translateY(-1px)";
@@ -609,7 +603,7 @@ export function CategoriesPage() {
             </div>
 
             {/* ── Category Table ── */}
-            <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+            <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                     <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>
                         All Categories

@@ -13,8 +13,8 @@ export function RecentActivity() {
 
   return (
     <div
-      className="rounded-xl"
-      style={{ background: "#241C1C", border: "1px solid #2E2020" }}
+      className="rounded-xl backdrop-blur-md"
+      style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
     >
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
         <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>
@@ -53,7 +53,7 @@ export function RecentActivity() {
                   borderBottom: i < recentActivity.length - 1 ? "1px solid #2A1F1F" : "none",
                   transition: "background 0.15s",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#2A1F1F")}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(42, 31, 31, 0.5)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
               >
                 <td className="px-5 py-3.5">

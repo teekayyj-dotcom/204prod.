@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 
 class ProjectSummary(BaseModel):
@@ -109,4 +110,30 @@ class ClientUpdate(BaseModel):
     status: str | None = None
     since: str | None = None
     notes: str | None = None
+
+
+class ProjectFeedbackBase(BaseModel):
+    timecode: float
+    position_x: float
+    position_y: float
+    content: str
+    status: str = "Open"
+    reply_content: str | None = None
+    reply_author: str | None = None
+
+
+class ProjectFeedbackCreate(ProjectFeedbackBase):
+    user_id: str = "Client"
+
+
+class ProjectFeedbackDetail(ProjectFeedbackBase):
+    id: int
+    project_slug: str
+    user_id: str
+    created_at: datetime
+    reply_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
 

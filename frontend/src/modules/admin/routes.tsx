@@ -13,6 +13,16 @@ import { AddCategoryPage } from "./pages/AddCategoryPage";
 import { AddClientPage } from "./pages/AddClientPage";
 import { AddCrewMemberPage } from "./pages/AddCrewMemberPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import { OutsourcePage } from "./pages/OutsourcePage";
+import { HROverviewPage } from "./pages/HROverviewPage";
+import { AttendancePage } from "./pages/AttendancePage";
+import { CRMOverviewPage } from "./pages/CRMOverviewPage";
+import { FinanceRevenuePage } from "./pages/FinanceRevenuePage";
+import { FinanceOverviewPage } from "./pages/FinanceOverviewPage";
+import { FinanceGoalsPage } from "./pages/FinanceGoalsPage";
+import { FinanceExpensesPage } from "./pages/FinanceExpensesPage";
+import { FinancePayablesPage } from "./pages/FinancePayablesPage";
+import { ClientPlaybackPage } from "../client-view/pages/ClientPlaybackPage";
 
 export function AdminNotFound() {
     return (<div className="flex flex-col items-center justify-center h-full py-32" style={{ color: "#666" }}>
@@ -40,10 +50,20 @@ export const adminRoute = {
         { path: "projects", Component: ProjectsPage },
         { path: "projects/new", Component: AddProjectPage },
         { path: "projects/:id", Component: ProjectDetailPage },
+        { path: "projects/:id/playback", Component: ClientPlaybackPage },
         { path: "crew", Component: CrewPage },
         { path: "crew/new", Component: AddCrewMemberPage },
         { path: "crew/:id", Component: CrewProfilePage },
         { path: "media", Component: MediaLibraryPage },
+        { path: "crm/overview", Component: CRMOverviewPage },
+        { path: "hr/outsource", Component: OutsourcePage },
+        { path: "hr/overview", Component: HROverviewPage },
+        { path: "hr/attendance", Component: AttendancePage },
+        { path: "finance/overview", Component: FinanceOverviewPage },
+        { path: "finance/goals", Component: FinanceGoalsPage },
+        { path: "finance/revenue", Component: FinanceRevenuePage },
+        { path: "finance/expenses", Component: FinanceExpensesPage },
+        { path: "finance/payables", Component: FinancePayablesPage },
         { path: "*", Component: AdminNotFound },
     ],
 };

@@ -208,7 +208,7 @@ export function CrewProfilePage() {
     if (!member) {
         return (<div className="px-8 py-7">
                 <div className="flex items-center gap-4 mb-8">
-                    <button onClick={() => navigate("/admin/crew")} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }}>
+                    <button onClick={() => navigate("/admin/crew")} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }}>
                         <ArrowLeft size={16}/>
                     </button>
                 </div>
@@ -239,7 +239,7 @@ export function CrewProfilePage() {
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate("/admin/crew")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
+                    <button onClick={() => navigate("/admin/crew")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
                         <ArrowLeft size={16}/>
                     </button>
                     <div>
@@ -255,7 +255,7 @@ export function CrewProfilePage() {
                 {/* Action buttons */}
                 <div className="flex items-center gap-2">
                     {isEditing ? (<>
-                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#241C1C", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
+                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
                                 <X size={14}/> Discard
                             </button>
                             <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
@@ -264,7 +264,7 @@ export function CrewProfilePage() {
                     : <><Save size={13}/> Save Changes</>}
                             </button>
                         </>) : (<>
-                            <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "#241C1C", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
+                            <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
                                 <Trash2 size={13}/> Remove
                             </button>
                             <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
@@ -284,7 +284,7 @@ export function CrewProfilePage() {
                 <div className="col-span-2 space-y-5">
 
                     {/* Profile Hero Card */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         {/* Banner — sent to back so text above it is always visible */}
                         <div className="h-28 relative" style={{
             background: "linear-gradient(135deg, #1D1616 0%, #8E1616 55%, #D84040 100%)",
@@ -426,7 +426,7 @@ export function CrewProfilePage() {
                     </div>
 
                     {/* Bio */}
-                    <div className="rounded-xl p-5" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <label style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="flex items-center gap-2 mb-3">
                             <User size={14} color="#D84040"/> Bio
                         </label>
@@ -436,7 +436,7 @@ export function CrewProfilePage() {
                     </div>
 
                     {/* Skills */}
-                    <div className="rounded-xl p-5" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <label style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="flex items-center gap-2 mb-4">
                             <Tag size={14} color="#D84040"/> Skills & Expertise
                         </label>
@@ -453,13 +453,13 @@ export function CrewProfilePage() {
                                     <input value={skillInput} onChange={(e) => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") {
             e.preventDefault();
             addSkill(skillInput);
-        } }} placeholder="Add a skill and press Enter..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+        } }} placeholder="Add a skill and press Enter..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                                     <button type="button" onClick={() => addSkill(skillInput)} className="px-3 py-2 rounded-lg flex items-center" style={{ background: "rgba(216,64,64,0.15)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
                                         <Plus size={14}/>
                                     </button>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {skillSuggestions.filter((s) => !skills.includes(s)).slice(0, 8).map((s) => (<button key={s} type="button" onClick={() => addSkill(s)} className="px-2 py-0.5 rounded transition-all" style={{ background: "#1D1616", color: "#666", fontSize: "11px", border: "1px solid #2E2020" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#666"; }}>
+                                    {skillSuggestions.filter((s) => !skills.includes(s)).slice(0, 8).map((s) => (<button key={s} type="button" onClick={() => addSkill(s)} className="px-2 py-0.5 rounded transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", fontSize: "11px", border: "1px solid #2E2020" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#666"; }}>
                                             + {s}
                                         </button>))}
                                 </div>
@@ -467,7 +467,7 @@ export function CrewProfilePage() {
                     </div>
 
                     {/* Assigned Projects */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Assigned Projects</p>
                             <span style={{ color: "#D84040", fontSize: "12px" }}>{member.projects} projects</span>
@@ -494,7 +494,7 @@ export function CrewProfilePage() {
                 <div className="col-span-1 space-y-5">
 
                     {/* Member Stats */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Member Stats</p>
                         {[
             { icon: Briefcase, label: "Projects", value: member.projects, color: "#D84040" },
@@ -511,22 +511,22 @@ export function CrewProfilePage() {
                     </div>
 
                     {/* Contact Actions */}
-                    <div className="rounded-xl p-4 space-y-2" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4 space-y-2" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Quick Actions</p>
-                        <a href={`mailto:${member.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "#1D1616", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                        <a href={`mailto:${member.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                             <Mail size={14} color="#D84040"/>
                             Send Message
                         </a>
-                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "#1D1616", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                             <Edit3 size={14} color="#D84040"/>
                             Edit Profile
                         </button>
-                        <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "#1D1616", color: "#888", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                        <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                             <Trash2 size={14}/>
                             Remove from Crew
                         </button>
                     {/* Role badge — with Add Role */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Current Roles</p>
 
                         {isEditing ? (
@@ -572,7 +572,7 @@ export function CrewProfilePage() {
                                                     setAddingRole(false);
                                                     setRoleInput("");
                                                 }
-                                            }} placeholder="e.g. Brand Strategist..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #D84040", color: "#EEEEEE", fontSize: "13px" }}/>
+                                            }} placeholder="e.g. Brand Strategist..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #D84040", color: "#EEEEEE", fontSize: "13px" }}/>
                                             <button type="button" onClick={saveRole} className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff" }}>
                                                 <Check size={13}/>
                                             </button>

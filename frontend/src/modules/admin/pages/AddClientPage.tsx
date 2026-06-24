@@ -82,7 +82,7 @@ export function AddClientPage() {
     return (<div className="px-8 py-7 w-full">
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-                <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
+                <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
                     <ArrowLeft size={16}/>
                 </button>
                 <div>
@@ -95,7 +95,7 @@ export function AddClientPage() {
             <div className="grid grid-cols-3 gap-6 items-start">
 
                 {/* ── Left: Main Form (2 cols) ── */}
-                <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: "1px solid #2A1F1F", background: "linear-gradient(to right, #1D1616, #241C1C)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(216,64,64,0.15)", border: "1px solid rgba(216,64,64,0.3)" }}>
                             <UserPlus size={17} color="#D84040"/>
@@ -232,7 +232,7 @@ export function AddClientPage() {
 
                         {/* Actions */}
                         <div className="flex items-center gap-3">
-                            <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 rounded-lg transition-all" style={{ background: "#1D1616", color: "#888", border: "1px solid #3A2A2A", fontSize: "14px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; e.currentTarget.style.borderColor = "#666"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#3A2A2A"; }}>
+                            <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 rounded-lg transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #3A2A2A", fontSize: "14px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; e.currentTarget.style.borderColor = "#666"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#3A2A2A"; }}>
                                 Cancel
                             </button>
                             <button type="submit" disabled={submitting || success} className="flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all" style={{ background: success ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "14px", fontWeight: 600, opacity: submitting ? 0.8 : 1 }}>
@@ -248,7 +248,7 @@ export function AddClientPage() {
                 <div className="col-span-1 space-y-5">
 
                     {/* Live Preview Card */}
-                    <div className="rounded-xl p-5" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#666", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-4">Preview</p>
                         <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
@@ -279,7 +279,7 @@ export function AddClientPage() {
                     </div>
 
                     {/* Portfolio Stats */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center gap-2 mb-3">
                             <TrendingUp size={13} color="#D84040"/>
                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Portfolio Overview</p>

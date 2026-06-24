@@ -168,7 +168,7 @@ export function CrewPage() {
                     <button 
                         onClick={() => setIsRolesModalOpen(true)} 
                         className="flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors" 
-                        style={{ background: "#241C1C", borderColor: "#2E2020", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} 
+                        style={{ background: "rgba(36, 28, 28, 0.4)", borderColor: "rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} 
                         onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")} 
                         onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}
                     >
@@ -210,7 +210,7 @@ export function CrewPage() {
                         color: "#D84040",
                     },
                 ].map((stat) => (
-                    <div key={stat.label} className="rounded-xl p-4 flex items-center gap-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div key={stat.label} className="rounded-xl p-4 flex items-center gap-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${stat.color}20` }}>
                             <stat.icon size={22} color={stat.color}/>
                         </div>
@@ -250,8 +250,7 @@ export function CrewPage() {
                         value={selectedRoleFilter} 
                         onChange={(e) => setSelectedRoleFilter(e.target.value)} 
                         className="px-3 py-1.5 rounded-lg outline-none cursor-pointer" 
-                        style={{
-                            background: "#241C1C",
+                        style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
                             color: "#888",
                             border: "1px solid #2E2020",
                             fontSize: "13px",
@@ -265,7 +264,7 @@ export function CrewPage() {
                 </div>
 
                 {/* Search */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <Search size={14} color="#666"/>
                     <input placeholder="Search crew..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "180px" }}/>
                 </div>
@@ -274,7 +273,7 @@ export function CrewPage() {
             {/* Crew Grid */}
             <div className="grid grid-cols-3 gap-5">
                 {filtered.map((member) => (
-                    <div key={member.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onClick={() => navigate(`/admin/crew/${member.id}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                    <div key={member.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/crew/${member.id}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                         {/* Banner */}
                         <div className="h-20 relative" style={{ background: "linear-gradient(135deg, #1D1616, #8E1616)" }}>
                             <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full" style={{
@@ -345,7 +344,7 @@ export function CrewPage() {
             {/* Manage Roles Modal */}
             {isRolesModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}>
-                    <div className="w-full max-w-md rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="w-full max-w-md rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>Manage Roles</h3>
                             <button onClick={() => setIsRolesModalOpen(false)} style={{ color: "#888" }} className="hover:opacity-70">
@@ -360,7 +359,7 @@ export function CrewPage() {
                                     onChange={(e) => setNewRoleInput(e.target.value)} 
                                     placeholder="Enter new role name..." 
                                     className="flex-1 px-3 py-2 rounded-lg outline-none" 
-                                    style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "13px" }} 
+                                    style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "13px" }} 
                                     onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
                                     onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
                                     onKeyDown={(e) => e.key === "Enter" && handleAddRole()}
@@ -371,7 +370,7 @@ export function CrewPage() {
                             </div>
 
                             {/* Search roles list */}
-                            <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#1D1616", border: "1px solid #3A2A2A" }}>
+                            <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #3A2A2A" }}>
                                 <Search size={13} color="#666"/>
                                 <input value={roleSearch} onChange={(e) => setRoleSearch(e.target.value)} placeholder="Search roles list..." className="w-full outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "12px" }}/>
                             </div>
@@ -383,7 +382,7 @@ export function CrewPage() {
                                     .map(role => {
                                         const count = crewMembers.filter(m => m.role && m.role.split(',').map(r => r.trim()).includes(role)).length;
                                         return (
-                                            <div key={role} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "#1D1616", border: "1px solid #2A1F1F" }}>
+                                            <div key={role} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                                 <div>
                                                     <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{role}</p>
                                                     <p style={{ color: "#666", fontSize: "11px" }}>{count} member{count !== 1 ? "s" : ""}</p>
@@ -397,7 +396,7 @@ export function CrewPage() {
                             </div>
                         </div>
                         <div className="px-5 py-3 flex justify-end" style={{ borderTop: "1px solid #2A1F1F", background: "#1D1616" }}>
-                            <button onClick={() => setIsRolesModalOpen(false)} className="px-4 py-2 rounded-lg" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#EEEEEE", fontSize: "13px" }}>
+                            <button onClick={() => setIsRolesModalOpen(false)} className="px-4 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px" }}>
                                 Close
                             </button>
                         </div>

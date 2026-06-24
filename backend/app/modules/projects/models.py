@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Float, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -134,3 +134,32 @@ class ProjectGalleryImage(Base):
 
     project: Mapped[Project] = relationship(back_populates="gallery_images")
     media_asset: Mapped["MediaAsset"] = relationship(back_populates="gallery_images")
+
+
+class ProjectFeedback(Base):
+    __tablename__ = "project_feedbacks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    timecode: Mapped[float] = mapped_column(Float, nullable=False)
+    position_x: Mapped[float] = mapped_column(Float, nullable=False)
+    position_y: Mapped[float] = mapped_column(Float, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="Open")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    reply_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_author: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reply_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+    project: Mapped[Project] = relationship()

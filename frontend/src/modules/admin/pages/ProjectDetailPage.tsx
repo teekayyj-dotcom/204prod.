@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, Edit3, Save, X, Calendar, DollarSign, Tag, User, Briefcase, Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink, AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera } from "lucide-react";
+import { ArrowLeft, Edit3, Save, X, Calendar, DollarSign, Tag, User, Briefcase, Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink, AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 import { fetchApi } from "../utils/apiClient";
@@ -264,7 +264,7 @@ export function ProjectDetailPage() {
     if (!project) {
         return (<div className="px-8 py-7">
                 <div className="flex items-center gap-4 mb-8">
-                    <button onClick={() => navigate("/admin/projects")} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }}>
+                    <button onClick={() => navigate("/admin/projects")} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }}>
                         <ArrowLeft size={16}/>
                     </button>
                 </div>
@@ -282,7 +282,7 @@ export function ProjectDetailPage() {
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate("/admin/projects")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
+                    <button onClick={() => navigate("/admin/projects")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
                         <ArrowLeft size={16}/>
                     </button>
                     <div>
@@ -298,7 +298,7 @@ export function ProjectDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     {isEditing ? (<>
-                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#241C1C", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
+                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
                                 <X size={14}/> Discard
                             </button>
                             <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
@@ -318,7 +318,7 @@ export function ProjectDetailPage() {
                                 <Star size={13} fill={isFeatured ? "#FFC107" : "none"}/>
                                 {isFeatured ? "Featured" : "Highlight"}
                             </button>
-                            <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "#241C1C", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
+                            <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
                                 <ExternalLink size={13}/> Preview
                             </button>
                             <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
@@ -375,7 +375,7 @@ export function ProjectDetailPage() {
                         </div>
 
                         {/* Progress bar */}
-                        <div style={{ background: "#241C1C" }} className="px-5 py-4">
+                        <div style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} className="px-5 py-4">
                             <div className="flex items-center justify-between mb-2">
                                 <span style={{ color: "#888", fontSize: "12px" }}>Overall Progress</span>
                                 {isEditing ? (<div className="flex items-center gap-2">
@@ -397,7 +397,7 @@ export function ProjectDetailPage() {
                     </div>
 
                     {/* Core Details Form/View */}
-                    <div className="rounded-xl" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Project Information</p>
                             {isEditing && (<span className="px-2 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", fontSize: "11px" }}>
@@ -581,7 +581,7 @@ export function ProjectDetailPage() {
                                                 </div>);
             }
             if (url) {
-                return (<a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl transition-all" style={{ background: "#1D1616", border: "1px solid #2E2020", color: "#EEEEEE", textDecoration: "none" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; }}>
+                return (<a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", textDecoration: "none" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; }}>
                                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(216,64,64,0.12)" }}>
                                                         <Video size={14} color="#D84040"/>
                                                     </div>
@@ -603,16 +603,39 @@ export function ProjectDetailPage() {
                                                     </div>
                                                 </div>);
             }
-            return (<p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }} className="mt-2">
+                                            return (<p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }} className="mt-2">
                                                 No video attached — click <span style={{ color: "#D84040" }}>Edit Project</span> to add one.
                                             </p>);
-        })())}
+                                        })())}
+
+                                        {project && project.slug && (
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate(`/admin/projects/${project.slug}/playback`)}
+                                                className="mt-3 w-full py-2.5 rounded-lg flex items-center justify-center gap-2 border text-xs font-bold transition-all"
+                                                style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                                                    borderColor: "#D84040",
+                                                    color: "#D84040"
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = "#D84040";
+                                                    e.currentTarget.style.color = "#EEEEEE";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = "#1D1616";
+                                                    e.currentTarget.style.color = "#D84040";
+                                                }}
+                                            >
+                                                <MonitorPlay size={14} />
+                                                Mở phòng chiếu & Phản hồi (Cinema Review)
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
                     {/* Behind the Scenes Images */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             <div className="flex items-center gap-2">
                                 <Camera size={14} color="#D84040"/>
@@ -693,7 +716,7 @@ export function ProjectDetailPage() {
                     </div>
 
                     {/* Activity / Comments Tabs */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             {["activity", "comments"].map((tab) => (<button key={tab} onClick={() => setActiveTab(tab)} className="flex items-center gap-2 px-5 py-3.5 transition-all capitalize" style={{
                 color: activeTab === tab ? "#EEEEEE" : "#666",
@@ -742,7 +765,7 @@ export function ProjectDetailPage() {
                                                     <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{c.user}</span>
                                                     <span style={{ color: "#555", fontSize: "11px" }}>{c.time}</span>
                                                 </div>
-                                                <p className="px-3 py-2 rounded-lg" style={{ background: "#1D1616", color: "#aaa", fontSize: "13px", lineHeight: "1.6", border: "1px solid #2A1F1F" }}>
+                                                <p className="px-3 py-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#aaa", fontSize: "13px", lineHeight: "1.6", border: "1px solid #2A1F1F" }}>
                                                     {c.text}
                                                 </p>
                                             </div>
@@ -763,7 +786,7 @@ export function ProjectDetailPage() {
                                                 setComments((prev) => [...prev, newComment]);
                                                 e.currentTarget.value = "";
                                             }
-                                        }} placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
+                                        }} placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
                                     </div>
                                 </>)}
                         </div>
@@ -774,7 +797,7 @@ export function ProjectDetailPage() {
                 <div className="col-span-1 space-y-5">
 
                     {/* Quick Stats */}
-                    <div className="rounded-xl p-4 space-y-3" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Quick Stats</p>
                         {[
             { icon: DollarSign, label: "Budget", value: project.budget, color: "#D84040" },
@@ -814,7 +837,7 @@ export function ProjectDetailPage() {
                     </div>
 
                     {/* Assigned Crew */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between mb-3">
                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Assigned Crew</p>
                             <span style={{ color: "#D84040", fontSize: "12px" }}>{assignedCrew.length} members</span>
@@ -830,7 +853,7 @@ export function ProjectDetailPage() {
                                         const avatarUrl = realMember?.avatar || null;
                                         
                                         return (
-                                            <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "#1D1616", border: "1px solid #2A1F1F" }}>
+                                            <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {avatarUrl ? (
                                                         <img src={avatarUrl} alt={c.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
@@ -980,7 +1003,7 @@ export function ProjectDetailPage() {
                     </div>
 
                     {/* Client Info */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }} className="mb-3">Client</p>
                         {(() => {
             const clientData = dbClients.find((c) => c.name === project.client || c.slug === project.client_slug);
@@ -994,7 +1017,7 @@ export function ProjectDetailPage() {
                                             <p style={{ color: "#888", fontSize: "11px" }}>{clientData.contact || "Primary Contact"}</p>
                                         </div>
                                     </div>
-                                    <a href={`mailto:${clientData.email || 'contact@example.com'}`} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "#1D1616", color: "#888", border: "1px solid #2A1F1F", fontSize: "12px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                                    <a href={`mailto:${clientData.email || 'contact@example.com'}`} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2A1F1F", fontSize: "12px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                                         <User size={12}/>
                                         {clientData.email || "No Email Registered"}
                                     </a>

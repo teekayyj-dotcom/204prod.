@@ -16,8 +16,8 @@ export function OverviewMetrics() {
         <div
           key={card.label}
           onClick={() => navigate(card.path)}
-          className="rounded-xl p-5 cursor-pointer transition-colors hover:bg-[#2A1F1F]"
-          style={{ background: "#241C1C", border: "1px solid #2E2020" }}
+          className="rounded-xl p-5 cursor-pointer backdrop-blur-md transition-all duration-300 hover:bg-[#2A1F1F]/60 hover:border-[#D84040]/50"
+          style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
         >
           <p style={{ color: "#888", fontSize: "12px" }} className="mb-1">
             {card.label}

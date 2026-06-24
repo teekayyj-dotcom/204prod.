@@ -161,7 +161,7 @@ export function ClientProfilePage() {
     if (!client) {
         return (<div className="px-8 py-7">
                 <div className="flex items-center gap-4 mb-8">
-                    <button onClick={() => navigate("/admin/clients")} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }}>
+                    <button onClick={() => navigate("/admin/clients")} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }}>
                         <ArrowLeft size={16}/>
                     </button>
                 </div>
@@ -176,7 +176,7 @@ export function ClientProfilePage() {
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate("/admin/clients")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
+                    <button onClick={() => navigate("/admin/clients")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
                         <ArrowLeft size={16}/>
                     </button>
                     <div>
@@ -192,7 +192,7 @@ export function ClientProfilePage() {
                 {/* Action buttons */}
                 <div className="flex items-center gap-2">
                     {isEditing ? (<>
-                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#241C1C", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
+                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
                                 <X size={14}/> Discard
                             </button>
                             <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
@@ -201,7 +201,7 @@ export function ClientProfilePage() {
                     : <><Save size={13}/> Save Changes</>}
                             </button>
                         </>) : (<>
-                            <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "#241C1C", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
+                            <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
                                 <Trash2 size={13}/> Delete
                             </button>
                             <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
@@ -221,7 +221,7 @@ export function ClientProfilePage() {
                 <div className="col-span-2 space-y-5">
 
                     {/* Profile Card */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         {/* Banner — sent to back so avatar and text sit cleanly on top */}
                         <div className="h-24 relative" style={{ background: "linear-gradient(135deg, #1D1616 0%, #8E1616 60%, #D84040 100%)", zIndex: 0 }}>
                             {/* Status badge */}
@@ -336,7 +336,7 @@ export function ClientProfilePage() {
                     </div>
 
                     {/* Projects */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Projects</p>
                             <span style={{ color: "#D84040", fontSize: "12px" }}>{clientProjects.length} total</span>
@@ -369,7 +369,7 @@ export function ClientProfilePage() {
                     </div>
 
                     {/* Notes */}
-                    <div className="rounded-xl p-5" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <label style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="flex items-center gap-2 mb-3">
                             Internal Notes
                         </label>
@@ -383,7 +383,7 @@ export function ClientProfilePage() {
                 <div className="col-span-1 space-y-5">
 
                     {/* Quick Stats */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Account Summary</p>
                         {[
             { icon: Briefcase, label: "Total Projects", value: clientProjects.length },
@@ -400,17 +400,17 @@ export function ClientProfilePage() {
                     </div>
 
                     {/* Contact Actions */}
-                    <div className="rounded-xl p-4 space-y-2" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4 space-y-2" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Quick Actions</p>
-                        <a href={`mailto:${client.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "#1D1616", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                        <a href={`mailto:${client.email}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                             <Mail size={14} color="#D84040"/>
                             Send Email
                         </a>
-                        {client.phone && (<a href={`tel:${client.phone}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "#1D1616", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                        {client.phone && (<a href={`tel:${client.phone}`} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                                 <Phone size={14} color="#D84040"/>
                                 {client.phone}
                             </a>)}
-                        {client.website && (<a href={client.website} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "#1D1616", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                        {client.website && (<a href={client.website} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                                 <ExternalLink size={14} color="#D84040"/>
                                 Visit Website
                             </a>)}
@@ -421,7 +421,7 @@ export function ClientProfilePage() {
                     </div>
 
                     {/* Industry tag — with Add Industry */}
-                    <div className="rounded-xl p-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Industry</p>
 
                         {/* Primary industry + custom industry badges */}
@@ -454,7 +454,7 @@ export function ClientProfilePage() {
                     setAddingIndustry(false);
                     setIndustryInput("");
                 }
-            }} placeholder="e.g. Fintech, Healthcare..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "#1D1616", border: "1px solid #D84040", color: "#EEEEEE", fontSize: "13px" }}/>
+            }} placeholder="e.g. Fintech, Healthcare..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #D84040", color: "#EEEEEE", fontSize: "13px" }}/>
                                     <button type="button" onClick={() => {
                 const trimmed = industryInput.trim();
                 if (trimmed && !customIndustries.includes(trimmed)) {

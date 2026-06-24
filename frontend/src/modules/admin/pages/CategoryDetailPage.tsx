@@ -79,9 +79,7 @@ function IconPickerModal({ current, accent, onSelect, onClose, }) {
     /* Backdrop */
     <div className="fixed inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.72)", zIndex: 9999 }} onClick={onClose}>
             {/* Modal panel */}
-            <div className="rounded-2xl overflow-hidden" style={{
-            background: "#241C1C",
-            border: "1px solid #2E2020",
+            <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             width: "520px",
             maxHeight: "80vh",
             display: "flex",
@@ -112,8 +110,7 @@ function IconPickerModal({ current, accent, onSelect, onClose, }) {
                 <div className="px-5 py-3" style={{ borderBottom: "1px solid #2A1F1F" }}>
                     <div className="relative">
                         <Search size={13} color="#555" style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}/>
-                        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search icons…" className="w-full pl-8 pr-4 py-2 rounded-lg outline-none" style={{
-            background: "#1D1616",
+                        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search icons…" className="w-full pl-8 pr-4 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             border: "1px solid #3A2A2A",
             color: "#EEEEEE",
             fontSize: "13px",
@@ -215,7 +212,7 @@ export function CategoryDetailPage() {
 
     if (!category) {
         return (<div className="px-8 py-7">
-                <button onClick={() => navigate("/admin/categories")} className="w-9 h-9 rounded-lg flex items-center justify-center mb-8" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }}>
+                <button onClick={() => navigate("/admin/categories")} className="w-9 h-9 rounded-lg flex items-center justify-center mb-8" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }}>
                     <ArrowLeft size={16}/>
                 </button>
                 <div className="flex flex-col items-center justify-center py-24">
@@ -262,7 +259,7 @@ export function CategoryDetailPage() {
             {/* ── Page header ── */}
             <div className="flex items-center justify-between mb-7">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate("/admin/categories")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = accent.primary; e.currentTarget.style.color = accent.primary; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
+                    <button onClick={() => navigate("/admin/categories")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = accent.primary; e.currentTarget.style.color = accent.primary; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
                         <ArrowLeft size={16}/>
                     </button>
                     <div className="flex items-center gap-1.5">
@@ -280,7 +277,7 @@ export function CategoryDetailPage() {
             </div>
 
             {/* ── Hero Card ── */}
-            <div className="rounded-2xl overflow-hidden mb-7" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+            <div className="rounded-2xl overflow-hidden mb-7" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                 {/* ① Purely decorative gradient banner — NO content inside */}
                 <div className="relative" style={{
             height: "72px",
@@ -396,7 +393,7 @@ export function CategoryDetailPage() {
             {/* ── Toolbar ── */}
             <div className="flex items-center justify-between mb-5 gap-4">
                 {/* Status filters */}
-                <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     {STATUS_FILTERS.map((f) => (<button key={f} onClick={() => setStatusFilter(f)} className="px-3 py-1.5 rounded-lg transition-all" style={{
                 background: statusFilter === f ? accent.primary : "transparent",
                 color: statusFilter === f ? "#fff" : "#666",
@@ -418,9 +415,7 @@ export function CategoryDetailPage() {
                     {/* Search */}
                     <div className="relative">
                         <Search size={13} color="#555" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}/>
-                        <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search projects…" className="pl-8 pr-4 py-2 rounded-lg outline-none" style={{
-            background: "#241C1C",
-            border: "1px solid #2E2020",
+                        <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search projects…" className="pl-8 pr-4 py-2 rounded-lg outline-none" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             color: "#EEEEEE",
             fontSize: "13px",
             width: "200px",
@@ -440,7 +435,7 @@ export function CategoryDetailPage() {
             </div>
 
             {/* ── Projects ── */}
-            {filteredProjects.length === 0 ? (<div className="rounded-2xl flex flex-col items-center justify-center py-24" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+            {filteredProjects.length === 0 ? (<div className="rounded-2xl flex flex-col items-center justify-center py-24" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: accent.glow, border: `1px solid ${accent.primary}30` }}>
                         <SelectedIcon size={28} color={accent.primary}/>
                     </div>
@@ -458,7 +453,7 @@ export function CategoryDetailPage() {
                 const sc = statusColors[project.status] ?? statusColors["Planning"];
                 const projId = project.slug || project.id;
                 const projImg = project.cover_image || project.image;
-                return (<div key={projId} onClick={() => navigate(`/admin/projects/${projId}`)} className="rounded-xl overflow-hidden cursor-pointer group transition-all" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onMouseEnter={(e) => {
+                return (<div key={projId} onClick={() => navigate(`/admin/projects/${projId}`)} className="rounded-xl overflow-hidden cursor-pointer group transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = `${accent.primary}60`;
                         e.currentTarget.style.transform = "translateY(-2px)";
                     }} onMouseLeave={(e) => {
@@ -517,7 +512,7 @@ export function CategoryDetailPage() {
             })}
                 </div>) : (
         /* List view */
-        <div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <div className="grid px-5 py-3" style={{ gridTemplateColumns: "2fr 1fr 1fr 1fr 100px", borderBottom: "1px solid #2A1F1F" }}>
                         {["Project", "Client", "Status", "Budget", "Progress"].map((h) => (<span key={h} style={{ color: "#555", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}>
                                 {h}
@@ -530,7 +525,7 @@ export function CategoryDetailPage() {
                 return (<div key={projId} onClick={() => navigate(`/admin/projects/${projId}`)} className="grid items-center px-5 py-3.5 cursor-pointer transition-colors" style={{
                         gridTemplateColumns: "2fr 1fr 1fr 1fr 100px",
                         borderBottom: i < filteredProjects.length - 1 ? "1px solid #2A1F1F" : "none",
-                    }} onMouseEnter={(e) => { e.currentTarget.style.background = "#2A1F1F"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                    }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(42, 31, 31, 0.5)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                                 <div className="flex items-center gap-3">
                                     <img src={projImg} alt={project.title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0"/>
                                     <div>

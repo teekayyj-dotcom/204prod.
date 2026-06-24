@@ -22,13 +22,13 @@ export function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Search */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg backdrop-blur-md transition-all border border-[#2E2020]/60 hover:border-[#D84040]/50 focus-within:border-[#D84040]" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
                         <Search size={15} color="#666"/>
                         <input placeholder="Quick search..." className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "160px" }}/>
                     </div>
 
                     {/* Notifications */}
-                    <button className="relative w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+                    <button className="relative w-10 h-10 rounded-lg flex items-center justify-center backdrop-blur-md transition-all border border-[#2E2020]/60 hover:border-[#D84040]/50 hover:bg-[#2A1F1F]/40" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
                         <Bell size={17} color="#888"/>
                         <span className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ background: "#D84040" }}/>
                     </button>

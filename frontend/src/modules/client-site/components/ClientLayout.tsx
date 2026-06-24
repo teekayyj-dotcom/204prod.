@@ -9,6 +9,7 @@ const LOGO_LETTERS = ["2", "0", "4", "P", "R", "O", "D", "."];
 export function ClientLayout() {
   const location = useLocation();
   const isLandingPage = location.pathname === "/";
+  const isContactPage = location.pathname === "/contact";
   const [time, setTime] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [hideHeader, setHideHeader] = useState(false);
@@ -181,7 +182,7 @@ export function ClientLayout() {
         </div>
 
         {/* Footer */}
-        {isLandingPage ? (
+        {isContactPage ? null : isLandingPage ? (
           <footer className="absolute bottom-0 left-0 right-0 z-50 bg-transparent py-8 w-full px-12 md:px-24">
             <div className="flex flex-col md:flex-row justify-between items-center text-[13px] font-light text-white/50 w-full">
               <p>

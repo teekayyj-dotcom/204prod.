@@ -167,15 +167,13 @@ export function MediaLibraryPage() {
             </div>
 
             {/* Filter Bar */}
-            <div className="rounded-xl px-5 py-4 mb-6 flex items-center gap-4" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg flex-1" style={{ background: "#1D1616", border: "1px solid #2E2020" }}>
+            <div className="rounded-xl px-5 py-4 mb-6 flex items-center gap-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg flex-1" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <Search size={14} color="#666"/>
                     <input placeholder="Search files..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent flex-1" style={{ color: "#EEEEEE", fontSize: "13px" }}/>
                 </div>
 
-                <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className="px-3 py-2 rounded-lg outline-none appearance-none" style={{
-            background: "#1D1616",
-            border: "1px solid #2E2020",
+                <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className="px-3 py-2 rounded-lg outline-none appearance-none" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
             color: "#888",
             fontSize: "13px",
         }}>
@@ -210,9 +208,9 @@ export function MediaLibraryPage() {
             {view === "grid" && (<div className="grid grid-cols-4 gap-4">
                     {filtered.map((asset) => {
                 const IconComp = typeIcons[asset.type] || FileText;
-                return (<div key={asset.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "#241C1C", border: "1px solid #2E2020" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                return (<div key={asset.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                                 {/* Preview */}
-                                <div className="relative h-36 overflow-hidden" style={{ background: "#1D1616" }}>
+                                <div className="relative h-36 overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                     {asset.type === "image" ? (<img src={asset.previewImage || asset.image} alt={asset.name} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>) : (<div className="w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: `${typeColors[asset.type]}10` }}>
                                             <IconComp size={36} color={typeColors[asset.type]}/>
                                             <span className="px-2 py-0.5 rounded uppercase" style={{ background: `${typeColors[asset.type]}20`, color: typeColors[asset.type], fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em" }}>
@@ -246,7 +244,7 @@ export function MediaLibraryPage() {
                 </div>)}
 
             {/* List View */}
-            {view === "list" && (<div className="rounded-xl overflow-hidden" style={{ background: "#241C1C", border: "1px solid #2E2020" }}>
+            {view === "list" && (<div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <table className="w-full">
                         <thead>
                             <tr style={{ borderBottom: "1px solid #2A1F1F" }}>

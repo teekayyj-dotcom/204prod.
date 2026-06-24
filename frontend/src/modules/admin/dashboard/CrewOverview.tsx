@@ -27,8 +27,8 @@ export function CrewOverview() {
   if (loading) {
     return (
       <div
-        className="rounded-xl p-8 text-center"
-        style={{ background: "#241C1C", border: "1px solid #2E2020", color: "#666", fontSize: "14px" }}
+        className="rounded-xl p-8 text-center backdrop-blur-md"
+        style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", color: "#666", fontSize: "14px" }}
       >
         Loading crew...
       </div>
@@ -37,8 +37,8 @@ export function CrewOverview() {
 
   return (
     <div
-      className="rounded-xl"
-      style={{ background: "#241C1C", border: "1px solid #2E2020" }}
+      className="rounded-xl backdrop-blur-md"
+      style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
     >
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
         <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>
@@ -54,7 +54,7 @@ export function CrewOverview() {
             key={member.id}
             onClick={() => navigate(`/admin/crew/${member.id}`)}
             className="flex items-center gap-3 px-3 py-3 rounded-lg transition-colors cursor-pointer"
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "#2A1F1F")}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(42, 31, 31, 0.5)")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
           >
             <img
