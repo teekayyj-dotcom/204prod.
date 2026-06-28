@@ -1,78 +1,64 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer } from "recharts";
 import {
   Users, UserCheck, UserX, Briefcase, MapPin, Home, Monitor,
   Clock, Calendar, FileText, AlertTriangle, CheckCircle2, XCircle,
   Gift, Star, Cake, Milestone, ClipboardList, RefreshCcw,
-  ChevronRight, Check, X, Bell, TrendingUp, Circle,
+  ChevronRight, Check, X, Bell, TrendingUp, Circle, Loader2
 } from "lucide-react";
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const TEAM = [
-  { id:1,  name:"Nguyễn Minh Anh",  avatar:"MA", role:"Designer",    dept:"Design",      type:"inhouse",    status:"office",     checkin:"08:02" },
-  { id:2,  name:"Trần Quốc Bảo",    avatar:"QB", role:"Developer",   dept:"Tech",        type:"inhouse",    status:"wfh",        checkin:"08:31" },
-  { id:3,  name:"Lê Thị Cẩm",       avatar:"TC", role:"PM",          dept:"Account",     type:"inhouse",    status:"office",     checkin:"07:58" },
-  { id:4,  name:"Phạm Đức Dũng",    avatar:"DD", role:"Developer",   dept:"Tech",        type:"inhouse",    status:"onsite",     checkin:"09:10" },
-  { id:5,  name:"Hoàng Thị Em",     avatar:"TE", role:"QA",          dept:"Tech",        type:"inhouse",    status:"wfh",        checkin:"08:00" },
-  { id:6,  name:"Vũ Văn Phúc",      avatar:"VP", role:"Videographer",dept:"Production",  type:"inhouse",    status:"onsite",     checkin:"07:45" },
-  { id:7,  name:"Đinh Thị Hoa",     avatar:"DH", role:"Copywriter",  dept:"Content",     type:"inhouse",    status:"wfh",        checkin:"09:00" },
-  { id:8,  name:"Ngô Văn Khải",     avatar:"NK", role:"Editor",      dept:"Production",  type:"freelancer", status:"wfh",        checkin:"10:15" },
-  { id:9,  name:"Bùi Thị Lan",      avatar:"BL", role:"Account Exec",dept:"Account",     type:"inhouse",    status:"office",     checkin:"08:05" },
-  { id:10, name:"Cao Minh Phúc",    avatar:"CP", role:"Motion",      dept:"Design",      type:"freelancer", status:"absent",     checkin:null },
-];
+import { fetchApi } from "../utils/apiClient";
 
 type ReqStatus = "pending" | "approved" | "rejected";
-type ReqType   = "leave" | "sick" | "ot" | "wfh" | "business";
+type ReqType   = "leave" | "sick" | "ot" | "wfh" | "business" | "explain";
 
-const REQUESTS: {
-  id: number; employee: string; avatar: string; type: ReqType;
-  date: string; reason: string; submitted: string; status: ReqStatus; urgent?: boolean;
-}[] = [
-  { id:1, employee:"Phạm Đức Dũng",   avatar:"DD", type:"ot",       date:"23–24/06",     reason:"Chạy deadline TVC Vingroup xuyên đêm",            submitted:"Hôm nay, 11:30",  status:"pending", urgent:true },
-  { id:2, employee:"Hoàng Thị Em",    avatar:"TE", type:"wfh",      date:"24/06/2026",   reason:"Làm từ xa — ổn định internet",                    submitted:"Hôm nay, 09:00",  status:"pending" },
-  { id:3, employee:"Ngô Văn Khải",    avatar:"NK", type:"leave",    date:"25–27/06",     reason:"Nghỉ phép năm",                                   submitted:"22/06, 17:00",    status:"pending" },
-  { id:4, employee:"Đinh Thị Hoa",    avatar:"DH", type:"sick",     date:"23/06/2026",   reason:"Nghỉ ốm — có đơn bác sĩ",                        submitted:"Hôm nay, 07:45",  status:"pending", urgent:true },
-  { id:5, employee:"Bùi Thị Lan",     avatar:"BL", type:"business", date:"26–27/06",     reason:"Đi công tác Đà Nẵng gặp khách hàng",             submitted:"21/06, 16:00",    status:"pending" },
-];
+interface LeaveRequest {
+  id: number;
+  employee: string;
+  avatar: string;
+  type: ReqType;
+  date: string;
+  reason: string;
+  submitted: string;
+  status: ReqStatus;
+  urgent?: boolean;
+}
 
 type AlertLevel = "error" | "warning" | "gold";
 
-const HR_ALERTS: {
-  id: number; level: AlertLevel; icon: React.ElementType;
-  title: string; sub: string; action?: string; daysLeft?: number;
-}[] = [
-  { id:1, level:"error",   icon:AlertTriangle,  title:"Trần Quốc Bảo — Hết hạn thử việc",        sub:"Cần ra quyết định ký HĐ chính thức",   action:"Xử lý ngay", daysLeft:2 },
-  { id:2, level:"error",   icon:FileText,       title:"HĐ cộng tác Ngô Văn Khải hết hạn",        sub:"Hết hạn 30/06 — Cần gia hạn hoặc kết thúc", action:"Gia hạn",   daysLeft:7 },
-  { id:3, level:"warning", icon:RefreshCcw,     title:"Hoàng Thị Em — Đến kỳ đánh giá Q2",       sub:"Đánh giá năng lực 6 tháng đầu 2026",   action:"Lên lịch",   daysLeft:10 },
-  { id:4, level:"warning", icon:Clock,          title:"3 nhân viên chưa nộp báo cáo tháng 5",    sub:"MA, VP, DH — Hạn nộp đã qua 8 ngày",   action:"Nhắc nhở" },
-  { id:5, level:"gold",    icon:Cake,           title:"🎂 Sinh nhật Lê Thị Cẩm",                 sub:"Ngày mai 24/06 — 4 năm đồng hành 🎉",  action:"Gửi lời chúc" },
-  { id:6, level:"gold",    icon:Star,           title:"🏆 Vũ Văn Phúc — Nhân viên xuất sắc T6", sub:"Hoàn thành 3 dự án đúng deadline",      action:"Vinh danh" },
-  { id:7, level:"gold",    icon:Gift,           title:"🎉 Kỷ niệm 2 năm — Nguyễn Minh Anh",      sub:"Gia nhập FRAMECRAFT tháng 6/2024",      action:"Gửi thiệp" },
-];
+interface HRAlert {
+  id: number;
+  level: AlertLevel;
+  title: string;
+  sub: string;
+  action?: string;
+  daysLeft?: number;
+}
 
-const DEPT_CHART = [
-  { name:"Production", value:30, color:"#D84040" },
-  { name:"Account",    value:25, color:"#60a5fa" },
-  { name:"Design",     value:22, color:"#c084fc" },
-  { name:"Tech",       value:15, color:"#fbbf24" },
-  { name:"Content",    value:  8, color:"#888" },
-];
+interface OpenRole {
+  title: string;
+  dept: string;
+  priority: string;
+  since: string;
+}
 
-const OPEN_ROLES = [
-  { title:"Senior Videographer", dept:"Production", priority:"urgent", since:"10/06" },
-  { title:"Social Media Manager", dept:"Account",   priority:"normal", since:"15/06" },
-  { title:"Motion Designer",      dept:"Design",    priority:"urgent", since:"18/06" },
-];
+interface TeamMember {
+  id: number;
+  name: string;
+  avatar: string;
+  role: string;
+  dept: string;
+  type: "inhouse" | "freelancer";
+  status: "office" | "onsite" | "wfh" | "absent";
+  checkin?: string | null;
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const reqTypeCfg: Record<ReqType, { label: string; color: string; icon: React.ElementType }> = {
+const reqTypeCfg: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   leave:    { label: "Nghỉ phép",   color: "#f87171", icon: Calendar },
   sick:     { label: "Nghỉ ốm",     color: "#f87171", icon: UserX },
   ot:       { label: "Làm thêm giờ",color: "#fbbf24", icon: Clock },
   wfh:      { label: "WFH",         color: "#60a5fa", icon: Home },
   business: { label: "Công tác",    color: "#c084fc", icon: MapPin },
+  explain:  { label: "Giải trình",   color: "#c084fc", icon: FileText }
 };
 
 const statusLocation: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -88,6 +74,16 @@ const alertStyle: Record<AlertLevel, { border: string; icon: string; bg: string 
   gold:    { border: "#78350f44", icon: "#fbbf24", bg: "#78350f08" },
 };
 
+const alertIcons: Record<string, React.ElementType> = {
+  AlertTriangle: AlertTriangle,
+  FileText: FileText,
+  RefreshCcw: RefreshCcw,
+  Clock: Clock,
+  Cake: Cake,
+  Star: Star,
+  Gift: Gift
+};
+
 function PieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
@@ -101,14 +97,20 @@ function PieTooltip({ active, payload }: any) {
 
 // ─── 1. KPI Cards ─────────────────────────────────────────────────────────────
 
-function KpiCards() {
-  const total     = TEAM.length;
-  const inhouse   = TEAM.filter((t) => t.type === "inhouse").length;
-  const freelance = TEAM.filter((t) => t.type === "freelancer").length;
-  const present   = TEAM.filter((t) => t.status !== "absent").length;
-  const absent    = TEAM.filter((t) => t.status === "absent").length;
-  const late      = 2; // mock
-  const urgent    = OPEN_ROLES.filter((r) => r.priority === "urgent").length;
+interface KpiCardsProps {
+  team: TeamMember[];
+  requests: LeaveRequest[];
+  openRoles: OpenRole[];
+}
+
+function KpiCards({ team, requests, openRoles }: KpiCardsProps) {
+  const total     = team.length;
+  const inhouse   = team.filter((t) => t.type === "inhouse").length;
+  const freelance = team.filter((t) => t.type === "freelancer").length;
+  const present   = team.filter((t) => t.status !== "absent").length;
+  const absent    = team.filter((t) => t.status === "absent").length;
+  const late      = team.filter((t) => t.checkin && t.checkin > "08:15").length;
+  const urgent    = openRoles.filter((r) => r.priority === "urgent").length;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -127,19 +129,19 @@ function KpiCards() {
           icon: UserCheck,
           color: "#4ade80",
           detail: `${absent} vắng · ${late} đi muộn`,
-          bar: { value: Math.round((present / total) * 100), color: "#4ade80" },
+          bar: { value: total > 0 ? Math.round((present / total) * 100) : 0, color: "#4ade80" },
         },
         {
           label: "Chờ duyệt",
-          value: String(REQUESTS.filter((r) => r.status === "pending").length),
+          value: String(requests.filter((r) => r.status === "pending").length),
           icon: ClipboardList,
-          color: REQUESTS.some((r) => r.urgent && r.status === "pending") ? "#f87171" : "#fbbf24",
-          detail: `${REQUESTS.filter((r) => r.urgent && r.status === "pending").length} khẩn cần xử lý`,
+          color: requests.some((r) => r.urgent && r.status === "pending") ? "#f87171" : "#fbbf24",
+          detail: `${requests.filter((r) => r.urgent && r.status === "pending").length} khẩn cần xử lý`,
           bar: null,
         },
         {
           label: "Vị trí đang tuyển",
-          value: String(OPEN_ROLES.length),
+          value: String(openRoles.length),
           icon: Briefcase,
           color: "#c084fc",
           detail: `${urgent} vị trí cần gấp`,
@@ -177,20 +179,25 @@ function KpiCards() {
 
 // ─── 2. Today's Status ────────────────────────────────────────────────────────
 
-function TodayStatus() {
+interface TodayStatusProps {
+  team: TeamMember[];
+}
+
+function TodayStatus({ team }: TodayStatusProps) {
   const groups = [
-    { key: "office",  label: "Tại văn phòng",    members: TEAM.filter((t) => t.status === "office") },
-    { key: "onsite",  label: "Hiện trường / Quay", members: TEAM.filter((t) => t.status === "onsite") },
-    { key: "wfh",     label: "Làm từ xa (WFH)",  members: TEAM.filter((t) => t.status === "wfh") },
-    { key: "absent",  label: "Vắng mặt",         members: TEAM.filter((t) => t.status === "absent") },
+    { key: "office",  label: "Tại văn phòng",    members: team.filter((t) => t.status === "office") },
+    { key: "onsite",  label: "Hiện trường / Quay", members: team.filter((t) => t.status === "onsite") },
+    { key: "wfh",     label: "Làm từ xa (WFH)",  members: team.filter((t) => t.status === "wfh") },
+    { key: "absent",  label: "Vắng mặt",         members: team.filter((t) => t.status === "absent") },
   ].filter((g) => g.members.length > 0);
+
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
       <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: "1px solid #2A1F1F" }}>
         <div>
           <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>Trạng thái hôm nay</p>
-          <p style={{ color: "#555", fontSize: "11px" }}>Thứ Ba, 23/06/2026 · Cập nhật lúc 10:32</p>
+          <p style={{ color: "#555", fontSize: "11px" }}>{new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -216,12 +223,7 @@ function TodayStatus() {
               <div className="space-y-2">
                 {g.members.map((m) => (
                   <div key={m.id} className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                      style={{ background: "#2A1F1F", color: "#EEEEEE", fontSize: "9px" }}
-                    >
-                      {m.avatar}
-                    </div>
+                    {renderAvatar(m.avatar, "w-6 h-6", { background: "#2A1F1F", color: "#EEEEEE", fontSize: "9px" })}
                     <div className="min-w-0">
                       <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }} className="truncate">
                         {m.name.split(" ").slice(-2).join(" ")}
@@ -244,13 +246,64 @@ function TodayStatus() {
   );
 }
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function renderAvatar(avatar: string, sizeClass = "w-6 h-6", textStyle?: React.CSSProperties) {
+  const isUrl = avatar && (avatar.startsWith("http") || avatar.startsWith("/") || avatar.includes(".") || avatar.includes("uploads"));
+  if (isUrl) {
+    return (
+      <img
+        src={avatar}
+        alt="avatar"
+        className={`${sizeClass} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${sizeClass} rounded-full flex items-center justify-center flex-shrink-0 font-bold`}
+      style={textStyle || { background: "#2A1F1F", color: "#EEEEEE" }}
+    >
+      {avatar}
+    </div>
+  );
+}
+
+const mapDbToRequest = (m: any): LeaveRequest => ({
+  id: m.id,
+  employee: m.employee_name,
+  avatar: m.avatar,
+  type: m.type as ReqType,
+  status: m.status as ReqStatus,
+  date: m.date,
+  reason: m.reason,
+  submitted: m.submitted_at,
+  urgent: m.urgent
+});
+
 // ─── 3. Pending Requests ──────────────────────────────────────────────────────
 
-function PendingRequests() {
-  const [requests, setRequests] = useState(REQUESTS);
+interface PendingRequestsProps {
+  requests: LeaveRequest[];
+  onRefresh: () => void;
+}
 
-  function act(id: number, status: ReqStatus) {
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
+function PendingRequests({ requests, onRefresh }: PendingRequestsProps) {
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+
+  async function act(id: number, status: ReqStatus) {
+    setLoadingId(id);
+    try {
+      await fetchApi(`/hr/leave-requests/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status })
+      });
+      onRefresh();
+    } catch (err) {
+      console.error("Failed to update request status:", err);
+    } finally {
+      setLoadingId(null);
+    }
   }
 
   const pending = requests.filter((r) => r.status === "pending");
@@ -279,6 +332,7 @@ function PendingRequests() {
       <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
         {pending.map((req) => {
           const cfg = reqTypeCfg[req.type];
+          const isLoading = loadingId === req.id;
           return (
             <div
               key={req.id}
@@ -292,10 +346,7 @@ function PendingRequests() {
               </div>
 
               {/* Avatar */}
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                style={{ background: "#8E1616", color: "#EEEEEE" }}>
-                {req.avatar}
-              </div>
+              {renderAvatar(req.avatar, "w-8 h-8", { background: "#8E1616", color: "#EEEEEE" })}
 
               {/* Info */}
               <div className="flex-1 min-w-0">
@@ -320,15 +371,19 @@ function PendingRequests() {
 
               {/* Actions */}
               <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => act(req.id, "approved")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+                <button
+                  onClick={() => act(req.id, "approved")}
+                  disabled={isLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                   style={{ background: "#14532d33", color: "#4ade80" }}>
-                  <Check size={11} /> Duyệt
+                  {isLoading ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Duyệt
                 </button>
-                <button onClick={() => act(req.id, "rejected")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80"
+                <button
+                  onClick={() => act(req.id, "rejected")}
+                  disabled={isLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                   style={{ background: "#7f1d1d33", color: "#f87171" }}>
-                  <X size={11} /> Từ chối
+                  {isLoading ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />} Từ chối
                 </button>
               </div>
             </div>
@@ -345,10 +400,7 @@ function PendingRequests() {
                 style={{ background: "#2A1F1F" }}>
                 <cfg.icon size={15} style={{ color: "#555" }} />
               </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                style={{ background: "#2A1F1F", color: "#555" }}>
-                {req.avatar}
-              </div>
+              {renderAvatar(req.avatar, "w-8 h-8", { background: "#2A1F1F", color: "#555" })}
               <div className="flex-1 min-w-0">
                 <span style={{ color: "#666", fontSize: "12px" }}>{req.employee} · {cfg.label} · {req.date}</span>
               </div>
@@ -375,10 +427,35 @@ function PendingRequests() {
 
 // ─── 4. HR Alerts ─────────────────────────────────────────────────────────────
 
-function HRAlerts() {
-  const errors   = HR_ALERTS.filter((a) => a.level === "error");
-  const warnings = HR_ALERTS.filter((a) => a.level === "warning");
-  const gold     = HR_ALERTS.filter((a) => a.level === "gold");
+interface HRAlertsProps {
+  alerts: HRAlert[];
+}
+
+function getAlertIcon(alert: any) {
+  const title = alert.title || "";
+  if (alert.level === "gold") {
+    if (title.includes("Sinh nhật")) return Cake;
+    if (title.includes("xuất sắc")) return Star;
+    if (title.includes("Kỷ niệm")) return Gift;
+    return Star;
+  }
+  if (alert.level === "error") {
+    if (title.includes("thử việc")) return AlertTriangle;
+    if (title.includes("HĐ cộng tác")) return FileText;
+    return AlertTriangle;
+  }
+  if (alert.level === "warning") {
+    if (title.includes("đánh giá")) return RefreshCcw;
+    if (title.includes("báo cáo")) return Clock;
+    return AlertTriangle;
+  }
+  return AlertTriangle;
+}
+
+function HRAlerts({ alerts }: HRAlertsProps) {
+  const errors   = alerts.filter((a) => a.level === "error");
+  const warnings = alerts.filter((a) => a.level === "warning");
+  const gold     = alerts.filter((a) => a.level === "gold");
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
@@ -393,9 +470,10 @@ function HRAlerts() {
       </div>
 
       <div className="divide-y" style={{ borderColor: "#1A1010" }}>
-        {HR_ALERTS.map((alert) => {
+        {alerts.map((alert) => {
           const s = alertStyle[alert.level];
           const isGold = alert.level === "gold";
+          const IconComponent = getAlertIcon(alert);
           return (
             <div
               key={alert.id}
@@ -406,7 +484,7 @@ function HRAlerts() {
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: s.icon + "18" }}
               >
-                <alert.icon size={16} style={{ color: s.icon }} />
+                <IconComponent size={16} style={{ color: s.icon }} />
               </div>
               <div className="flex-1 min-w-0">
                 <p style={{ color: isGold ? "#fbbf24" : "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
@@ -446,8 +524,29 @@ function HRAlerts() {
 
 // ─── 5. Resource Allocation ───────────────────────────────────────────────────
 
-function ResourceAllocation() {
-  const maxVal = Math.max(...DEPT_CHART.map((d) => d.value));
+interface ResourceAllocationProps {
+  team: TeamMember[];
+  openRoles: OpenRole[];
+}
+
+function ResourceAllocation({ team, openRoles }: ResourceAllocationProps) {
+  const depts = ["Production", "Account", "Design", "Tech", "Content"];
+  const colors: Record<string, string> = {
+    Production: "#D84040",
+    Account: "#60a5fa",
+    Design: "#c084fc",
+    Tech: "#fbbf24",
+    Content: "#888",
+  };
+
+  const totalMembers = team.length || 1;
+  const deptCounts = depts.map((name) => {
+    const count = team.filter((t) => t.dept === name).length;
+    const value = Math.round((count / totalMembers) * 100);
+    return { name, value, count, color: colors[name] || "#888" };
+  });
+
+  const maxVal = Math.max(...deptCounts.map((d) => d.value)) || 1;
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
@@ -462,14 +561,14 @@ function ResourceAllocation() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={DEPT_CHART}
+                data={deptCounts}
                 cx="50%" cy="50%"
                 innerRadius={42} outerRadius={68}
                 paddingAngle={4}
                 dataKey="value"
                 strokeWidth={0}
               >
-                {DEPT_CHART.map((d, i) => <Cell key={i} fill={d.color} />)}
+                {deptCounts.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
               <ReTooltip content={<PieTooltip />} />
             </PieChart>
@@ -478,8 +577,7 @@ function ResourceAllocation() {
 
         {/* Bars */}
         <div className="flex-1 space-y-3">
-          {DEPT_CHART.map((d) => {
-            const count = Math.round((d.value / 100) * TEAM.length);
+          {deptCounts.map((d) => {
             return (
               <div key={d.name} className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -488,7 +586,7 @@ function ResourceAllocation() {
                     <span style={{ color: "#888", fontSize: "12px" }}>{d.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span style={{ color: "#555", fontSize: "10px" }}>{count} người</span>
+                    <span style={{ color: "#555", fontSize: "10px" }}>{d.count} người</span>
                     <span style={{ color: d.color, fontSize: "12px", fontWeight: 700, minWidth: "32px", textAlign: "right" }}>
                       {d.value}%
                     </span>
@@ -511,7 +609,7 @@ function ResourceAllocation() {
         <p style={{ color: "#555", fontSize: "11px", fontWeight: 600 }} className="mb-2">
           Vị trí đang tuyển dụng
         </p>
-        {OPEN_ROLES.map((r) => (
+        {openRoles.map((r) => (
           <div key={r.title} className="flex items-center justify-between px-3 py-2 rounded-lg"
             style={{ background: "#141010" }}>
             <div className="flex items-center gap-2">
@@ -537,6 +635,59 @@ function ResourceAllocation() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function HROverviewPage() {
+  const [data, setData] = useState<{
+    team: TeamMember[];
+    requests: LeaveRequest[];
+    alerts: HRAlert[];
+    openRoles: OpenRole[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const res = await fetchApi<any>("/hr/overview");
+      if (res) {
+        setData({
+          team: res.team || [],
+          requests: (res.requests || []).map(mapDbToRequest),
+          alerts: res.alerts || [],
+          openRoles: res.open_roles || []
+        });
+        setError(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Không thể tải thông tin tổng quan nhân sự");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D84040]" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{error || "Lỗi tải dữ liệu"}</p>
+        <button onClick={loadData} className="px-4 py-2 rounded-lg bg-[#D84040] text-white">
+          Thử lại
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
@@ -555,32 +706,34 @@ export function HROverviewPage() {
           <span style={{ color: "#555", fontSize: "12px" }}>Xem:</span>
           <select className="px-3 py-1.5 rounded-lg text-sm outline-none"
             style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F" }}
-            defaultValue="jun-2026">
-            <option value="jun-2026">Tháng 6/2026</option>
-            <option value="q2-2026">Q2 2026</option>
-            <option value="h1-2026">H1 2026</option>
+            defaultValue={new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" })}>
+            <option value={new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" })}>
+              Tháng {new Date().toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" })}
+            </option>
+            <option value="q2">Q2 {new Date().getFullYear()}</option>
+            <option value="h1">H1 {new Date().getFullYear()}</option>
           </select>
         </div>
       </div>
 
       {/* 1 – KPI */}
-      <KpiCards />
+      <KpiCards team={data.team} requests={data.requests} openRoles={data.openRoles} />
 
       {/* 2 – Today's Status */}
-      <TodayStatus />
+      <TodayStatus team={data.team} />
 
       {/* 3+5 – Requests + Resource */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
-          <PendingRequests />
+          <PendingRequests requests={data.requests} onRefresh={loadData} />
         </div>
         <div className="lg:col-span-2">
-          <ResourceAllocation />
+          <ResourceAllocation team={data.team} openRoles={data.openRoles} />
         </div>
       </div>
 
       {/* 4 – HR Alerts */}
-      <HRAlerts />
+      <HRAlerts alerts={data.alerts} />
     </div>
   );
 }

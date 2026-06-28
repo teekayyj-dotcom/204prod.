@@ -26,22 +26,17 @@ import {
   Settings,
   Check,
   X,
+  Loader2
 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
 
-const EMPLOYEES = [
-  { id: 1, name: "Nguyễn Minh Anh", role: "Designer", avatar: "MA" },
-  { id: 2, name: "Trần Quốc Bảo", role: "Developer", avatar: "QB" },
-  { id: 3, name: "Lê Thị Cẩm", role: "PM", avatar: "TC" },
-  { id: 4, name: "Phạm Đức Dũng", role: "Developer", avatar: "DD" },
-  { id: 5, name: "Hoàng Thị Em", role: "QA", avatar: "TE" },
-  { id: 6, name: "Vũ Văn Phúc", role: "Designer", avatar: "VP" },
-];
+// Mock data removed
 
 type LogStatus = "on-time" | "late" | "absent" | "wfh";
 
-const LIVE_LOG: {
+interface CheckInLog {
   id: number;
   employee: string;
   avatar: string;
@@ -49,62 +44,32 @@ const LIVE_LOG: {
   time: string;
   status: LogStatus;
   note?: string;
-}[] = [
-  { id: 1, employee: "Nguyễn Minh Anh", avatar: "MA", action: "check-in",  time: "08:02", status: "on-time" },
-  { id: 2, employee: "Trần Quốc Bảo",   avatar: "QB", action: "check-in",  time: "08:31", status: "late",    note: "Muộn 31 phút" },
-  { id: 3, employee: "Lê Thị Cẩm",      avatar: "TC", action: "check-in",  time: "07:58", status: "on-time" },
-  { id: 4, employee: "Phạm Đức Dũng",   avatar: "DD", action: "check-in",  time: "09:10", status: "late",    note: "Muộn 1h10p" },
-  { id: 5, employee: "Hoàng Thị Em",    avatar: "TE", action: "check-in",  time: "08:00", status: "wfh",     note: "WFH" },
-  { id: 6, employee: "Nguyễn Minh Anh", avatar: "MA", action: "check-out", time: "17:05", status: "on-time" },
-  { id: 7, employee: "Lê Thị Cẩm",      avatar: "TC", action: "check-out", time: "18:30", status: "on-time", note: "OT 1h30p" },
-  { id: 8, employee: "Vũ Văn Phúc",     avatar: "VP", action: "check-in",  time: "08:05", status: "on-time" },
-];
+}
+
+const mapDbToLog = (m: any): CheckInLog => ({
+  id: m.id,
+  employee: m.employee_name,
+  avatar: m.avatar,
+  action: m.action,
+  time: m.time,
+  status: m.status,
+  note: m.note
+});
 
 type DayStatus = "on-time" | "late" | "absent" | "wfh" | "holiday" | "weekend" | "-";
 
-const TIMESHEET_DATA: {
+export interface TimesheetData {
   employee: { name: string; avatar: string; role: string };
   days: DayStatus[];
   totalDays: number;
   ot: string;
   lateMin: number;
-}[] = [
-  {
-    employee: { name: "Nguyễn Minh Anh", avatar: "MA", role: "Designer" },
-    days: ["on-time","on-time","late","on-time","on-time","weekend","weekend","on-time","on-time","on-time","absent","on-time","on-time","weekend","weekend","on-time","wfh","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time"],
-    totalDays: 27, ot: "4h30", lateMin: 15,
-  },
-  {
-    employee: { name: "Trần Quốc Bảo", avatar: "QB", role: "Developer" },
-    days: ["on-time","late","on-time","on-time","on-time","weekend","weekend","late","on-time","on-time","on-time","on-time","late","weekend","weekend","on-time","on-time","absent","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time"],
-    totalDays: 25, ot: "0h", lateMin: 95,
-  },
-  {
-    employee: { name: "Lê Thị Cẩm", avatar: "TC", role: "PM" },
-    days: ["on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time"],
-    totalDays: 30, ot: "8h", lateMin: 0,
-  },
-  {
-    employee: { name: "Phạm Đức Dũng", avatar: "DD", role: "Developer" },
-    days: ["late","on-time","on-time","absent","on-time","weekend","weekend","on-time","late","on-time","on-time","on-time","on-time","weekend","weekend","absent","on-time","on-time","on-time","late","weekend","weekend","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time"],
-    totalDays: 24, ot: "2h", lateMin: 130,
-  },
-  {
-    employee: { name: "Hoàng Thị Em", avatar: "TE", role: "QA" },
-    days: ["wfh","wfh","on-time","on-time","on-time","weekend","weekend","on-time","wfh","on-time","on-time","on-time","on-time","weekend","weekend","on-time","wfh","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","wfh","weekend","weekend","on-time"],
-    totalDays: 28, ot: "1h", lateMin: 0,
-  },
-  {
-    employee: { name: "Vũ Văn Phúc", avatar: "VP", role: "Designer" },
-    days: ["on-time","on-time","on-time","on-time","absent","weekend","weekend","on-time","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","on-time","on-time","weekend","weekend","on-time","on-time","on-time","late","on-time","weekend","weekend","on-time"],
-    totalDays: 28, ot: "3h", lateMin: 20,
-  },
-];
+}
 
 type RequestStatus = "pending" | "approved" | "rejected";
-type RequestType = "leave" | "wfh" | "business" | "explain";
+type RequestType = "leave" | "wfh" | "business" | "explain" | "sick" | "ot";
 
-const REQUESTS: {
+interface LeaveRequest {
   id: number;
   employee: string;
   avatar: string;
@@ -113,27 +78,21 @@ const REQUESTS: {
   date: string;
   reason: string;
   submittedAt: string;
-}[] = [
-  { id: 1, employee: "Trần Quốc Bảo",   avatar: "QB", type: "explain",  status: "pending",  date: "20/06/2026", reason: "Quên check-in buổi sáng ngày 20/06",          submittedAt: "21/06 09:15" },
-  { id: 2, employee: "Phạm Đức Dũng",   avatar: "DD", type: "leave",    status: "pending",  date: "25–27/06/2026", reason: "Nghỉ phép năm",                             submittedAt: "20/06 14:30" },
-  { id: 3, employee: "Hoàng Thị Em",    avatar: "TE", type: "wfh",      status: "approved", date: "23/06/2026", reason: "Làm việc tại nhà, có kết nối đầy đủ",         submittedAt: "22/06 08:00" },
-  { id: 4, employee: "Nguyễn Minh Anh", avatar: "MA", type: "business", status: "approved", date: "18–19/06/2026", reason: "Công tác Hà Nội gặp khách hàng",           submittedAt: "15/06 10:00" },
-  { id: 5, employee: "Vũ Văn Phúc",     avatar: "VP", type: "leave",    status: "rejected", date: "22/06/2026", reason: "Nghỉ việc cá nhân",                           submittedAt: "19/06 16:45" },
-  { id: 6, employee: "Lê Thị Cẩm",      avatar: "TC", type: "explain",  status: "approved", date: "10/06/2026", reason: "Check-out muộn do họp kéo dài ngoài văn phòng", submittedAt: "11/06 07:55" },
-];
+  urgent?: boolean;
+}
 
-const SHIFTS = [
-  { id: 1, name: "Ca Hành Chính", start: "08:00", end: "17:00", break: "12:00–13:00", days: "T2–T6" },
-  { id: 2, name: "Ca Sáng Sớm",  start: "06:00", end: "14:00", break: "10:00–10:30", days: "T2–T7" },
-  { id: 3, name: "Ca Chiều",     start: "13:00", end: "21:00", break: "17:00–17:30", days: "T2–T7" },
-];
+const mapDbToRequest = (m: any): LeaveRequest => ({
+  id: m.id,
+  employee: m.employee_name,
+  avatar: m.avatar,
+  type: m.type,
+  status: m.status,
+  date: m.date,
+  reason: m.reason,
+  submittedAt: m.submitted_at,
+  urgent: m.urgent
+});
 
-const HOLIDAYS = [
-  { date: "30/04/2026", name: "Ngày Giải phóng miền Nam" },
-  { date: "01/05/2026", name: "Quốc tế Lao động" },
-  { date: "02/09/2026", name: "Quốc khánh" },
-  { date: "10/03/2026 (âl)", name: "Giỗ Tổ Hùng Vương" },
-];
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -183,6 +142,16 @@ function DayCell({ status }: { status: DayStatus }) {
 }
 
 function Avatar({ initials, size = 8 }: { initials: string; size?: number }) {
+  const isUrl = initials && (initials.startsWith("http") || initials.startsWith("/") || initials.includes(".") || initials.includes("uploads"));
+  if (isUrl) {
+    return (
+      <img
+        src={initials}
+        alt="avatar"
+        className={`w-${size} h-${size} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  }
   return (
     <div
       className={`w-${size} h-${size} rounded-full flex items-center justify-center flex-shrink-0`}
@@ -195,24 +164,36 @@ function Avatar({ initials, size = 8 }: { initials: string; size?: number }) {
 
 // ─── Tab: Tổng quan ────────────────────────────────────────────────────────────
 
-function OverviewTab() {
+interface OverviewTabProps {
+  liveLog: CheckInLog[];
+  stats: any;
+}
+
+function OverviewTab({ liveLog, stats }: OverviewTabProps) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 4000);
     return () => clearInterval(id);
   }, []);
 
-  const visibleLogs = LIVE_LOG.slice(0, 5 + (tick % 4));
+  const visibleLogs = liveLog.slice(0, 5 + (tick % 4));
+
+  const workingCount = stats?.workingCount || 0;
+  const wfhCount = stats?.wfhCount || 0;
+  const lateCount = stats?.lateCount || 0;
+  const absentCount = stats?.absentCount || 0;
+  const totalEmployees = stats?.totalEmployees || 0;
+  const attendanceRate = stats?.attendanceRate || "0%";
 
   return (
     <div className="space-y-6">
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Nhân viên đang làm việc", value: "4 / 6", sub: "2 WFH", icon: Users,     color: "#4ade80" },
-          { label: "Đi làm muộn",             value: "2",     sub: "Hôm nay", icon: Clock,   color: "#fbbf24" },
-          { label: "Vắng mặt",                value: "0",     sub: "Hôm nay", icon: UserX,   color: "#f87171" },
-          { label: "Tỉ lệ chuyên cần",        value: "94.2%", sub: "Tháng 6", icon: TrendingUp, color: "#60a5fa" },
+          { label: "Nhân viên đang làm việc", value: `${workingCount} / ${totalEmployees}`, sub: `${wfhCount} WFH`, icon: Users,     color: "#4ade80" },
+          { label: "Đi làm muộn",             value: String(lateCount),     sub: "Hôm nay", icon: Clock,   color: "#fbbf24" },
+          { label: "Vắng mặt",                value: String(absentCount),     sub: "Hôm nay", icon: UserX,   color: "#f87171" },
+          { label: "Tỉ lệ chuyên cần",        value: attendanceRate, sub: "Tháng này", icon: TrendingUp, color: "#60a5fa" },
         ].map((card) => (
           <div
             key={card.label}
@@ -252,7 +233,7 @@ function OverviewTab() {
             <span style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>
               Nhật ký Check-in / Check-out
             </span>
-            <span style={{ color: "#555", fontSize: "12px" }}>— Hôm nay, 23/06/2026</span>
+            <span style={{ color: "#555", fontSize: "12px" }}>— Hôm nay, {new Date().toLocaleDateString("vi-VN")}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Wifi size={13} style={{ color: "#4ade80" }} />
@@ -300,20 +281,62 @@ function OverviewTab() {
               </div>
             </div>
           ))}
+          {visibleLogs.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <p style={{ color: "#444", fontSize: "13px" }}>Chưa có hoạt động check-in nào hôm nay</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+
 // ─── Tab: Bảng chấm công ───────────────────────────────────────────────────────
 
 function TimesheetTab() {
-  const [month, setMonth] = useState(5); // 0-indexed, June = 5
+  const [month, setMonth] = useState(new Date().getMonth()); // 0-indexed
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [timesheetData, setTimesheetData] = useState<TimesheetData[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const monthNames = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6","Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
-  const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31];
-  const days = daysInMonth[month];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days = daysInMonth;
   const dayNumbers = Array.from({ length: days }, (_, i) => i + 1);
+
+  useEffect(() => {
+    const fetchTimesheet = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchApi<TimesheetData[]>(`/hr/timesheet?year=${year}&month=${month + 1}`);
+        setTimesheetData(data);
+      } catch (err) {
+        console.error("Failed to load timesheet", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTimesheet();
+  }, [year, month]);
+
+  const changeMonth = (delta: number) => {
+    let newMonth = month + delta;
+    let newYear = year;
+    if (newMonth < 0) {
+      newMonth = 11;
+      newYear -= 1;
+    } else if (newMonth > 11) {
+      newMonth = 0;
+      newYear += 1;
+    }
+    setMonth(newMonth);
+    setYear(newYear);
+  };
+
+  const sumDays = timesheetData.reduce((acc, r) => acc + r.totalDays, 0);
+  const sumLate = timesheetData.reduce((acc, r) => acc + r.lateMin, 0);
 
   return (
     <div className="space-y-5">
@@ -324,7 +347,7 @@ function TimesheetTab() {
           style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
         >
           <button
-            onClick={() => setMonth((m) => Math.max(0, m - 1))}
+            onClick={() => changeMonth(-1)}
             className="transition-colors"
             style={{ color: "#666" }}
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#EEEEEE")}
@@ -333,10 +356,10 @@ function TimesheetTab() {
             <ChevronLeft size={16} />
           </button>
           <span style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600, minWidth: "80px", textAlign: "center" }}>
-            {monthNames[month]} 2026
+            {monthNames[month]} {year}
           </span>
           <button
-            onClick={() => setMonth((m) => Math.min(11, m + 1))}
+            onClick={() => changeMonth(1)}
             className="transition-colors"
             style={{ color: "#666" }}
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#EEEEEE")}
@@ -392,10 +415,22 @@ function TimesheetTab() {
             </tr>
           </thead>
           <tbody>
-            {TIMESHEET_DATA.map((row, ri) => (
+            {loading ? (
+              <tr>
+                <td colSpan={days + 4} className="py-8 text-center">
+                  <Loader2 className="animate-spin inline-block text-[#D84040]" size={20} />
+                </td>
+              </tr>
+            ) : timesheetData.length === 0 ? (
+              <tr>
+                <td colSpan={days + 4} className="py-8 text-center" style={{ color: "#666" }}>
+                  Chưa có dữ liệu chấm công
+                </td>
+              </tr>
+            ) : timesheetData.map((row, ri) => (
               <tr
                 key={ri}
-                style={{ borderBottom: ri < TIMESHEET_DATA.length - 1 ? "1px solid #2A1F1F" : undefined }}
+                style={{ borderBottom: ri < timesheetData.length - 1 ? "1px solid #2A1F1F" : undefined }}
               >
                 <td
                   className="px-4 py-2.5 sticky left-0 z-10"
@@ -442,9 +477,9 @@ function TimesheetTab() {
       {/* Summary strip */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Tổng ngày công hợp lệ", value: "162 ngày", color: "#4ade80" },
-          { label: "Tổng giờ OT", value: "18h30", color: "#60a5fa" },
-          { label: "Tổng phút đi muộn", value: "260 phút", color: "#fbbf24" },
+          { label: "Tổng ngày công hợp lệ", value: `${sumDays} ngày`, color: "#4ade80" },
+          { label: "Tổng giờ OT", value: "0h", color: "#60a5fa" }, // Placeholder for now
+          { label: "Tổng phút đi muộn", value: `${sumLate} phút`, color: "#fbbf24" },
         ].map((s) => (
           <div
             key={s.label}
@@ -460,20 +495,155 @@ function TimesheetTab() {
   );
 }
 
+// ─── Create Request Modal ──────────────────────────────────────────────────────
+
+function CreateRequestModal({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: () => void }) {
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : null;
+  
+  const [form, setForm] = useState({
+    type: "leave",
+    date: "",
+    reason: "",
+    urgent: false
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const typeOptions = [
+    { value: "leave", label: "Nghỉ phép" },
+    { value: "sick", label: "Nghỉ ốm" },
+    { value: "ot", label: "Làm thêm giờ" },
+    { value: "wfh", label: "WFH" },
+    { value: "business", label: "Công tác" },
+    { value: "explain", label: "Giải trình" }
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.date || !form.reason) {
+      alert("Vui lòng điền ngày và lý do!");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("vi-VN").slice(0, 5); // DD/MM
+      const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+
+      const payload = {
+        employee_name: user?.display_name || user?.email || "Unknown",
+        avatar: user?.avatar_url || (user?.display_name ? user.display_name.substring(0,2) : "??"),
+        type: form.type,
+        status: "pending",
+        date: form.date,
+        reason: form.reason,
+        submitted_at: `${dateStr} ${timeStr}`,
+        urgent: form.urgent
+      };
+
+      await fetchApi("/hr/leave-requests", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      onSave();
+      onClose();
+    } catch (err) {
+      alert("Lỗi khi gửi đơn: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputStyle = {
+    background: "#141010", border: "1px solid #2A1F1F", color: "#EEEEEE",
+    fontSize: "13px", borderRadius: "8px", padding: "8px 12px", width: "100%", outline: "none",
+  } as React.CSSProperties;
+
+  const labelStyle = {
+    color: "#888", fontSize: "11px", fontWeight: 600, marginBottom: "4px", display: "block",
+  } as React.CSSProperties;
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-md rounded-xl overflow-hidden" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
+          <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>Tạo đơn từ mới</h3>
+          <button onClick={onClose} style={{ color: "#888" }} className="hover:opacity-70">
+            <X size={16}/>
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <span style={labelStyle}>Nhân viên *</span>
+            <div style={{ ...inputStyle, background: "#1D1616", color: "#888" }}>
+              {user?.display_name || user?.email || "Unknown"}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span style={labelStyle}>Loại đơn từ *</span>
+              <select value={form.type} onChange={(e) => setForm(f => ({ ...f, type: e.target.value }))} style={{ ...inputStyle, appearance: "none" }}>
+                {typeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <span style={labelStyle}>Thời gian *</span>
+              <input placeholder="VD: 25-27/06/2026" value={form.date} onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))} style={inputStyle} required />
+            </div>
+          </div>
+
+          <div>
+            <span style={labelStyle}>Lý do chi tiết *</span>
+            <textarea rows={3} placeholder="VD: Nghỉ phép năm..." value={form.reason} onChange={(e) => setForm(f => ({ ...f, reason: e.target.value }))} style={{ ...inputStyle, resize: "none" }} required />
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-[#EEEEEE] cursor-pointer">
+            <input type="checkbox" checked={form.urgent} onChange={(e) => setForm(f => ({ ...f, urgent: e.target.checked }))} className="rounded accent-[#D84040]" />
+            Đơn khẩn cấp (Cần duyệt gấp)
+          </label>
+
+          <div className="flex gap-3 pt-2" style={{ borderTop: "1px solid #2A1F1F" }}>
+            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg text-xs font-semibold" style={{ background: "#2A1F1F", color: "#888" }}>Hủy</button>
+            <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5" style={{ background: "#D84040", color: "#EEEEEE" }}>
+              {submitting && <Loader2 size={12} className="animate-spin" />}
+              Gửi đơn
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Tab: Đơn từ ──────────────────────────────────────────────────────────────
 
-function RequestsTab() {
+interface RequestsTabProps {
+  requests: LeaveRequest[];
+  onRefresh: () => void;
+}
+
+function RequestsTab({ requests, onRefresh }: RequestsTabProps) {
   const [filter, setFilter] = useState<"all" | RequestStatus>("all");
-  const [requests, setRequests] = useState(REQUESTS);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const typeIcon: Record<RequestType, React.ElementType> = {
-    leave: Calendar, wfh: Home, business: Plane, explain: PenLine,
+    leave: Calendar, wfh: Home, business: Plane, explain: PenLine, sick: UserX, ot: Clock
   };
 
   const filtered = filter === "all" ? requests : requests.filter((r) => r.status === filter);
 
-  function updateStatus(id: number, status: RequestStatus) {
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
+  async function updateStatus(id: number, status: RequestStatus) {
+    try {
+      await fetchApi(`/hr/leave-requests/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status })
+      });
+      onRefresh();
+    } catch (err) {
+      alert("Lỗi khi duyệt đơn: " + err.message);
+    }
   }
 
   return (
@@ -505,6 +675,7 @@ function RequestsTab() {
           })}
         </div>
         <button
+          onClick={() => setCreateOpen(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
           style={{ background: "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}
         >
@@ -524,7 +695,7 @@ function RequestsTab() {
           </div>
         )}
         {filtered.map((req, i) => {
-          const Icon = typeIcon[req.type];
+          const Icon = typeIcon[req.type] || FileText;
           return (
             <div
               key={req.id}
@@ -545,6 +716,9 @@ function RequestsTab() {
                   </span>
                   <StatusBadge status={req.type} />
                   <StatusBadge status={req.status} />
+                  {req.urgent && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#7f1d1d33] color-[#f87171]" style={{ color: "#f87171", background: "rgba(127, 29, 29, 0.2)" }}>KHẨN</span>
+                  )}
                 </div>
                 <p style={{ color: "#888", fontSize: "12px" }} className="mt-0.5 truncate">
                   {req.reason}
@@ -575,13 +749,19 @@ function RequestsTab() {
           );
         })}
       </div>
+      <CreateRequestModal open={createOpen} onClose={() => setCreateOpen(false)} onSave={onRefresh} />
     </div>
   );
 }
 
 // ─── Tab: Cài đặt ─────────────────────────────────────────────────────────────
 
-function SettingsTab() {
+interface SettingsTabProps {
+  shifts: any[];
+  holidays: any[];
+}
+
+function SettingsTab({ shifts, holidays }: SettingsTabProps) {
   const [gps, setGps] = useState(true);
   const [qr, setQr] = useState(true);
   const [face, setFace] = useState(false);
@@ -619,11 +799,11 @@ function SettingsTab() {
           className="rounded-xl overflow-hidden"
           style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
         >
-          {SHIFTS.map((shift, i) => (
+          {shifts.map((shift, i) => (
             <div
               key={shift.id}
               className="flex items-center gap-4 px-5 py-4"
-              style={{ borderBottom: i < SHIFTS.length - 1 ? "1px solid #2A1F1F" : undefined }}
+              style={{ borderBottom: i < shifts.length - 1 ? "1px solid #2A1F1F" : undefined }}
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -634,7 +814,7 @@ function SettingsTab() {
               <div className="flex-1">
                 <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{shift.name}</p>
                 <p style={{ color: "#666", fontSize: "11px" }}>
-                  {shift.start} – {shift.end} · Nghỉ trưa {shift.break} · {shift.days}
+                  {shift.start || shift.start_time} – {shift.end || shift.end_time} · Nghỉ trưa {shift.break || shift.break_time} · {shift.days}
                 </p>
               </div>
               <button style={{ color: "#555", fontSize: "12px" }}>Sửa</button>
@@ -658,11 +838,11 @@ function SettingsTab() {
           className="rounded-xl overflow-hidden"
           style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
         >
-          {HOLIDAYS.map((h, i) => (
+          {holidays.map((h, i) => (
             <div
               key={h.date}
               className="flex items-center justify-between px-5 py-3.5"
-              style={{ borderBottom: i < HOLIDAYS.length - 1 ? "1px solid #2A1F1F" : undefined }}
+              style={{ borderBottom: i < holidays.length - 1 ? "1px solid #2A1F1F" : undefined }}
             >
               <div className="flex items-center gap-3">
                 <Coffee size={14} style={{ color: "#c084fc" }} />
@@ -719,6 +899,12 @@ type Tab = "overview" | "timesheet" | "requests" | "settings";
 
 export function AttendancePage() {
   const [tab, setTab] = useState<Tab>("overview");
+  const [liveLog, setLiveLog] = useState<CheckInLog[]>([]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [shifts, setShifts] = useState<any[]>([]);
+  const [holidays, setHolidays] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "overview",   label: "Tổng quan",     icon: TrendingUp },
@@ -726,6 +912,39 @@ export function AttendancePage() {
     { key: "requests",   label: "Đơn từ",         icon: FileText },
     { key: "settings",   label: "Cài đặt",        icon: Settings },
   ];
+
+  const loadData = async () => {
+    try {
+      const [logsData, reqsData, shiftsData, holidaysData, statsData] = await Promise.all([
+        fetchApi<any[]>("/hr/attendance-logs"),
+        fetchApi<any[]>("/hr/leave-requests"),
+        fetchApi<any[]>("/hr/shifts"),
+        fetchApi<any[]>("/hr/holidays"),
+        fetchApi<any>("/hr/attendance-stats")
+      ]);
+      setLiveLog(logsData.map(mapDbToLog));
+      setRequests(reqsData.map(mapDbToRequest));
+      setShifts(shiftsData);
+      setHolidays(holidaysData);
+      setStats(statsData);
+    } catch (err) {
+      console.error("Failed to load attendance page data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-40">
+        <Loader2 className="animate-spin text-[#D84040]" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -771,10 +990,10 @@ export function AttendancePage() {
       </div>
 
       {/* Tab content */}
-      {tab === "overview"  && <OverviewTab />}
+      {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
       {tab === "timesheet" && <TimesheetTab />}
-      {tab === "requests"  && <RequestsTab />}
-      {tab === "settings"  && <SettingsTab />}
+      {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}
+      {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} />}
     </div>
   );
 }

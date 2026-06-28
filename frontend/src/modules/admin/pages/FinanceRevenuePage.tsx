@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
@@ -7,8 +7,9 @@ import {
 import {
   TrendingUp, DollarSign, Clock, AlertTriangle, CheckCircle2,
   ChevronRight, Star, Crown, ArrowUpRight, ArrowDownRight,
-  Layers, RefreshCcw, Megaphone, Zap, Calendar, Filter,
+  Layers, RefreshCcw, Megaphone, Zap, Calendar, Filter, Loader2,
 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -19,73 +20,7 @@ function fmtM(v: number) {
 }
 function fmtFull(v: number) { return `${fmtM(v)} ₫`; }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const REVENUE_BREAKDOWN = [
-  { name: "Dự án ngắn hạn", value: 784_000_000, color: "#D84040", icon: Layers },
-  { name: "Hợp đồng Retainer", value: 420_000_000, color: "#60a5fa", icon: RefreshCcw },
-  { name: "Quảng cáo / Media", value: 312_000_000, color: "#fbbf24", icon: Megaphone },
-];
-
-const MONTHLY_STACKED = [
-  { month: "T1", project: 110, retainer: 60, media: 38 },
-  { month: "T2", project: 95,  retainer: 60, media: 42 },
-  { month: "T3", project: 140, retainer: 70, media: 55 },
-  { month: "T4", project: 128, retainer: 65, media: 48 },
-  { month: "T5", project: 160, retainer: 75, media: 62 },
-  { month: "T6", project: 151, retainer: 90, media: 67 },
-];
-
-const RECEIVABLES = {
-  collected: 1_180_000_000,
-  pending:   336_000_000,
-  overdue:   187_000_000,
-};
-
-const OVERDUE_LIST = [
-  { client: "MediaPro Vietnam",    invoice: "INV-2026-044", amount: 120_000_000, days: 31, contact: "Anh Tuấn" },
-  { client: "Công ty Ánh Dương",  invoice: "INV-2026-038", amount:  45_000_000, days: 18, contact: "Chị Hoa" },
-  { client: "StartupX HN",         invoice: "INV-2026-051", amount:  22_000_000, days:  9, contact: "Anh Minh" },
-];
-
-const PENDING_LIST = [
-  { client: "Vingroup Digital",    invoice: "INV-2026-058", amount: 180_000_000, dueIn: 5,  stage: "50% nghiệm thu" },
-  { client: "F88 Finance",         invoice: "INV-2026-055", amount:  96_000_000, dueIn: 12, stage: "Đợt 2/3" },
-  { client: "Highlands Coffee",    invoice: "INV-2026-052", amount:  60_000_000, dueIn: 20, stage: "Thanh toán cuối" },
-];
-
-const TOP_SERVICES = [
-  { name: "Sản xuất TVC / Video",    revenue: 395_000_000, pct: 26, trend: "up" },
-  { name: "Chạy Ads (Facebook/GG)",  revenue: 312_000_000, pct: 20, trend: "up" },
-  { name: "Chụp ảnh sản phẩm",       revenue: 228_000_000, pct: 15, trend: "down" },
-  { name: "Quản lý kênh Social",     revenue: 210_000_000, pct: 14, trend: "up" },
-  { name: "Thiết kế thương hiệu",    revenue: 156_000_000, pct: 10, trend: "flat" },
-  { name: "KOL / KOC Booking",       revenue: 105_000_000, pct:  7, trend: "up" },
-  { name: "Sản xuất Podcast / Audio", revenue:  78_000_000, pct:  5, trend: "flat" },
-  { name: "Chăm sóc Fanpage",        revenue:  32_000_000, pct:  3, trend: "down" },
-];
-
-const TOP_CLIENTS = [
-  { name: "Vingroup Digital",  spend: 420_000_000, projects: 4, type: "Retainer + Project", badge: "vip" },
-  { name: "Highlands Coffee",  spend: 260_000_000, projects: 3, type: "Project-based",       badge: "key" },
-  { name: "F88 Finance",       spend: 215_000_000, projects: 2, type: "Retainer",            badge: "key" },
-  { name: "MediaPro Vietnam",  spend: 180_000_000, projects: 5, type: "Media Booking",       badge: null },
-  { name: "StartupX HN",       spend:  98_000_000, projects: 2, type: "Project-based",       badge: null },
-];
-
-const FORECAST_MONTHS = [
-  { month: "T7/2026", low: 380, mid: 460, high: 540 },
-  { month: "T8/2026", low: 350, mid: 430, high: 510 },
-  { month: "T9/2026", low: 400, mid: 490, high: 580 },
-];
-
-const PIPELINE = [
-  { name: "Vingroup — Campaign Q3",  value: 320_000_000, prob: 85, stage: "Đàm phán HĐ",    closes: "05/07" },
-  { name: "New client: FPT Retail",  value: 250_000_000, prob: 60, stage: "Gửi proposal",   closes: "15/07" },
-  { name: "Highlands — TVC mùa thu", value: 180_000_000, prob: 90, stage: "Đã ký WO",       closes: "01/07" },
-  { name: "F88 — Retainer gia hạn",  value: 120_000_000, prob: 95, stage: "Xác nhận miệng", closes: "30/06" },
-  { name: "Startup B2B SaaS",        value:  75_000_000, prob: 40, stage: "Demo sản phẩm",  closes: "20/07" },
-];
+// Mock data has been removed. Data is fetched dynamically from /finance/revenue.
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 
@@ -142,9 +77,15 @@ function Section({ title, sub, icon: Icon, color, children }: {
 
 // ─── 1. Revenue Breakdown ─────────────────────────────────────────────────────
 
-function RevenueBreakdown({ period }: { period: string }) {
-  const total = REVENUE_BREAKDOWN.reduce((s, d) => s + d.value, 0);
-  const enriched = REVENUE_BREAKDOWN.map((d) => ({ ...d, pct: Math.round((d.value / total) * 100) }));
+interface RevenueBreakdownProps {
+  period: string;
+  breakdowns: any[];
+  monthlyStacked: any[];
+}
+
+function RevenueBreakdown({ period, breakdowns, monthlyStacked }: RevenueBreakdownProps) {
+  const total = breakdowns.reduce((s, d) => s + d.value, 0);
+  const enriched = breakdowns.map((d) => ({ ...d, pct: total > 0 ? Math.round((d.value / total) * 100) : 0 }));
 
   return (
     <Section title="Phân loại Nguồn Doanh thu" sub="Revenue Breakdown — Theo mô hình tính giá" icon={Layers} color="#D84040">
@@ -197,7 +138,7 @@ function RevenueBreakdown({ period }: { period: string }) {
             Doanh thu theo tháng · Triệu ₫
           </p>
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={MONTHLY_STACKED} barSize={18}>
+            <BarChart data={monthlyStacked} barSize={18}>
               <CartesianGrid vertical={false} stroke="#2A1F1F" />
               <XAxis dataKey="month" tick={{ fill: "#555", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
@@ -223,9 +164,15 @@ function RevenueBreakdown({ period }: { period: string }) {
 
 // ─── 2. Cash Flow & Receivables ───────────────────────────────────────────────
 
-function CashFlow() {
+interface CashFlowProps {
+  receivables: { collected: number; pending: number; overdue: number };
+  overdueList: any[];
+  pendingList: any[];
+}
+
+function CashFlow({ receivables, overdueList, pendingList }: CashFlowProps) {
   const [tab, setTab] = useState<"overdue" | "pending">("overdue");
-  const total = RECEIVABLES.collected + RECEIVABLES.pending + RECEIVABLES.overdue;
+  const total = receivables.collected + receivables.pending + receivables.overdue;
 
   return (
     <Section title="Trạng thái Dòng tiền & Công nợ" sub="Cash Flow & Receivables" icon={DollarSign} color="#4ade80">
@@ -234,19 +181,19 @@ function CashFlow() {
         <div className="grid grid-cols-3 gap-4">
           {[
             {
-              label: "Đã thu", value: RECEIVABLES.collected,
-              pct: Math.round((RECEIVABLES.collected / total) * 100),
+              label: "Đã thu", value: receivables.collected,
+              pct: total > 0 ? Math.round((receivables.collected / total) * 100) : 0,
               color: "#4ade80", icon: CheckCircle2, sub: "Đã vào tài khoản",
             },
             {
-              label: "Đang chờ thu", value: RECEIVABLES.pending,
-              pct: Math.round((RECEIVABLES.pending / total) * 100),
+              label: "Đang chờ thu", value: receivables.pending,
+              pct: total > 0 ? Math.round((receivables.pending / total) * 100) : 0,
               color: "#60a5fa", icon: Clock, sub: "Hóa đơn chưa đến hạn",
             },
             {
-              label: "Quá hạn", value: RECEIVABLES.overdue,
-              pct: Math.round((RECEIVABLES.overdue / total) * 100),
-              color: "#f87171", icon: AlertTriangle, sub: `${OVERDUE_LIST.length} khách hàng trễ hạn`,
+              label: "Quá hạn", value: receivables.overdue,
+              pct: total > 0 ? Math.round((receivables.overdue / total) * 100) : 0,
+              color: "#f87171", icon: AlertTriangle, sub: `${overdueList.length} khách hàng trễ hạn`,
             },
           ].map((card) => (
             <div
@@ -309,15 +256,15 @@ function CashFlow() {
               ))}
             </div>
             <span style={{ color: "#555", fontSize: "11px" }}>
-              Tổng: {fmtFull(tab === "overdue" ? RECEIVABLES.overdue : RECEIVABLES.pending)}
+              Tổng: {fmtFull(tab === "overdue" ? receivables.overdue : receivables.pending)}
             </span>
           </div>
 
-          {tab === "overdue" && OVERDUE_LIST.map((row, i) => (
+          {tab === "overdue" && overdueList.map((row, i) => (
             <div
               key={row.invoice}
               className="flex items-center gap-4 px-5 py-3.5"
-              style={{ borderBottom: i < OVERDUE_LIST.length - 1 ? "1px solid #2A1F1F" : undefined }}
+              style={{ borderBottom: i < overdueList.length - 1 ? "1px solid #2A1F1F" : undefined }}
             >
               <div
                 className="w-2 h-2 rounded-full flex-shrink-0"
@@ -340,11 +287,11 @@ function CashFlow() {
             </div>
           ))}
 
-          {tab === "pending" && PENDING_LIST.map((row, i) => (
+          {tab === "pending" && pendingList.map((row, i) => (
             <div
               key={row.invoice}
               className="flex items-center gap-4 px-5 py-3.5"
-              style={{ borderBottom: i < PENDING_LIST.length - 1 ? "1px solid #2A1F1F" : undefined }}
+              style={{ borderBottom: i < pendingList.length - 1 ? "1px solid #2A1F1F" : undefined }}
             >
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#60a5fa" }} />
               <div className="flex-1 min-w-0">
@@ -357,6 +304,18 @@ function CashFlow() {
               </div>
             </div>
           ))}
+
+          {tab === "overdue" && overdueList.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <p style={{ color: "#444", fontSize: "13px" }}>Không có công nợ quá hạn</p>
+            </div>
+          )}
+
+          {tab === "pending" && pendingList.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <p style={{ color: "#444", fontSize: "13px" }}>Không có hóa đơn chờ thu</p>
+            </div>
+          )}
         </div>
       </div>
     </Section>
@@ -365,8 +324,13 @@ function CashFlow() {
 
 // ─── 3. Top Performers ────────────────────────────────────────────────────────
 
-function TopPerformers() {
-  const maxRev = TOP_SERVICES[0].revenue;
+interface TopPerformersProps {
+  topServices: any[];
+  topClients: any[];
+}
+
+function TopPerformers({ topServices, topClients }: TopPerformersProps) {
+  const maxRev = topServices && topServices.length > 0 ? topServices[0].revenue : 0;
   return (
     <Section title="Bảng xếp hạng Hiệu quả" sub="Top Performers — Dịch vụ & Khách hàng" icon={Star} color="#fbbf24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -377,7 +341,7 @@ function TopPerformers() {
             <p style={{ color: "#555", fontSize: "11px" }}>Theo doanh thu · H1 2026</p>
           </div>
           <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
-            {TOP_SERVICES.map((svc, i) => (
+            {(topServices || []).map((svc, i) => (
               <div key={svc.name} className="flex items-center gap-3 px-5 py-3">
                 <span
                   style={{
@@ -416,7 +380,7 @@ function TopPerformers() {
                     <div
                       className="h-full rounded-full"
                       style={{
-                        width: `${(svc.revenue / maxRev) * 100}%`,
+                        width: `${maxRev > 0 ? (svc.revenue / maxRev) * 100 : 0}%`,
                         background: i < 3 ? "#fbbf24" : "#3A2A2A",
                       }}
                     />
@@ -434,7 +398,7 @@ function TopPerformers() {
             <p style={{ color: "#555", fontSize: "11px" }}>Key Accounts · H1 2026</p>
           </div>
           <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
-            {TOP_CLIENTS.map((client, i) => (
+            {(topClients || []).map((client, i) => (
               <div key={client.name} className="flex items-center gap-3 px-5 py-3.5">
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
@@ -470,9 +434,14 @@ function TopPerformers() {
 
 // ─── 4. Revenue Forecast ──────────────────────────────────────────────────────
 
-function RevenueForecast() {
-  const weightedPipeline = PIPELINE.reduce((s, p) => s + p.value * (p.prob / 100), 0);
-  const bestCase = PIPELINE.reduce((s, p) => s + p.value, 0);
+interface RevenueForecastProps {
+  pipeline: any[];
+  forecastMonths: any[];
+}
+
+function RevenueForecast({ pipeline, forecastMonths }: RevenueForecastProps) {
+  const weightedPipeline = (pipeline || []).reduce((s, p) => s + p.value * (p.prob / 100), 0);
+  const bestCase = (pipeline || []).reduce((s, p) => s + p.value, 0);
 
   return (
     <Section title="Dự báo Doanh thu" sub="Revenue Forecast — Pipeline & Ước tính Q3 2026" icon={Zap} color="#c084fc">
@@ -494,7 +463,7 @@ function RevenueForecast() {
             </div>
           </div>
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={FORECAST_MONTHS} barGap={4} barSize={22}>
+            <BarChart data={forecastMonths} barGap={4} barSize={22}>
               <CartesianGrid vertical={false} stroke="#2A1F1F" />
               <XAxis dataKey="month" tick={{ fill: "#555", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
@@ -523,7 +492,7 @@ function RevenueForecast() {
               {fmtFull(bestCase)}
             </p>
             <p style={{ color: "#555", fontSize: "11px", marginTop: "4px" }}>
-              Nếu chốt toàn bộ {PIPELINE.length} deal
+              Nếu chốt toàn bộ {(pipeline || []).length} deal
             </p>
           </div>
         </div>
@@ -537,15 +506,15 @@ function RevenueForecast() {
             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>
               Pipeline đang theo dõi
             </p>
-            <span style={{ color: "#555", fontSize: "11px" }}>{PIPELINE.length} deals · Tháng 7/2026</span>
+            <span style={{ color: "#555", fontSize: "11px" }}>{(pipeline || []).length} deals · Tháng 7/2026</span>
           </div>
-          {PIPELINE.map((deal, i) => {
+          {(pipeline || []).map((deal, i) => {
             const probColor = deal.prob >= 80 ? "#4ade80" : deal.prob >= 60 ? "#fbbf24" : "#f87171";
             return (
               <div
                 key={deal.name}
                 className="flex items-center gap-4 px-5 py-4"
-                style={{ borderBottom: i < PIPELINE.length - 1 ? "1px solid #2A1F1F" : undefined }}
+                style={{ borderBottom: i < (pipeline || []).length - 1 ? "1px solid #2A1F1F" : undefined }}
               >
                 {/* Probability ring */}
                 <div className="relative w-10 h-10 flex-shrink-0">
@@ -593,10 +562,58 @@ type Period = typeof PERIODS[number];
 
 export function FinanceRevenuePage() {
   const [period, setPeriod] = useState<Period>("H1 2026");
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const totalRev = REVENUE_BREAKDOWN.reduce((s, d) => s + d.value, 0);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchApi("/finance/revenue");
+      setData(res);
+    } catch (err) {
+      console.error("Failed to load revenue data:", err);
+      setError("Không thể tải thông tin doanh thu");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D84040]" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{error || "Không có dữ liệu"}</p>
+        <button onClick={loadData} className="px-4 py-2 rounded-lg bg-[#D84040] text-white">
+          Thử lại
+        </button>
+      </div>
+    );
+  }
+
+  const totalRev = (data.breakdowns || []).reduce((s: number, d: any) => s + d.value, 0);
   const prevRev  = 1_180_000_000;
-  const growth   = Math.round(((totalRev - prevRev) / prevRev) * 100);
+  const growth   = prevRev > 0 ? Math.round(((totalRev - prevRev) / prevRev) * 100) : 0;
+
+  const pendingList = (data.pending_bills || []).map((bill: any) => ({
+    client: bill.client,
+    invoice: bill.invoice,
+    amount: bill.amount,
+    dueIn: bill.due_in,
+    stage: bill.stage
+  }));
 
   return (
     <div className="p-8 space-y-10">
@@ -644,22 +661,22 @@ export function FinanceRevenuePage() {
           { label: "Tổng doanh thu", value: fmtFull(totalRev), sub: period, color: "#EEEEEE", icon: DollarSign },
           {
             label: "Tăng trưởng",
-            value: `+${growth}%`,
+            value: `${growth >= 0 ? "+" : ""}${growth}%`,
             sub: "So với kỳ trước",
-            color: "#4ade80",
-            icon: ArrowUpRight,
+            color: growth >= 0 ? "#4ade80" : "#f87171",
+            icon: growth >= 0 ? ArrowUpRight : ArrowDownRight,
           },
           {
             label: "Đã thu thực tế",
-            value: fmtFull(RECEIVABLES.collected),
-            sub: `${Math.round((RECEIVABLES.collected / totalRev) * 100)}% tổng DT`,
+            value: fmtFull(data.receivables.collected),
+            sub: totalRev > 0 ? `${Math.round((data.receivables.collected / totalRev) * 100)}% tổng DT` : "0% tổng DT",
             color: "#60a5fa",
             icon: CheckCircle2,
           },
           {
             label: "Công nợ quá hạn",
-            value: fmtFull(RECEIVABLES.overdue),
-            sub: `${OVERDUE_LIST.length} khách hàng`,
+            value: fmtFull(data.receivables.overdue),
+            sub: `${(data.overdue_bills || []).length} khách hàng`,
             color: "#f87171",
             icon: AlertTriangle,
           },
@@ -679,10 +696,27 @@ export function FinanceRevenuePage() {
         ))}
       </div>
 
-      <RevenueBreakdown period={period} />
-      <CashFlow />
-      <TopPerformers />
-      <RevenueForecast />
+      <RevenueBreakdown 
+        period={period} 
+        breakdowns={data.breakdowns || []} 
+        monthlyStacked={data.monthly_stacked || []} 
+      />
+      
+      <CashFlow 
+        receivables={data.receivables || { collected: 0, pending: 0, overdue: 0 }} 
+        overdueList={data.overdue_bills || []} 
+        pendingList={pendingList} 
+      />
+      
+      <TopPerformers 
+        topServices={data.top_services || []} 
+        topClients={data.top_clients || []} 
+      />
+      
+      <RevenueForecast 
+        pipeline={data.pipeline || []} 
+        forecastMonths={data.forecast || []} 
+      />
     </div>
   );
 }

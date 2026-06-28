@@ -8,9 +8,15 @@ import { ClientBillingPage } from "./pages/ClientBillingPage";
 import { ClientSupportPage } from "./pages/ClientSupportPage";
 import { ClientSettingsPage } from "./pages/ClientSettingsPage";
 
+import { ProtectedRoute } from "../../shared/components/ProtectedRoute";
+
 export const clientRoute = {
     path: "/client",
-    Component: MainLayout,
+    element: (
+        <ProtectedRoute allowedRoles={["client"]}>
+            <MainLayout />
+        </ProtectedRoute>
+    ),
     children: [
         { index: true, Component: ClientDashboardPage },
         { path: "projects", Component: ClientProjectsPage },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
-import { ArrowUpRight, Instagram, Twitter, Linkedin, Dribbble, Mail, MapPin, Phone, MessageSquare } from 'lucide-react';
+import { ArrowUpRight, Instagram, Facebook, Youtube, Mail, MapPin, Phone, MessageSquare } from 'lucide-react';
 
 export function ContactPage() {
   const { scrollYProgress } = useScroll();
@@ -91,10 +91,10 @@ export function ContactPage() {
                       className="flex gap-1.5 pr-1 pl-2 overflow-hidden items-center"
                     >
                       {[
-                        { Icon: Instagram, href: '#' },
-                        { Icon: Twitter, href: '#' },
-                        { Icon: Linkedin, href: '#' },
-                        { Icon: Dribbble, href: '#' }
+                        { Icon: Instagram, href: 'https://www.instagram.com/204prod.vn/' },
+                        { Icon: Facebook, href: 'https://www.facebook.com/204prod.vn/' },
+                        { Icon: Youtube, href: 'https://www.youtube.com/@204prodvn' },
+                        // { Icon: Tiktok, href: 'https://www.tiktok.com/@204prod.vn?is_from_webapp=1&sender_device=pc' }
                       ].map((social, i) => (
                         <motion.a
                           key={i}
@@ -117,9 +117,9 @@ export function ContactPage() {
 
           <div className="flex flex-col gap-3 mt-8 w-full max-w-md">
             {[
-              { label: "Email", desc: "hello@majorstudio.com", action: "mailto:hello@majorstudio.com", Icon: Mail },
-              { label: "Location", desc: "Los Angeles, CA", action: "#", Icon: MapPin },
-              { label: "Phone", desc: "+1 (555) 123-4567", action: "tel:+15551234567", Icon: Phone }
+              { label: "Email", desc: "204prod.work@gmail.com", action: "mailto:204prod.work@gmail.com", Icon: Mail },
+              { label: "Location", desc: "21 Ng. 8 P. Tôn Thất Thiệp, Ba Đình, Hà Nội 10000", action: "#", Icon: MapPin },
+              { label: "Phone", desc: "+84 989 143 490", action: "tel:+84989143490", Icon: Phone }
             ].map((item, i) => (
               <a key={item.label} href={item.action} className="group flex items-center justify-between w-full bg-zinc-950/50 border border-white/10 rounded-lg px-4 py-3 hover:bg-white/10 hover:border-white/30 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] transition-all duration-300 border-t-white/20 border-l-white/20">
                 <div className="flex items-center gap-3">

@@ -3,13 +3,31 @@ import { Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi } from "../utils/apiClient";
 
+interface DbCrewMember {
+  id: string;
+  name: string;
+  avatar?: string;
+  status?: string;
+  role?: string;
+  assigned_projects?: number;
+}
+
+interface CrewMember {
+  id: string;
+  name: string;
+  avatar?: string;
+  status?: string;
+  role?: string;
+  projects: number;
+}
+
 export function CrewOverview() {
   const navigate = useNavigate();
-  const [crewMembers, setCrewMembers] = useState([]);
+  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchApi("/crew")
+    fetchApi<DbCrewMember[]>("/crew")
       .then((data) => {
         const mapped = data.map(m => ({
           ...m,

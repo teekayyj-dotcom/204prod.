@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Gauge, Eye, EyeOff, Check, X, Shield, Lock, User, Mail } from "lucide-react";
+import { Gauge, Eye, EyeOff, Check, X, Shield, Lock, User, Mail, Loader2 } from "lucide-react";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../../shared/config/firebase";
+import { fetchApi } from "../admin/utils/apiClient";
 
 // Vector class for the canvas particle simulation
 class Vector {
@@ -93,6 +96,7 @@ export function AuthPage() {
     const [oldPassword, setOldPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // Password requirements verification
     const hasUppercase = /[A-Z]/.test(password);
@@ -248,7 +252,7 @@ export function AuthPage() {
     }, []);
 
     // Form submission processing
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (isRegister || isChangePassword) {
@@ -262,23 +266,77 @@ export function AuthPage() {
             }
         }
 
-        let successMsg = "";
-        let redirectPath = "/";
+        setLoading(true);
 
-        if (isLogin) {
-            successMsg = "Đăng nhập thành công!";
-            // Redirect to admin if username starts with admin, otherwise client
-            redirectPath = username.toLowerCase().startsWith("admin") ? "/admin" : "/client";
-        } else if (isRegister) {
-            successMsg = "Đăng ký tài khoản thành công! Quay lại đăng nhập.";
-            redirectPath = "/login";
-        } else if (isChangePassword) {
-            successMsg = "Cập nhật mật khẩu thành công! Hãy đăng nhập lại.";
-            redirectPath = "/login";
+        try {
+            if (isLogin) {
+                const userCredential = await signInWithEmailAndPassword(auth, username, password);
+                const idToken = await userCredential.user.getIdToken();
+                
+                const response = await fetchApi<{ access_token: string, user: { role: string, username: string, email: string, display_name: string } }>("/auth/firebase", {
+                    method: "POST",
+                    body: JSON.stringify({ 
+                        id_token: idToken,
+                        display_name: userCredential.user.displayName,
+                        photo_url: userCredential.user.photoURL
+                    }),
+                });
+
+                localStorage.setItem("token", response.access_token);
+                localStorage.setItem("role", response.user.role);
+                localStorage.setItem("user", JSON.stringify(response.user));
+                alert("Đăng nhập thành công!");
+                const role = response.user.role;
+                if (role === "pending") navigate("/pending");
+                else if (role === "client") navigate("/client");
+                else if (role === "crew" || role === "editor") navigate("/crew");
+                else navigate("/admin");
+
+            } else if (isRegister) {
+                const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+                const idToken = await userCredential.user.getIdToken();
+                
+                await fetchApi("/auth/firebase", {
+                    method: "POST",
+                    body: JSON.stringify({ 
+                        id_token: idToken,
+                        display_name: userCredential.user.displayName,
+                        photo_url: userCredential.user.photoURL
+                    }),
+                });
+
+                alert("Đăng ký tài khoản thành công! Quay lại đăng nhập.");
+                navigate("/login");
+
+            } else if (isChangePassword) {
+                // Here you would typically call your change password API endpoint
+                // Wait, Firebase change password requires re-authentication, or we can use our backend endpoint if we have JWT.
+                // For simplicity, let's just use the backend endpoint directly as planned.
+                const token = localStorage.getItem("token");
+                if (!token) throw new Error("Vui lòng đăng nhập lại để đổi mật khẩu");
+
+                await fetchApi("/auth/change-password", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify({ old_password: oldPassword, new_password: password }),
+                });
+
+                alert("Cập nhật mật khẩu thành công! Hãy đăng nhập lại.");
+                navigate("/login");
+            }
+        } catch (error: any) {
+            console.error("Auth error:", error);
+            // Translate common Firebase errors
+            if (error.code === 'auth/invalid-credential') {
+                alert("Email hoặc mật khẩu không chính xác.");
+            } else if (error.code === 'auth/email-already-in-use') {
+                alert("Email này đã được đăng ký.");
+            } else {
+                 alert(error.message || "Có lỗi xảy ra. Vui lòng thử lại.");
+            }
+        } finally {
+            setLoading(false);
         }
-
-        alert(successMsg);
-        navigate(redirectPath);
     };
 
     return (
@@ -429,8 +487,10 @@ export function AuthPage() {
                         {/* Action Submit CTA Button */}
                         <button
                             type="submit"
-                            className="w-full py-3 bg-[#D84040] hover:bg-[#c03030] rounded-xl text-xs font-bold text-white transition-all shadow-md shadow-[#D84040]/15 hover:shadow-lg hover:shadow-[#D84040]/25"
+                            disabled={loading}
+                            className="w-full py-3 bg-[#D84040] hover:bg-[#c03030] rounded-xl text-xs font-bold text-white transition-all shadow-md shadow-[#D84040]/15 hover:shadow-lg hover:shadow-[#D84040]/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
+                            {loading && <Loader2 className="animate-spin w-4 h-4" />}
                             {isLogin && "Đăng nhập"}
                             {isRegister && "Đăng ký tài khoản"}
                             {isChangePassword && "Cập nhật mật khẩu"}
@@ -447,11 +507,42 @@ export function AuthPage() {
 
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        alert(`${isLogin ? "Đăng nhập" : "Đăng ký"} bằng tài khoản Google thành công!`);
-                                        navigate("/client");
+                                    disabled={loading}
+                                    onClick={async () => {
+                                        try {
+                                            setLoading(true);
+                                            const result = await signInWithPopup(auth, googleProvider);
+                                            const idToken = await result.user.getIdToken();
+                                            
+                                            const response = await fetchApi<{ access_token: string, user: { role: string, username: string, email: string, display_name: string } }>("/auth/firebase", {
+                                                method: "POST",
+                                                body: JSON.stringify({ 
+                                                    id_token: idToken,
+                                                    display_name: result.user.displayName,
+                                                    photo_url: result.user.photoURL
+                                                }),
+                                            });
+
+                                            localStorage.setItem("token", response.access_token);
+                                            localStorage.setItem("role", response.user.role);
+                                            localStorage.setItem("user", JSON.stringify(response.user));
+                                            alert(`${isLogin ? "Đăng nhập" : "Đăng ký"} bằng tài khoản Google thành công!`);
+                                            const role = response.user.role;
+                                            if (role === "pending") navigate("/pending");
+                                            else if (role === "client") navigate("/client");
+                                            else if (role === "crew" || role === "editor") navigate("/crew");
+                                            else navigate("/admin");
+                                        } catch (error: any) {
+                                            console.error("Google auth error:", error);
+                                            // Ignore user closed popup error
+                                            if (error.code !== 'auth/popup-closed-by-user') {
+                                                alert(error.message || "Đăng nhập Google thất bại.");
+                                            }
+                                        } finally {
+                                            setLoading(false);
+                                        }
                                     }}
-                                    className="w-full py-2.5 bg-[#141010]/45 backdrop-blur-md hover:bg-[#2A1F1F]/60 border border-[#2E2020]/60 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition-all flex items-center justify-center gap-2 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]"
+                                    className="w-full py-2.5 bg-[#141010]/45 backdrop-blur-md hover:bg-[#2A1F1F]/60 border border-[#2E2020]/60 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition-all flex items-center justify-center gap-2 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <svg className="w-4 h-4" viewBox="0 0 24 24">
                                         <path

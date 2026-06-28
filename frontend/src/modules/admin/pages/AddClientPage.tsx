@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, UserPlus, Loader2, CheckCircle2, Building2, User, Mail, Phone, DollarSign, AlignLeft, Globe, Briefcase, TrendingUp, Info, Camera, X } from "lucide-react";
+import { ArrowLeft, UserPlus, Loader2, CheckCircle2, Building2, User, Mail, Phone, DollarSign, AlignLeft, Globe, Briefcase, TrendingUp, Info, Camera, X, Crown, Tag } from "lucide-react";
 import { clients } from "../data/mockData";
 import { fetchApi } from "../utils/apiClient";
 const inputStyle = {
@@ -13,15 +13,17 @@ const inputStyle = {
     width: "100%",
 };
 const statusOptions = [
-    { value: "Active", color: "#4CAF50", bg: "rgba(76,175,80,0.12)" },
-    { value: "Paused", color: "#E8A838", bg: "rgba(232,168,56,0.12)" },
-    { value: "Completed", color: "#6B8FD6", bg: "rgba(107,143,214,0.12)" },
+    { value: "Lead", color: "#E91E63", bg: "rgba(233, 30, 99, 0.12)", label: "Lead mới" },
+    { value: "Active", color: "#4CAF50", bg: "rgba(76,175,80,0.12)", label: "Đang hợp tác" },
+    { value: "Paused", color: "#E8A838", bg: "rgba(232,168,56,0.12)", label: "Tạm dừng" },
+    { value: "Completed", color: "#999999", bg: "rgba(150, 150, 150, 0.12)", label: "Đã ngừng hợp tác" },
 ];
 export function AddClientPage() {
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState("Active");
+    const [selectedTier, setSelectedTier] = useState("SME");
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [avatarFile, setAvatarFile] = useState(null);
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
@@ -30,6 +32,7 @@ export function AddClientPage() {
     const nameValue = watch("name") || "";
     const contactValue = watch("contact") || "";
     const budgetValue = watch("budget") || "";
+    const industryValue = watch("industry") || "";
     const initials = nameValue.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "?";
     const statusInfo = statusOptions.find((s) => s.value === selectedStatus) || statusOptions[0];
     const onSubmit = async (data) => {
@@ -50,6 +53,32 @@ export function AddClientPage() {
                 logoMediaId = mediaAsset.id;
             }
 
+            const initialCrm = {
+                tax_code: "",
+                invoice_address: "",
+                poc_list: [
+                    {
+                        name: data.contact || "",
+                        phone: data.phone || "",
+                        email: data.email || "",
+                        role: "Người liên hệ chính"
+                    }
+                ],
+                assignee: "Sarah Kim",
+                ltv: parseInt(data.budget ? data.budget.replace(/[$,]/g, "") : "0") || 0,
+                outstanding_balance: 0,
+                invoices: [],
+                proposals: [],
+                activity_logs: [],
+                appointments: [],
+                documents: [
+                    { id: "doc-1", name: "Hợp đồng nguyên tắc (Master Agreement)", type: "Master Agreement", url: "#" },
+                    { id: "doc-2", name: "Thỏa thuận bảo mật thông tin (NDA)", type: "NDA", url: "#" }
+                ],
+                raw_notes: data.notes || "",
+                tier: selectedTier,
+            };
+
             const payload = {
                 name: data.name,
                 slug: data.slug || null,
@@ -61,7 +90,7 @@ export function AddClientPage() {
                 industry: data.industry || null,
                 status: selectedStatus,
                 since: data.since || null,
-                notes: data.notes || null,
+                notes: JSON.stringify(initialCrm),
             };
             await fetchApi("/projects/clients", {
                 method: "POST",
@@ -194,22 +223,47 @@ export function AddClientPage() {
                             </div>
                         </div>
 
+                        {/* Industry + Client Tier */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                    <Tag size={13} color="#D84040"/> Lĩnh vực / Ngành hàng (Industry)
+                                </label>
+                                <input {...register("industry")} placeholder="e.g. F&B, Fashion, Tech, Retail..." className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                            </div>
+                            <div>
+                                <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                    <Crown size={13} color="#D84040"/> Cấp độ Khách hàng (Client Tier)
+                                </label>
+                                <select 
+                                    value={selectedTier}
+                                    onChange={(e) => setSelectedTier(e.target.value)}
+                                    className="px-3 py-2.5 rounded-lg outline-none cursor-pointer"
+                                    style={inputStyle}
+                                >
+                                    <option value="SME">SME</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="Partner">Partner (Đối tác)</option>
+                                </select>
+                            </div>
+                        </div>
+
                         {/* Status + Client Since */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <User size={13} color="#D84040"/> Relationship Status
                                 </label>
-                                <div className="flex gap-2">
-                                    {statusOptions.map((s) => (<button key={s.value} type="button" onClick={() => { setSelectedStatus(s.value); setValue("status", s.value); }} className="flex-1 py-2 rounded-lg transition-all" style={{
+                                <div className="flex gap-1.5 flex-wrap">
+                                     {statusOptions.map((s) => (<button key={s.value} type="button" onClick={() => { setSelectedStatus(s.value); setValue("status", s.value); }} className="px-3 py-2 rounded-lg transition-all" style={{
                 background: selectedStatus === s.value ? s.bg : "#1D1616",
                 border: `1px solid ${selectedStatus === s.value ? s.color : "#3A2A2A"}`,
                 color: selectedStatus === s.value ? s.color : "#666",
                 fontSize: "12px",
                 fontWeight: selectedStatus === s.value ? 600 : 400,
             }}>
-                                            {s.value}
-                                        </button>))}
+                                             {s.label || s.value}
+                                         </button>))}
                                 </div>
                             </div>
                             <div>
@@ -262,6 +316,20 @@ export function AddClientPage() {
                             </div>
                             <span className="px-2.5 py-1 rounded-full" style={{ background: statusInfo.bg, color: statusInfo.color, fontSize: "11px", fontWeight: 500 }}>
                                 {selectedStatus}
+                            </span>
+                        </div>
+                        {/* Industry & Tier metadata row */}
+                        <div className="flex gap-2 pt-2 pb-3 flex-wrap border-t border-[#2A1F1F]/40" style={{ fontSize: "11px" }}>
+                            {industryValue && (
+                                <span className="px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.04)", color: "#aaa" }}>
+                                    Ngành: {industryValue}
+                                </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded font-semibold" style={{ 
+                                background: selectedTier === "VIP" ? "rgba(255,215,0,0.12)" : selectedTier === "Partner" ? "rgba(26,188,156,0.12)" : "rgba(107,143,214,0.12)",
+                                color: selectedTier === "VIP" ? "#FFD700" : selectedTier === "Partner" ? "#1ABC9C" : "#6B8FD6"
+                            }}>
+                                Cấp độ: {selectedTier}
                             </span>
                         </div>
                         <div className="pt-3" style={{ borderTop: "1px solid #2A1F1F" }}>

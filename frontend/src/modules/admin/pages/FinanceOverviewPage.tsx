@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as ReTooltip, ResponsiveContainer, ReferenceLine,
@@ -6,48 +7,19 @@ import {
   Wallet, TrendingUp, TrendingDown, AlertTriangle, Clock,
   CheckCircle2, ArrowUpRight, ArrowDownRight, Zap,
   DollarSign, Banknote, Target, Briefcase, ChevronRight,
-  Circle,
+  Circle, Loader2
 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Data Types ────────────────────────────────────────────────────────────────
 
-const PL_MONTHLY = [
-  { month: "T1", revenue: 380, expenses: 268, profit: 112 },
-  { month: "T2", revenue: 304, expenses: 243, profit:  61 },
-  { month: "T3", revenue: 492, expenses: 310, profit: 182 },
-  { month: "T4", revenue: 438, expenses: 290, profit: 148 },
-  { month: "T5", revenue: 530, expenses: 348, profit: 182 },
-  { month: "T6", revenue: 516, expenses: 376, profit: 140 },
-];
-
-const OVERDUE_INVOICES = [
-  { client: "MediaPro Vietnam",   invoice: "INV-044", amount: 120_000_000, days: 31 },
-  { client: "Công ty Ánh Dương", invoice: "INV-038", amount:  45_000_000, days: 18 },
-  { client: "StartupX HN",        invoice: "INV-051", amount:  22_000_000, days:  9 },
-];
-
-const UPCOMING_PAYOUTS = [
-  { description: "Cát-xê Trịnh Minh Tuấn — TVC Q2",  amount: 7_200_000, dueDate: "30/06", daysLeft: 7, type: "outsource" },
-  { description: "Cát-xê Nguyễn Bảo Châu — TVC Q2",  amount: 3_600_000, dueDate: "30/06", daysLeft: 7, type: "outsource" },
-  { description: "Adobe Creative Cloud — 6 seat",     amount: 8_400_000, dueDate: "02/07", daysLeft: 9, type: "software" },
-  { description: "Lương tháng 7 — 6 nhân sự",         amount:138_000_000,dueDate: "05/07", daysLeft:12, type: "salary"    },
-  { description: "Server hosting & domain renewal",   amount: 3_600_000, dueDate: "10/07", daysLeft:17, type: "software" },
-];
-
-const GOALS = [
-  { label: "Doanh thu tháng 6",    current: 516, target: 600,  unit: "M ₫", color: "#D84040" },
-  { label: "Tỷ lệ chốt hợp đồng", current: 42,  target: 55,   unit: "%",   color: "#fbbf24" },
-  { label: "Chi phí / Doanh thu",  current: 73,  target: 80,   unit: "%",   color: "#60a5fa", lowerIsBetter: true },
-  { label: "Gross Margin",         current: 38,  target: 45,   unit: "%",   color: "#4ade80" },
-];
-
-const TOP_PROJECTS = [
-  { name: "Vingroup — TVC Q2",        revenue: 320_000_000, expenses: 185_000_000, margin: 42, status: "collecting",  pct: 80 },
-  { name: "Highlands — Rebranding",   revenue: 180_000_000, expenses:  92_000_000, margin: 49, status: "complete",    pct: 100 },
-  { name: "F88 — Social Retainer Q2", revenue: 120_000_000, expenses:  54_000_000, margin: 55, status: "in-progress", pct: 60 },
-  { name: "MediaPro — KOL Campaign",  revenue:  96_000_000, expenses:  62_000_000, margin: 35, status: "overdue",     pct: 100 },
-  { name: "StartupX — Launch Kit",    revenue:  75_000_000, expenses:  38_000_000, margin: 49, status: "complete",    pct: 100 },
-];
+interface OverviewData {
+  pl_monthly: any[];
+  overdue_invoices: any[];
+  upcoming_payouts: any[];
+  goals: any[];
+  top_projects: any[];
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -194,10 +166,19 @@ function KpiStrip() {
 
 // ─── 2. P&L Snapshot ──────────────────────────────────────────────────────────
 
-function PLSnapshot() {
-  const currentMonth = PL_MONTHLY[PL_MONTHLY.length - 1];
-  const grossMargin  = Math.round((currentMonth.profit / currentMonth.revenue) * 100);
-  const prevMonth    = PL_MONTHLY[PL_MONTHLY.length - 2];
+function PLSnapshot({ data }: { data: any[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <GlassCard>
+        <SectionTitle>Lãi / Lỗ tạm tính</SectionTitle>
+        <p className="text-[#555] text-sm">Chưa có dữ liệu</p>
+      </GlassCard>
+    );
+  }
+
+  const currentMonth = data[data.length - 1];
+  const grossMargin  = currentMonth.revenue > 0 ? Math.round((currentMonth.profit / currentMonth.revenue) * 100) : 0;
+  const prevMonth    = data.length > 1 ? data[data.length - 2] : currentMonth;
   const profitDelta  = currentMonth.profit - prevMonth.profit;
 
   return (
@@ -209,7 +190,7 @@ function PLSnapshot() {
             <p style={{ color: "#fbbf24", fontSize: "28px", fontWeight: 800, lineHeight: 1 }}>
               {currentMonth.profit * 1_000_000 >= 0 ? "+" : ""}{currentMonth.profit}M ₫
             </p>
-            <span style={{ color: "#555", fontSize: "12px" }}>Lợi nhuận tháng 6</span>
+            <span style={{ color: "#555", fontSize: "12px" }}>Lợi nhuận tháng</span>
           </div>
         </div>
         <div className="flex gap-4">
@@ -226,14 +207,14 @@ function PLSnapshot() {
                 {profitDelta >= 0 ? "+" : ""}{profitDelta}M
               </p>
             </div>
-            <p style={{ color: "#444", fontSize: "10px" }}>vs T5</p>
+            <p style={{ color: "#444", fontSize: "10px" }}>vs Tháng trước</p>
           </div>
         </div>
       </div>
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={PL_MONTHLY} barGap={3} barSize={16}>
+        <BarChart data={data} barGap={3} barSize={16}>
           <CartesianGrid vertical={false} stroke="#1A1010" />
           <XAxis dataKey="month" tick={{ fill: "#444", fontSize: 11 }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fill: "#444", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
@@ -258,9 +239,9 @@ function PLSnapshot() {
 
 // ─── 3. Financial Alerts ──────────────────────────────────────────────────────
 
-function FinancialAlerts() {
-  const totalOverdue = OVERDUE_INVOICES.reduce((s, i) => s + i.amount, 0);
-  const urgentPayouts = UPCOMING_PAYOUTS.filter((p) => p.daysLeft <= 10);
+function FinancialAlerts({ overdueList, payouts }: { overdueList: any[], payouts: any[] }) {
+  const totalOverdue = overdueList.reduce((s, i) => s + i.amount, 0);
+  const urgentPayouts = payouts.filter((p) => p.daysLeft <= 10);
 
   return (
     <div className="space-y-4">
@@ -281,7 +262,8 @@ function FinancialAlerts() {
             </span>
           </div>
           <div className="space-y-2">
-            {OVERDUE_INVOICES.map((inv, i) => (
+            {overdueList.length === 0 && <p className="text-[#555] text-xs">Không có dữ liệu</p>}
+            {overdueList.map((inv, i) => (
               <div
                 key={inv.invoice}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
@@ -326,6 +308,7 @@ function FinancialAlerts() {
             <span style={{ color: "#555", fontSize: "11px" }}>7 ngày tới</span>
           </div>
           <div className="space-y-2">
+            {urgentPayouts.length === 0 && <p className="text-[#555] text-xs">Không có dữ liệu</p>}
             {urgentPayouts.map((p, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                 style={{ background: "#1A1010", border: "1px solid #1A1010" }}>
@@ -356,12 +339,21 @@ function FinancialAlerts() {
 
 // ─── 4. Goal Progress ─────────────────────────────────────────────────────────
 
-function GoalProgress() {
+function GoalProgress({ goals }: { goals: any[] }) {
+  if (!goals || goals.length === 0) {
+    return (
+      <GlassCard>
+        <SectionTitle>Tiến độ Mục tiêu</SectionTitle>
+        <p className="text-[#555] text-sm">Chưa có dữ liệu</p>
+      </GlassCard>
+    );
+  }
+
   return (
     <GlassCard>
       <SectionTitle>Tiến độ Mục tiêu</SectionTitle>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {GOALS.map((g) => {
+        {goals.map((g) => {
           const pct     = Math.min(Math.round((g.current / g.target) * 100), 100);
           const over    = g.current > g.target;
           const good    = g.lowerIsBetter ? g.current <= g.target : over || pct >= 85;
@@ -417,7 +409,16 @@ function GoalProgress() {
 
 // ─── 5. Top Projects ──────────────────────────────────────────────────────────
 
-function TopProjects() {
+function TopProjects({ projects }: { projects: any[] }) {
+  if (!projects || projects.length === 0) {
+    return (
+      <GlassCard>
+        <SectionTitle>Dự án nổi bật</SectionTitle>
+        <p className="text-[#555] text-sm">Chưa có dữ liệu</p>
+      </GlassCard>
+    );
+  }
+
   return (
     <GlassCard>
       <div className="flex items-center justify-between mb-5">
@@ -445,8 +446,8 @@ function TopProjects() {
       </div>
 
       <div className="space-y-1">
-        {TOP_PROJECTS.map((p, i) => {
-          const s = projectStatusCfg[p.status];
+        {projects.map((p, i) => {
+          const s = projectStatusCfg[p.status] || { label: p.status, color: "#fff", bg: "#333" };
           const profit = p.revenue - p.expenses;
           return (
             <div
@@ -505,18 +506,18 @@ function TopProjects() {
         className="flex items-center justify-between mt-4 pt-4 px-3"
         style={{ borderTop: "1px solid #1A1010" }}
       >
-        <span style={{ color: "#555", fontSize: "12px" }}>Tổng 5 dự án nổi bật</span>
+        <span style={{ color: "#555", fontSize: "12px" }}>Tổng các dự án nổi bật</span>
         <div className="flex items-center gap-6">
           <div>
             <span style={{ color: "#444", fontSize: "10px" }}>Doanh thu: </span>
             <span style={{ color: "#4ade80", fontSize: "13px", fontWeight: 700 }}>
-              {fmtFull(TOP_PROJECTS.reduce((s, p) => s + p.revenue, 0))}
+              {fmtFull(projects.reduce((s, p) => s + p.revenue, 0))}
             </span>
           </div>
           <div>
             <span style={{ color: "#444", fontSize: "10px" }}>Lợi nhuận: </span>
             <span style={{ color: "#fbbf24", fontSize: "13px", fontWeight: 700 }}>
-              {fmtFull(TOP_PROJECTS.reduce((s, p) => s + p.revenue - p.expenses, 0))}
+              {fmtFull(projects.reduce((s, p) => s + p.revenue - p.expenses, 0))}
             </span>
           </div>
         </div>
@@ -528,6 +529,44 @@ function TopProjects() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function FinanceOverviewPage() {
+  const [data, setData] = useState<OverviewData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchApi<OverviewData>("/finance/overview");
+      setData(res);
+    } catch (err: any) {
+      setError(err.message || "Không thể tải dữ liệu Finance Overview");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D84040]" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{error || "Không có dữ liệu"}</p>
+        <button onClick={loadData} className="px-4 py-2 rounded-lg bg-[#D84040] text-white">Thử lại</button>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
@@ -548,17 +587,21 @@ export function FinanceOverviewPage() {
             <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>
               Tổng quan
             </h1>
-            <p style={{ color: "#555", fontSize: "12px" }}>Command Center · Cập nhật 23/06/2026, 14:00</p>
+            <p style={{ color: "#555", fontSize: "12px" }}>
+              Command Center · Cập nhật {new Date().toLocaleDateString("vi-VN")}, {new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span style={{ color: "#555", fontSize: "12px" }}>Kỳ:</span>
           <select className="px-3 py-1.5 rounded-xl text-sm outline-none"
             style={{ background: "rgba(29,22,22,0.8)", color: "#EEEEEE", border: "1px solid #2A1F1F", backdropFilter: "blur(8px)" }}
-            defaultValue="jun-2026">
-            <option value="jun-2026">Tháng 6/2026</option>
-            <option value="q2-2026">Q2 2026</option>
-            <option value="h1-2026">H1 2026</option>
+            defaultValue={new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" })}>
+            <option value={new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" })}>
+              Tháng {new Date().toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" })}
+            </option>
+            <option value="q2">Q2 {new Date().getFullYear()}</option>
+            <option value="h1">H1 {new Date().getFullYear()}</option>
           </select>
         </div>
       </div>
@@ -569,18 +612,18 @@ export function FinanceOverviewPage() {
       {/* 2 – P&L + Goal Progress side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <PLSnapshot />
+          <PLSnapshot data={data.pl_monthly} />
         </div>
         <div className="lg:col-span-1">
-          <GoalProgress />
+          <GoalProgress goals={data.goals} />
         </div>
       </div>
 
       {/* 3 – Financial Alerts */}
-      <FinancialAlerts />
+      <FinancialAlerts overdueList={data.overdue_invoices} payouts={data.upcoming_payouts} />
 
       {/* 5 – Top Projects */}
-      <TopProjects />
+      <TopProjects projects={data.top_projects} />
     </div>
   );
 }

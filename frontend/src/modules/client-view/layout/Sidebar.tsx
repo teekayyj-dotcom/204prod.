@@ -17,17 +17,27 @@ const navItems = [
     { label: "Hỗ trợ", icon: Headphones, path: "/client/support" },
 ];
 
-export function Sidebar() {
+import { X } from "lucide-react";
+
+export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
     const location = useLocation();
 
     return (
         <aside
-            className="fixed left-0 top-0 h-screen w-64 flex flex-col z-30"
+            className={`fixed left-0 top-0 h-screen w-64 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
             style={{ background: "#141010", borderRight: "1px solid #2A1F1F" }}
         >
-            <div className="flex items-center justify-center gap-2.5 px-4 py-5" style={{ borderBottom: "1px solid #2A1F1F" }}>
-                <img src="/favicon/204-logo.png" alt="204 Logo" className="h-16 w-16 object-contain" />
-                <span className="tracking-widest uppercase" style={{ color: "#EEEEEE", fontWeight: 800, fontSize: "24px", letterSpacing: "0.1rem" }}>CLIENT</span>
+            <div className="flex items-center justify-between px-4 py-5" style={{ borderBottom: "1px solid #2A1F1F" }}>
+                <div className="flex items-center gap-2.5">
+                    <img src="/favicon/204-logo.png" alt="204 Logo" className="h-12 w-12 object-contain" />
+                    <span className="tracking-widest uppercase font-extrabold text-xl" style={{ color: "#EEEEEE", letterSpacing: "0.1rem" }}>CLIENT</span>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+                >
+                    <X size={16} />
+                </button>
             </div>
 
             {/* Navigation */}
@@ -49,6 +59,7 @@ export function Sidebar() {
                         <NavLink
                             key={item.path}
                             to={item.path}
+                            onClick={onClose}
                             className="flex items-center justify-between px-3 py-2.5 rounded-lg group transition-all duration-200"
                             style={{
                                 background: isActive ? "#D84040" : "transparent",
@@ -89,17 +100,45 @@ export function Sidebar() {
                         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}
                     >
-                        AJ
+                        {(() => {
+                            try {
+                                const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                                const name = userObj.display_name || userObj.username || "Client";
+                                return name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+                            } catch {
+                                return "CL";
+                            }
+                        })()}
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-                            Alex Johnson
+                            {(() => {
+                                try {
+                                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                                    return userObj.display_name || userObj.username || "Client User";
+                                } catch {
+                                    return "Client User";
+                                }
+                            })()}
                         </p>
                         <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
-                            client@204prod.io
+                            {(() => {
+                                try {
+                                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                                    return userObj.email || "client@204prod.io";
+                                } catch {
+                                    return "client@204prod.io";
+                                }
+                            })()}
                         </p>
                     </div>
                     <button
+                        onClick={() => {
+                            localStorage.removeItem("token");
+                            localStorage.removeItem("role");
+                            localStorage.removeItem("user");
+                            window.location.href = "/login";
+                        }}
                         className="flex-shrink-0 transition-colors"
                         style={{ color: "#666" }}
                         onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#D84040")}

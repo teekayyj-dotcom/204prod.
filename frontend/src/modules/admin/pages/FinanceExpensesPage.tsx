@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -7,8 +7,9 @@ import {
   TrendingDown, Users, Building2, Cpu, Plane, UtensilsCrossed,
   UserCheck, Camera, Shirt, Coffee, Megaphone, Plus, X,
   AlertTriangle, ChevronDown, Search, Filter, CheckCircle2,
-  Briefcase, DollarSign, BarChart2,
+  Briefcase, DollarSign, BarChart2, Loader2,
 } from "lucide-react";
+import { fetchApi } from "../utils/apiClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,68 +31,7 @@ interface Expense {
   note?: string;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const PROJECTS = ["Tất cả", "Vingroup — TVC Q2", "Highlands — Rebranding", "F88 — Social Q2", "MediaPro — KOL Campaign", "StartupX — Launch Kit"];
-
-const EXPENSES: Expense[] = [
-  // OPEX – Nhân sự
-  { id:"e01", date:"01/06", description:"Lương tháng 6 — 6 nhân sự", category:"Nhân sự nội bộ", group:"opex", amount:138_000_000, budget:140_000_000, submitter:"Alex Johnson", avatar:"AJ", status:"ok" },
-  { id:"e02", date:"01/06", description:"Bảo hiểm xã hội & y tế tháng 6", category:"Nhân sự nội bộ", group:"opex", amount:18_400_000, budget:18_000_000, submitter:"Alex Johnson", avatar:"AJ", status:"warning", note:"Tăng nhẹ do điều chỉnh lương cơ sở" },
-  { id:"e03", date:"05/06", description:"Thưởng KPI Q1 — 3 nhân sự", category:"Nhân sự nội bộ", group:"opex", amount:24_000_000, budget:20_000_000, submitter:"Alex Johnson", avatar:"AJ", status:"over", note:"Vượt ngân sách thưởng 4M" },
-
-  // OPEX – VP & HC
-  { id:"e04", date:"01/06", description:"Tiền thuê văn phòng tháng 6", category:"Văn phòng & Hành chính", group:"opex", amount:35_000_000, budget:35_000_000, submitter:"Lê Thị Cẩm", avatar:"TC", status:"ok" },
-  { id:"e05", date:"05/06", description:"Điện, nước, internet tháng 6", category:"Văn phòng & Hành chính", group:"opex", amount:4_800_000, budget:5_000_000, submitter:"Lê Thị Cẩm", avatar:"TC", status:"ok" },
-  { id:"e06", date:"12/06", description:"Mua văn phòng phẩm & in ấn", category:"Văn phòng & Hành chính", group:"opex", amount:1_200_000, budget:2_000_000, submitter:"Hoàng Thị Em", avatar:"TE", status:"ok" },
-  { id:"e07", date:"18/06", description:"Khấu hao thiết bị văn phòng tháng 6", category:"Văn phòng & Hành chính", group:"opex", amount:2_500_000, budget:2_500_000, submitter:"Alex Johnson", avatar:"AJ", status:"ok" },
-
-  // OPEX – Phần mềm
-  { id:"e08", date:"02/06", description:"Adobe Creative Cloud — 6 seat", category:"Phần mềm & Bản quyền", group:"opex", amount:8_400_000, budget:8_400_000, submitter:"Nguyễn Minh Anh", avatar:"MA", status:"ok" },
-  { id:"e09", date:"02/06", description:"Midjourney Pro + Runway ML", category:"Phần mềm & Bản quyền", group:"opex", amount:2_100_000, budget:1_800_000, submitter:"Nguyễn Minh Anh", avatar:"MA", status:"warning", note:"Nâng gói do tăng tải" },
-  { id:"e10", date:"10/06", description:"Server hosting & domain renewal", category:"Phần mềm & Bản quyền", group:"opex", amount:3_600_000, budget:3_600_000, submitter:"Trần Quốc Bảo", avatar:"QB", status:"ok" },
-  { id:"e11", date:"15/06", description:"Envato Elements + Shutterstock", category:"Phần mềm & Bản quyền", group:"opex", amount:1_800_000, budget:1_800_000, submitter:"Vũ Văn Phúc", avatar:"VP", status:"ok" },
-
-  // COGS – Logistics
-  { id:"e12", date:"08/06", description:"Vé máy bay HN–HCM — ekip 3 người", category:"Logistics & Đi lại", group:"cogs", project:"Vingroup — TVC Q2", amount:9_600_000, budget:9_000_000, submitter:"Phạm Đức Dũng", avatar:"DD", status:"warning" },
-  { id:"e13", date:"10/06", description:"Thuê xe tải chở thiết bị", category:"Logistics & Đi lại", group:"cogs", project:"Vingroup — TVC Q2", amount:3_200_000, budget:4_000_000, submitter:"Phạm Đức Dũng", avatar:"DD", status:"ok" },
-  { id:"e14", date:"16/06", description:"Taxi & grab di chuyển trong dự án", category:"Logistics & Đi lại", group:"cogs", project:"Highlands — Rebranding", amount:1_400_000, budget:2_000_000, submitter:"Nguyễn Minh Anh", avatar:"MA", status:"ok" },
-
-  // COGS – Lưu trú & Ăn uống
-  { id:"e15", date:"08/06", description:"Khách sạn 2 đêm — 3 phòng", category:"Lưu trú & Ăn uống", group:"cogs", project:"Vingroup — TVC Q2", amount:6_000_000, budget:6_000_000, submitter:"Lê Thị Cẩm", avatar:"TC", status:"ok" },
-  { id:"e16", date:"09/06", description:"Catering ngày quay 2 — 12 người", category:"Lưu trú & Ăn uống", group:"cogs", project:"Vingroup — TVC Q2", amount:4_800_000, budget:4_000_000, submitter:"Lê Thị Cẩm", avatar:"TC", status:"over", note:"Ekip tăng thêm 2 người phút chót" },
-
-  // COGS – Thuê ngoài & Talent
-  { id:"e17", date:"11/06", description:"Cát-xê diễn viên chính + phụ (4 người)", category:"Thuê ngoài & Talent", group:"cogs", project:"Vingroup — TVC Q2", amount:28_000_000, budget:25_000_000, submitter:"Lê Thị Cẩm", avatar:"TC", status:"over", note:"Agency talent chốt giá cao hơn dự kiến" },
-  { id:"e18", date:"14/06", description:"KOL booking — 2 micro-influencer", category:"Thuê ngoài & Talent", group:"cogs", project:"MediaPro — KOL Campaign", amount:18_000_000, budget:20_000_000, submitter:"Trần Quốc Bảo", avatar:"QB", status:"ok" },
-  { id:"e19", date:"20/06", description:"Freelance editor — hậu kỳ 5 ngày", category:"Thuê ngoài & Talent", group:"cogs", project:"F88 — Social Q2", amount:6_000_000, budget:6_000_000, submitter:"Phạm Đức Dũng", avatar:"DD", status:"ok" },
-  { id:"e20", date:"22/06", description:"Makeup artist + Stylist 2 ngày", category:"Thuê ngoài & Talent", group:"cogs", project:"Highlands — Rebranding", amount:5_600_000, budget:5_000_000, submitter:"Nguyễn Minh Anh", avatar:"MA", status:"warning" },
-
-  // COGS – Thiết bị
-  { id:"e21", date:"08/06", description:"Thuê Sony FX6 + lens set 2 ngày", category:"Thiết bị & Trường quay", group:"cogs", project:"Vingroup — TVC Q2", amount:12_000_000, budget:12_000_000, submitter:"Vũ Văn Phúc", avatar:"VP", status:"ok" },
-  { id:"e22", date:"09/06", description:"Thuê studio 8 tiếng", category:"Thiết bị & Trường quay", group:"cogs", project:"Highlands — Rebranding", amount:4_000_000, budget:5_000_000, submitter:"Vũ Văn Phúc", avatar:"VP", status:"ok" },
-  { id:"e23", date:"21/06", description:"Thuê thêm đèn RGB + diffuser", category:"Thiết bị & Trường quay", group:"cogs", project:"F88 — Social Q2", amount:2_400_000, budget:2_000_000, submitter:"Phạm Đức Dũng", avatar:"DD", status:"over" },
-
-  // COGS – Props & Set
-  { id:"e24", date:"07/06", description:"Đạo cụ & trang phục TVC Vingroup", category:"Đạo cụ & Bối cảnh", group:"cogs", project:"Vingroup — TVC Q2", amount:7_500_000, budget:8_000_000, submitter:"Nguyễn Minh Anh", avatar:"MA", status:"ok" },
-  { id:"e25", date:"18/06", description:"Set design — bàn ghế cà phê Highlands", category:"Đạo cụ & Bối cảnh", group:"cogs", project:"Highlands — Rebranding", amount:3_200_000, budget:3_000_000, submitter:"Vũ Văn Phúc", avatar:"VP", status:"warning" },
-
-  // Misc
-  { id:"e26", date:"06/06", description:"Cà phê gặp Vingroup — chốt Q3", category:"Tiếp khách", group:"misc", amount:1_200_000, budget:2_000_000, submitter:"Alex Johnson", avatar:"AJ", status:"ok" },
-  { id:"e27", date:"13/06", description:"Bữa tối pitching client mới FPT", category:"Tiếp khách", group:"misc", amount:3_800_000, budget:3_000_000, submitter:"Alex Johnson", avatar:"AJ", status:"over", note:"Mời thêm 2 đối tác" },
-  { id:"e28", date:"15/06", description:"Chạy Meta Ads cho agency portfolio", category:"Marketing & Sales", group:"misc", amount:5_000_000, budget:5_000_000, submitter:"Trần Quốc Bảo", avatar:"QB", status:"ok" },
-  { id:"e29", date:"20/06", description:"In portfolio & brochure A3 (100 tờ)", category:"Marketing & Sales", group:"misc", amount:2_400_000, budget:3_000_000, submitter:"Nguyễn Minh Anh", avatar:"MA", status:"ok" },
-  { id:"e30", date:"22/06", description:"Vé tham dự sự kiện Marketing Summit", category:"Marketing & Sales", group:"misc", amount:4_500_000, budget:4_000_000, submitter:"Alex Johnson", avatar:"AJ", status:"warning" },
-];
-
-const MONTHLY_TREND = [
-  { month: "T1", opex: 228, cogs: 85, misc: 14 },
-  { month: "T2", opex: 221, cogs: 72, misc: 11 },
-  { month: "T3", opex: 234, cogs: 118, misc: 18 },
-  { month: "T4", opex: 229, cogs: 96, misc: 15 },
-  { month: "T5", opex: 241, cogs: 130, misc: 17 },
-  { month: "T6", opex: 238, cogs: 121, misc: 17 },
-];
+// Data will be loaded via API
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "Nhân sự nội bộ": Users,
@@ -145,35 +85,65 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
-// ─── HR Outsource talent pool (shared data reference) ────────────────────────
+const mapDbToFreelancer = (m: any) => ({
+  id: m.id,
+  name: m.name,
+  avatar: m.avatar,
+  role: m.role,
+  category: m.category,
+  status: m.status,
+  stars: m.stars,
+  rateDaily: m.rate_daily,
+  rateProject: m.rate_project,
+  portfolio: m.portfolio,
+  phone: m.phone,
+  taxId: m.tax_id,
+  bankName: m.bank_name,
+  bankAccount: m.bank_account,
+  cccdDone: m.cccd_done,
+  contractSigned: m.contract_signed,
+  ndaSigned: m.nda_signed,
+  tncnConsent: m.tncn_consent,
+  projects: Array.isArray(m.projects) ? m.projects : (typeof m.projects === "string" ? JSON.parse(m.projects) : []),
+  note: m.note
+});
 
-const HR_TALENT = [
-  { name:"Trịnh Minh Tuấn", avatar:"TT", role:"Cameraman / DP",   bankName:"VCB",          bankAccount:"103xxxx789", cccdDone:true,  taxId:"012345678901", tncnConsent:true  },
-  { name:"Lê Phương Anh",   avatar:"LA", role:"Editor",           bankName:"Techcombank",  bankAccount:"190xxxx321", cccdDone:true,  taxId:"098765432109", tncnConsent:true  },
-  { name:"Nguyễn Bảo Châu", avatar:"NC", role:"Makeup Artist",    bankName:"ACB",          bankAccount:"217xxxx654", cccdDone:true,  taxId:null,           tncnConsent:false },
-  { name:"Vũ Thanh Hùng",   avatar:"VH", role:"Stylist",          bankName:"—",            bankAccount:"—",          cccdDone:true,  taxId:null,           tncnConsent:false },
-  { name:"Phan Thị Mỹ Duyên",avatar:"PD",role:"Voice Talent",     bankName:"MB Bank",      bankAccount:"091xxxx432", cccdDone:true,  taxId:"056789012345", tncnConsent:true  },
-  { name:"Đinh Anh Kiệt",   avatar:"DK", role:"Drone Pilot",      bankName:"VPBank",       bankAccount:"145xxxx876", cccdDone:true,  taxId:"034567890123", tncnConsent:true  },
-  { name:"Trần Khánh Linh", avatar:"KL", role:"Copywriter",       bankName:"—",            bankAccount:"—",          cccdDone:false, taxId:null,           tncnConsent:false },
-];
+function formatDate(dateStr: string) {
+  if (!dateStr) return "";
+  if (dateStr.includes("/")) return dateStr;
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}`;
+  }
+  return dateStr;
+}
 
 // ─── Slide-over Add Expense ───────────────────────────────────────────────────
 
-function AddExpensePanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface AddExpensePanelProps {
+  open: boolean;
+  onClose: () => void;
+  onRefresh: () => void;
+  talents: any[];
+  projects: any[];
+}
+
+function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExpensePanelProps) {
   const [group, setGroup] = useState<ExpenseGroup>("cogs");
   const [form, setForm] = useState({
     description: "", category: "", grossAmount: "", project: "", date: "", submitter: "", note: "", payeeId: "",
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const opexCategories = ["Nhân sự nội bộ", "Văn phòng & Hành chính", "Phần mềm & Bản quyền"];
   const cogsCategories = ["Logistics & Đi lại", "Lưu trú & Ăn uống", "Thuê ngoài & Talent", "Thiết bị & Trường quay", "Đạo cụ & Bối cảnh"];
   const miscCategories = ["Tiếp khách", "Marketing & Sales"];
   const categories = group === "opex" ? opexCategories : group === "cogs" ? cogsCategories : miscCategories;
-  const projectList = PROJECTS.filter((p) => p !== "Tất cả");
+  const projectList = projects.map(p => p.title || p.name);
 
   const isOutsource = group === "cogs" && form.category === "Thuê ngoài & Talent";
   const selectedTalent = isOutsource && form.payeeId
-    ? HR_TALENT.find((t) => t.name === form.payeeId) ?? null
+    ? talents.find((t) => t.name === form.payeeId) ?? null
     : null;
 
   const gross = parseFloat(form.grossAmount.replace(/,/g, "")) || 0;
@@ -188,6 +158,38 @@ function AddExpensePanel({ open, onClose }: { open: boolean; onClose: () => void
   function resetGroup(k: ExpenseGroup) {
     setGroup(k);
     setForm((f) => ({ ...f, category: "", payeeId: "", grossAmount: "" }));
+  }
+
+  async function handleSave() {
+    setSubmitting(true);
+    try {
+      const payload = {
+        date: form.date,
+        description: isOutsource ? `Cát-xê ${form.payeeId} — ${form.category}` : form.description,
+        category: form.category,
+        group: group,
+        amount: gross,
+        budget: group === "opex" ? (gross * 1.05) : gross,
+        project: group === "cogs" ? form.project : null,
+        submitter: isOutsource ? form.payeeId : form.submitter,
+        avatar: isOutsource 
+          ? (selectedTalent?.avatar || "FL")
+          : (form.submitter.split(" ").map((n: string) => n[0]).join("").toUpperCase()),
+        status: "ok",
+        note: form.note || null
+      };
+
+      await fetchApi("/finance/expenses", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      onRefresh();
+      onClose();
+    } catch (err) {
+      console.error("Failed to submit expense:", err);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const inputStyle = {
@@ -276,7 +278,7 @@ function AddExpensePanel({ open, onClose }: { open: boolean; onClose: () => void
                 <select value={form.payeeId} onChange={(e) => field(e.target.value, "payeeId")}
                   style={{ ...inputStyle, appearance: "none" }}>
                   <option value="">Chọn freelancer từ HR...</option>
-                  {HR_TALENT.map((t) => (
+                  {talents.map((t) => (
                     <option key={t.name} value={t.name}>{t.name} — {t.role}</option>
                   ))}
                 </select>
@@ -430,15 +432,15 @@ function AddExpensePanel({ open, onClose }: { open: boolean; onClose: () => void
             Hủy
           </button>
           <button
-            disabled={!!docBlocked}
-            onClick={onClose}
+            disabled={!!docBlocked || submitting}
+            onClick={handleSave}
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-opacity"
             style={{
               background: docBlocked ? "#2A1F1F" : "#D84040",
               color: docBlocked ? "#444" : "#EEEEEE",
               cursor: docBlocked ? "not-allowed" : "pointer",
             }}>
-            {docBlocked ? "Bị chặn — Hoàn thiện HR" : "Lưu phiếu chi"}
+            {submitting ? <Loader2 size={15} className="animate-spin mx-auto" /> : (docBlocked ? "Bị chặn — Hoàn thiện HR" : "Lưu phiếu chi")}
           </button>
         </div>
       </div>
@@ -551,7 +553,7 @@ function ExpenseRow({ exp, last }: { exp: Expense; last: boolean }) {
           )}
         </div>
         {exp.note && <p style={{ color: "#555", fontSize: "10px" }}>{exp.note}</p>}
-        <p style={{ color: "#444", fontSize: "10px" }}>{exp.date} · {exp.submitter}</p>
+        <p style={{ color: "#444", fontSize: "10px" }}>{formatDate(exp.date)} · {exp.submitter}</p>
       </div>
       <div className="text-right flex-shrink-0">
         <p style={{ color: s.color, fontSize: "13px", fontWeight: 700 }}>{fmtM(exp.amount)}</p>
@@ -571,11 +573,16 @@ function ExpenseRow({ exp, last }: { exp: Expense; last: boolean }) {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-function OverviewTab() {
-  const total = EXPENSES.reduce((s, e) => s + e.amount, 0);
-  const opexTotal = EXPENSES.filter((e) => e.group === "opex").reduce((s, e) => s + e.amount, 0);
-  const cogsTotal = EXPENSES.filter((e) => e.group === "cogs").reduce((s, e) => s + e.amount, 0);
-  const miscTotal = EXPENSES.filter((e) => e.group === "misc").reduce((s, e) => s + e.amount, 0);
+interface OverviewTabProps {
+  expenses: Expense[];
+  monthlyTrend: any[];
+}
+
+function OverviewTab({ expenses, monthlyTrend }: OverviewTabProps) {
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const opexTotal = expenses.filter((e) => e.group === "opex").reduce((s, e) => s + e.amount, 0);
+  const cogsTotal = expenses.filter((e) => e.group === "cogs").reduce((s, e) => s + e.amount, 0);
+  const miscTotal = expenses.filter((e) => e.group === "misc").reduce((s, e) => s + e.amount, 0);
 
   const pieData = [
     { name: "Vận hành (OPEX)", value: opexTotal, color: "#60a5fa" },
@@ -583,7 +590,7 @@ function OverviewTab() {
     { name: "Misc", value: miscTotal, color: "#fbbf24" },
   ];
 
-  const overCount = EXPENSES.filter((e) => e.status === "over").length;
+  const overCount = expenses.filter((e) => e.status === "over").length;
 
   return (
     <div className="space-y-4">
@@ -640,11 +647,11 @@ function OverviewTab() {
                       <span style={{ color: "#EEEEEE", fontSize: "11px" }}>{d.name}</span>
                     </div>
                     <span style={{ color: d.color, fontSize: "12px", fontWeight: 700 }}>
-                      {Math.round((d.value / total) * 100)}%
+                      {total > 0 ? Math.round((d.value / total) * 100) : 0}%
                     </span>
                   </div>
                   <div className="h-1 rounded-full overflow-hidden" style={{ background: "#2A1F1F" }}>
-                    <div className="h-full rounded-full" style={{ width: `${(d.value / total) * 100}%`, background: d.color }} />
+                    <div className="h-full rounded-full" style={{ width: `${total > 0 ? (d.value / total) * 100 : 0}%`, background: d.color }} />
                   </div>
                   <p style={{ color: "#444", fontSize: "10px" }}>{fmtM(d.value)}</p>
                 </div>
@@ -657,7 +664,7 @@ function OverviewTab() {
         <div className="rounded-xl p-5" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
           <p style={{ color: "#666", fontSize: "12px", fontWeight: 600 }} className="mb-4">Xu hướng chi phí · Triệu ₫</p>
           <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={MONTHLY_TREND} barSize={14}>
+            <BarChart data={monthlyTrend} barSize={14}>
               <CartesianGrid vertical={false} stroke="#2A1F1F" />
               <XAxis dataKey="month" tick={{ fill: "#555", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} width={28} />
@@ -687,7 +694,7 @@ function OverviewTab() {
               Cảnh báo vượt ngân sách ({overCount} khoản)
             </span>
           </div>
-          {EXPENSES.filter((e) => e.status === "over").map((e, i, arr) => (
+          {expenses.filter((e) => e.status === "over").map((e, i, arr) => (
             <ExpenseRow key={e.id} exp={e} last={i === arr.length - 1} />
           ))}
         </div>
@@ -696,11 +703,17 @@ function OverviewTab() {
   );
 }
 
-function ExpenseGroupTab({ group }: { group: ExpenseGroup }) {
+interface ExpenseGroupTabProps {
+  group: ExpenseGroup;
+  expenses: Expense[];
+  projects: any[];
+}
+
+function ExpenseGroupTab({ group, expenses, projects }: ExpenseGroupTabProps) {
   const [search, setSearch] = useState("");
   const [project, setProject] = useState("Tất cả");
 
-  const filtered = EXPENSES.filter((e) => {
+  const filtered = expenses.filter((e) => {
     const matchGroup = e.group === group;
     const matchSearch = e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase());
     const matchProject = project === "Tất cả" || e.project === project;
@@ -710,6 +723,8 @@ function ExpenseGroupTab({ group }: { group: ExpenseGroup }) {
   const categories = [...new Set(filtered.map((e) => e.category))];
   const total = filtered.reduce((s, e) => s + e.amount, 0);
   const overCount = filtered.filter((e) => e.status === "over").length;
+
+  const projectList = ["Tất cả", ...projects.map((p) => p.title || p.name)];
 
   return (
     <div className="space-y-4">
@@ -735,7 +750,7 @@ function ExpenseGroupTab({ group }: { group: ExpenseGroup }) {
             className="px-3 py-2 rounded-lg"
             style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px", outline: "none" }}
           >
-            {PROJECTS.map((p) => <option key={p} value={p}>{p}</option>)}
+            {projectList.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         )}
         <div
@@ -785,6 +800,60 @@ const TABS: { key: Tab; label: string; icon: React.ElementType; color: string }[
 export function FinanceExpensesPage() {
   const [tab, setTab]         = useState<Tab>("overview");
   const [panelOpen, setPanelOpen] = useState(false);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [talents, setTalents] = useState<any[]>([]);
+  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      const [expensesData, talentsData, projectsData, revenueData] = await Promise.all([
+        fetchApi<any>("/finance/expenses"),
+        fetchApi<any>("/hr/freelancers"),
+        fetchApi<any>("/projects"),
+        fetchApi<any>("/finance/revenue")
+      ]);
+
+      setExpenses(expensesData || []);
+      setTalents((talentsData || []).map(mapDbToFreelancer));
+      setProjects(projectsData || []);
+      if (revenueData && revenueData.monthly_expenses_trend) {
+        setMonthlyTrend(revenueData.monthly_expenses_trend);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Failed to load finance expenses data:", err);
+      setError("Không thể tải thông tin chi phí");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D84040]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{error}</p>
+        <button onClick={loadData} className="px-4 py-2 rounded-lg bg-[#D84040] text-white">
+          Thử lại
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -839,13 +908,19 @@ export function FinanceExpensesPage() {
         </div>
 
         {/* Content */}
-        {tab === "overview" && <OverviewTab />}
-        {tab === "opex"     && <ExpenseGroupTab group="opex" />}
-        {tab === "cogs"     && <ExpenseGroupTab group="cogs" />}
-        {tab === "misc"     && <ExpenseGroupTab group="misc" />}
+        {tab === "overview" && <OverviewTab expenses={expenses} monthlyTrend={monthlyTrend} />}
+        {tab === "opex"     && <ExpenseGroupTab group="opex" expenses={expenses} projects={projects} />}
+        {tab === "cogs"     && <ExpenseGroupTab group="cogs" expenses={expenses} projects={projects} />}
+        {tab === "misc"     && <ExpenseGroupTab group="misc" expenses={expenses} projects={projects} />}
       </div>
 
-      <AddExpensePanel open={panelOpen} onClose={() => setPanelOpen(false)} />
+      <AddExpensePanel
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        onRefresh={loadData}
+        talents={talents}
+        projects={projects}
+      />
     </>
   );
 }

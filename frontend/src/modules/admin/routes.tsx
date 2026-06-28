@@ -13,7 +13,6 @@ import { AddCategoryPage } from "./pages/AddCategoryPage";
 import { AddClientPage } from "./pages/AddClientPage";
 import { AddCrewMemberPage } from "./pages/AddCrewMemberPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
-import { OutsourcePage } from "./pages/OutsourcePage";
 import { HROverviewPage } from "./pages/HROverviewPage";
 import { AttendancePage } from "./pages/AttendancePage";
 import { CRMOverviewPage } from "./pages/CRMOverviewPage";
@@ -36,9 +35,15 @@ export function AdminNotFound() {
         </div>);
 }
 
+import { ProtectedRoute } from "../../shared/components/ProtectedRoute";
+
 export const adminRoute = {
     path: "/admin",
-    Component: MainLayout,
+    element: (
+        <ProtectedRoute allowedRoles={["admin"]}>
+            <MainLayout />
+        </ProtectedRoute>
+    ),
     children: [
         { index: true, Component: DashboardPage },
         { path: "categories", Component: CategoriesPage },
@@ -56,7 +61,6 @@ export const adminRoute = {
         { path: "crew/:id", Component: CrewProfilePage },
         { path: "media", Component: MediaLibraryPage },
         { path: "crm/overview", Component: CRMOverviewPage },
-        { path: "hr/outsource", Component: OutsourcePage },
         { path: "hr/overview", Component: HROverviewPage },
         { path: "hr/attendance", Component: AttendancePage },
         { path: "finance/overview", Component: FinanceOverviewPage },

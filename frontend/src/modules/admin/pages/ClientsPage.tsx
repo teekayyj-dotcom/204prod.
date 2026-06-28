@@ -4,31 +4,55 @@ import { useNavigate } from "react-router-dom";
 import { Search, Users, Mail, Briefcase, TrendingUp, Plus, Loader2 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 const statusColors = {
+    Lead: { bg: "rgba(233, 30, 99, 0.12)", text: "#E91E63" },
     Active: { bg: "rgba(76,175,80,0.12)", text: "#4CAF50" },
     Paused: { bg: "rgba(232,168,56,0.12)", text: "#E8A838" },
-    Completed: { bg: "rgba(107,143,214,0.12)", text: "#6B8FD6" },
+    Completed: { bg: "rgba(150, 150, 150, 0.12)", text: "#999999" },
 };
+
+const statusLabels = {
+    All: "Tất cả",
+    Lead: "Lead mới",
+    Active: "Đang hợp tác",
+    Paused: "Tạm dừng",
+    Completed: "Đã ngừng hợp tác"
+};
+
 export function ClientsPage() {
     const navigate = useNavigate();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("All");
+    const [tierFilter, setTierFilter] = useState("All");
 
     useEffect(() => {
         fetchApi('/projects/clients/all')
             .then((data) => {
                 // Map the DB Client model to the UI expected format
-                const mappedClients = data.map(c => ({
-                    ...c,
-                    contact: c.contact || "Contact N/A",
-                    email: c.email || "N/A",
-                    status: c.status || "Active",
-                    since: c.since || "2026",
-                    projects: c.project_count || 0,
-                    budget: c.total_budget ? `$${c.total_budget.toLocaleString()}` : "N/A",
-                    avatar: c.logo_media_url || null
-                }));
+                const mappedClients = data.map(c => {
+                    let tier = "SME"; // default
+                    if (c.notes) {
+                        try {
+                            const trimmed = c.notes.trim();
+                            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                                const parsed = JSON.parse(trimmed);
+                                tier = parsed.tier || tier;
+                            }
+                        } catch (e) {}
+                    }
+                    return {
+                        ...c,
+                        tier,
+                        contact: c.contact || "Contact N/A",
+                        email: c.email || "N/A",
+                        status: c.status || "Active",
+                        since: c.since || "2026",
+                        projects: c.project_count || 0,
+                        budget: c.total_budget ? `$${c.total_budget.toLocaleString()}` : "N/A",
+                        avatar: c.logo_media_url || null
+                    };
+                });
                 setClients(mappedClients);
                 setLoading(false);
             })
@@ -38,13 +62,15 @@ export function ClientsPage() {
             });
     }, []);
 
-    const statuses = ["All", "Active", "Paused", "Completed"];
+    const statuses = ["All", "Lead", "Active", "Paused", "Completed"];
     const filtered = clients.filter((c) => {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
             c.contact.toLowerCase().includes(search.toLowerCase()) ||
-            c.email.toLowerCase().includes(search.toLowerCase());
+            c.email.toLowerCase().includes(search.toLowerCase()) ||
+            (c.industry && c.industry.toLowerCase().includes(search.toLowerCase()));
         const matchFilter = filter === "All" || c.status === filter;
-        return matchSearch && matchFilter;
+        const matchTier = tierFilter === "All" || c.tier === tierFilter;
+        return matchSearch && matchFilter && matchTier;
     });
     const totalBudget = clients.reduce((sum, c) => {
         const n = parseInt(c.budget.replace(/[$,]/g, "")) || 0;
@@ -59,7 +85,7 @@ export function ClientsPage() {
         );
     }
     return (<div className="px-8 py-7">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
                         Clients
@@ -68,14 +94,14 @@ export function ClientsPage() {
                         Manage your client relationships
                     </p>
                 </div>
-                <button onClick={() => navigate("/admin/clients/new")} className="flex items-center gap-2 px-4 py-2.5 rounded-lg" style={{ background: "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}>
+                <button onClick={() => navigate("/admin/clients/new")} className="flex items-center gap-2 px-4 py-2.5 rounded-lg w-fit" style={{ background: "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}>
                     <Plus size={16}/>
                     Add Client
                 </button>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-7">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
                 {[
             { label: "Total Clients", value: clients.length, icon: Users },
             { label: "Active", value: clients.filter((c) => c.status === "Active").length, icon: TrendingUp },
@@ -93,26 +119,40 @@ export function ClientsPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center justify-between mb-5">
-                <div className="flex gap-2">
-                    {statuses.map((s) => (<button key={s} onClick={() => setFilter(s)} className="px-4 py-1.5 rounded-lg transition-all" style={{
-                background: filter === s ? "#D84040" : "#241C1C",
-                color: filter === s ? "#fff" : "#888",
-                border: `1px solid ${filter === s ? "#D84040" : "#2E2020"}`,
-                fontSize: "13px",
-                fontWeight: filter === s ? 600 : 400,
-            }}>
-                            {s}
-                        </button>))}
+            <div className="flex flex-col gap-3 mb-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex gap-2 flex-wrap">
+                        {statuses.map((s) => (<button key={s} onClick={() => setFilter(s)} className="px-4 py-1.5 rounded-lg transition-all text-xs sm:text-sm" style={{
+                    background: filter === s ? "#D84040" : "#241C1C",
+                    color: filter === s ? "#fff" : "#888",
+                    border: `1px solid ${filter === s ? "#D84040" : "#2E2020"}`,
+                    fontWeight: filter === s ? 600 : 400,
+                }}>
+                                {statusLabels[s] || s}
+                            </button>))}
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg w-full md:w-auto" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                        <Search size={14} color="#666"/>
+                        <input placeholder="Search clients..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent w-full md:w-[180px]" style={{ color: "#EEEEEE", fontSize: "13px" }}/>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                    <Search size={14} color="#666"/>
-                    <input placeholder="Search clients..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "180px" }}/>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-500 font-medium">Cấp độ:</span>
+                    <div className="flex gap-2 flex-wrap">
+                        {["All", "VIP", "SME", "Partner"].map((t) => (<button key={t} onClick={() => setTierFilter(t)} className="px-3 py-1 rounded-lg transition-all text-xs" style={{
+                    background: tierFilter === t ? "#6B8FD6" : "#241C1C",
+                    color: tierFilter === t ? "#fff" : "#888",
+                    border: `1px solid ${tierFilter === t ? "#6B8FD6" : "#2E2020"}`,
+                    fontWeight: tierFilter === t ? 600 : 400,
+                }}>
+                                {t === "All" ? "Tất cả" : t}
+                            </button>))}
+                    </div>
                 </div>
             </div>
 
             {/* Client Cards */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filtered.map((client) => (<div key={client.slug} className="rounded-xl p-5 group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/clients/${client.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
@@ -131,12 +171,12 @@ export function ClientsPage() {
                                 </div>
                             </div>
                             <span className="px-2.5 py-1 rounded-full" style={{
-                background: statusColors[client.status]?.bg,
-                color: statusColors[client.status]?.text,
+                background: statusColors[client.status]?.bg || "rgba(100,100,100,0.12)",
+                color: statusColors[client.status]?.text || "#888",
                 fontSize: "11px",
                 fontWeight: 500,
             }}>
-                                {client.status}
+                                {statusLabels[client.status] || client.status}
                             </span>
                         </div>
                         <div className="space-y-2">
@@ -147,6 +187,20 @@ export function ClientsPage() {
                             <div className="flex items-center gap-2">
                                 <Mail size={13} color="#666"/>
                                 <span style={{ color: "#999", fontSize: "13px" }}>{client.email}</span>
+                            </div>
+                            {/* Industry & Tier metadata row */}
+                            <div className="flex gap-2 pt-2 flex-wrap border-t border-[#2A1F1F]/40" style={{ fontSize: "11px" }}>
+                                {client.industry && (
+                                    <span className="px-2 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.04)", color: "#aaa" }}>
+                                        Ngành: {client.industry}
+                                    </span>
+                                )}
+                                <span className="px-2 py-0.5 rounded font-semibold" style={{ 
+                                    background: client.tier === "VIP" ? "rgba(255,215,0,0.12)" : client.tier === "Partner" ? "rgba(26,188,156,0.12)" : "rgba(107,143,214,0.12)",
+                                    color: client.tier === "VIP" ? "#FFD700" : client.tier === "Partner" ? "#1ABC9C" : "#6B8FD6"
+                                }}>
+                                    Cấp độ: {client.tier}
+                                </span>
                             </div>
                         </div>
                         <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>

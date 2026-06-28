@@ -21,7 +21,10 @@ import {
   RefreshCcw,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
 } from "lucide-react";
+import { useEffect } from "react";
+import { fetchApi } from "../utils/apiClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,120 +43,7 @@ interface GoalItem {
   higherIsBetter?: boolean; // false for AR Days, OPEX%, etc.
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const revenueGoals: GoalItem[] = [
-  {
-    id: "prod",
-    label: "Sản xuất nội dung",
-    sub: "Production",
-    target: 800_000_000,
-    current: 612_000_000,
-    unit: "₫",
-    prefix: "₫",
-    status: "on-track",
-    higherIsBetter: true,
-  },
-  {
-    id: "retainer",
-    label: "Quản lý kênh / Social",
-    sub: "Retainer",
-    target: 500_000_000,
-    current: 310_000_000,
-    unit: "₫",
-    prefix: "₫",
-    status: "at-risk",
-    higherIsBetter: true,
-  },
-  {
-    id: "media",
-    label: "Chạy quảng cáo",
-    sub: "Media Booking",
-    target: 350_000_000,
-    current: 390_000_000,
-    unit: "₫",
-    prefix: "₫",
-    status: "on-track",
-    note: "Vượt kế hoạch",
-    higherIsBetter: true,
-  },
-  {
-    id: "winrate",
-    label: "Tỷ lệ chốt dự án",
-    sub: "Win Rate",
-    target: 55,
-    current: 42,
-    unit: "%",
-    status: "behind",
-    note: "21 pitch, 9 thành công",
-    higherIsBetter: true,
-  },
-];
-
-const profitGoals: GoalItem[] = [
-  {
-    id: "gross",
-    label: "Biên lợi nhuận gộp",
-    sub: "Gross Margin",
-    target: 45,
-    current: 38,
-    unit: "%",
-    status: "at-risk",
-    note: "Chi phí outsource tăng cao Q2",
-    higherIsBetter: true,
-  },
-  {
-    id: "net",
-    label: "Lợi nhuận ròng",
-    sub: "Net Profit",
-    target: 18,
-    current: 14.2,
-    unit: "%",
-    status: "at-risk",
-    note: "Chi phí vận hành cố định chiếm 23.8%",
-    higherIsBetter: true,
-  },
-];
-
-const costGoals: GoalItem[] = [
-  {
-    id: "prodbudget",
-    label: "Ngân sách sản xuất",
-    sub: "Production Budget",
-    target: 300_000_000,
-    current: 247_000_000,
-    unit: "₫",
-    prefix: "₫",
-    status: "on-track",
-    note: "Còn 53M trong ngân sách",
-    higherIsBetter: false,
-  },
-  {
-    id: "opex",
-    label: "Chi phí vận hành / Doanh thu",
-    sub: "OPEX Rate",
-    target: 20,
-    current: 23.8,
-    unit: "%",
-    status: "behind",
-    note: "Vượt ngưỡng an toàn 3.8%",
-    higherIsBetter: false,
-  },
-];
-
-const cashGoals: GoalItem[] = [
-  {
-    id: "ar",
-    label: "Kỳ hạn thu tiền",
-    sub: "AR Days",
-    target: 30,
-    current: 44,
-    unit: "ngày",
-    status: "behind",
-    note: "3 khách hàng đang trễ hạn",
-    higherIsBetter: false,
-  },
-];
+// Data will be loaded via API
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -449,14 +339,63 @@ function SectionCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function FinanceGoalsPage() {
-  const [revenue, setRevenue] = useState(revenueGoals);
-  const [profit,  setProfit]  = useState(profitGoals);
-  const [cost,    setCost]    = useState(costGoals);
-  const [cash,    setCash]    = useState(cashGoals);
+  const [revenue, setRevenue] = useState<GoalItem[]>([]);
+  const [profit,  setProfit]  = useState<GoalItem[]>([]);
+  const [cost,    setCost]    = useState<GoalItem[]>([]);
+  const [cash,    setCash]    = useState<GoalItem[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  function updater(setter: React.Dispatch<React.SetStateAction<GoalItem[]>>) {
-    return (id: string, v: number) =>
-      setter((prev) => prev.map((g) => g.id === id ? { ...g, target: v } : g));
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchApi<any>("/finance/goals");
+      setRevenue(res.revenue || []);
+      setProfit(res.profit || []);
+      setCost(res.cost || []);
+      setCash(res.cash || []);
+    } catch (err: any) {
+      setError(err.message || "Không thể tải dữ liệu Goals");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function handleUpdateTarget(id: string, v: number, section: "revenue" | "profit" | "cost" | "cash") {
+    try {
+      await fetchApi(`/finance/goals/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ target: v })
+      });
+      // Local optimistic update
+      const setter = section === "revenue" ? setRevenue : section === "profit" ? setProfit : section === "cost" ? setCost : setCash;
+      setter((prev: GoalItem[]) => prev.map((g) => g.id === id ? { ...g, target: v } : g));
+    } catch (err: any) {
+      alert("Lỗi khi cập nhật mục tiêu: " + err.message);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#D84040]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{error}</p>
+        <button onClick={loadData} className="px-4 py-2 rounded-lg bg-[#D84040] text-white">Thử lại</button>
+      </div>
+    );
   }
 
   const allGoals = [...revenue, ...profit, ...cost, ...cash];
@@ -467,7 +406,7 @@ export function FinanceGoalsPage() {
   // Revenue total progress
   const totalRevTarget = revenue.filter((g) => g.prefix === "₫").reduce((s, g) => s + g.target, 0);
   const totalRevActual = revenue.filter((g) => g.prefix === "₫").reduce((s, g) => s + g.current, 0);
-  const revPct = pct(totalRevActual, totalRevTarget);
+  const revPct = totalRevTarget > 0 ? pct(totalRevActual, totalRevTarget) : 0;
 
   return (
     <div className="p-8 space-y-7">
@@ -601,8 +540,9 @@ export function FinanceGoalsPage() {
         icon={TrendingUp}
         accentColor="#4ade80"
         goals={revenue}
-        onUpdateTarget={updater(setRevenue)}
+        onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "revenue")}
         summary={
+          revenue.length > 0 ? (
           <div className="px-5 py-3 grid grid-cols-3 gap-4">
             {[
               { icon: Layers,    label: "Production",    value: fmt(revenue[0].current, "₫", "₫") },
@@ -616,6 +556,7 @@ export function FinanceGoalsPage() {
               </div>
             ))}
           </div>
+          ) : <p className="text-[#555] text-xs px-5 py-3">Không có dữ liệu</p>
         }
       />
 
@@ -626,8 +567,9 @@ export function FinanceGoalsPage() {
         icon={BarChart2}
         accentColor="#60a5fa"
         goals={profit}
-        onUpdateTarget={updater(setProfit)}
+        onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "profit")}
         summary={
+          profit.length > 0 ? (
           <div className="px-5 py-3 flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Percent size={13} style={{ color: "#60a5fa" }} />
@@ -642,6 +584,7 @@ export function FinanceGoalsPage() {
               <span style={{ color: "#444", fontSize: "11px" }}>vs mục tiêu 18%</span>
             </div>
           </div>
+          ) : null
         }
       />
 
@@ -652,8 +595,9 @@ export function FinanceGoalsPage() {
         icon={Wallet}
         accentColor="#fbbf24"
         goals={cost}
-        onUpdateTarget={updater(setCost)}
+        onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "cost")}
         summary={
+          cost.length > 0 ? (
           <div className="px-5 py-3 flex items-center gap-2">
             <AlertTriangle size={13} style={{ color: "#fbbf24" }} />
             <span style={{ color: "#666", fontSize: "11px" }}>
@@ -662,6 +606,7 @@ export function FinanceGoalsPage() {
               Cần rà soát chi phí phần mềm & nhân sự cố định.
             </span>
           </div>
+          ) : null
         }
       />
 
@@ -672,8 +617,9 @@ export function FinanceGoalsPage() {
         icon={Clock}
         accentColor="#c084fc"
         goals={cash}
-        onUpdateTarget={updater(setCash)}
+        onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "cash")}
         summary={
+          cash.length > 0 ? (
           <div className="px-5 py-3 space-y-2">
             <p style={{ color: "#666", fontSize: "11px", fontWeight: 600 }}>
               Khách hàng đang trễ hạn thanh toán:
@@ -695,6 +641,7 @@ export function FinanceGoalsPage() {
               </div>
             ))}
           </div>
+          ) : null
         }
       />
     </div>

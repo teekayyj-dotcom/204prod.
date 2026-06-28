@@ -43,12 +43,20 @@ def update_client_route(slug: str, req: ClientUpdate, db: Session = Depends(get_
     return updated
 
 
+from sqlalchemy.exc import IntegrityError
+
 @router.delete("/clients/{slug}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_client_route(slug: str, db: Session = Depends(get_db_session)):
     from app.modules.projects.service import delete_client
-    success = delete_client(db, slug)
-    if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    try:
+        success = delete_client(db, slug)
+        if not success:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete client because it is currently associated with one or more projects."
+        )
     return None
 
 

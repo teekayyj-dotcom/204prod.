@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search, Plus, Briefcase, UserCheck, UserX, Mail, Loader2, X, Trash2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Search, Plus, Briefcase, UserCheck, UserX, Mail, Loader2, X, Trash2, Clock, CheckCircle } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { OutsourcePage } from "./OutsourcePage";
 
 const defaultRoles = [
     "Creative Director", "Lead Developer", "UX Designer",
@@ -12,11 +13,38 @@ const defaultRoles = [
 
 export function CrewPage() {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [crewMembers, setCrewMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("All");
     const [selectedRoleFilter, setSelectedRoleFilter] = useState("All Roles");
+    const [freelancers, setFreelancers] = useState([]);
+    const [outsourceQuickFilter, setOutsourceQuickFilter] = useState<"available" | "busy" | "blacklist" | "doc-issues" | null>(null);
+    const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+
+    useEffect(() => {
+        const tab = searchParams.get("tab");
+        if (tab === "outsource") setFilter("Outsource");
+        else if (tab === "active") setFilter("Active");
+        else if (tab === "on-leave") setFilter("On Leave");
+        else if (tab === "pending") setFilter("Pending");
+        else setFilter("All");
+    }, [searchParams]);
+
+    const handleFilterChange = (f: string) => {
+        if (f === "Outsource") {
+            setSearchParams({ tab: "outsource" });
+        } else if (f === "Active") {
+            setSearchParams({ tab: "active" });
+        } else if (f === "On Leave") {
+            setSearchParams({ tab: "on-leave" });
+        } else if (f === "Pending") {
+            setSearchParams({ tab: "pending" });
+        } else {
+            setSearchParams({});
+        }
+    };
     
     // Roles management state
     const [isRolesModalOpen, setIsRolesModalOpen] = useState(false);
@@ -42,8 +70,21 @@ export function CrewPage() {
             });
     };
 
+    const fetchPendingUsers = () => {
+        const token = localStorage.getItem("token") || "";
+        fetchApi<any[]>('/users', {
+            headers: { "x-admin-token": token }
+        })
+            .then((data) => {
+                const pending = data.filter(u => u.role === 'pending');
+                setPendingUsers(pending);
+            })
+            .catch(err => console.error("Error loading pending users:", err));
+    };
+
     useEffect(() => {
         fetchCrewMembers();
+        fetchPendingUsers();
         
         // Load custom and deleted roles lists from localStorage
         const storedCustom = localStorage.getItem("custom_crew_roles");
@@ -134,7 +175,61 @@ export function CrewPage() {
         saveCustomRoles(customRoles.filter(r => r !== roleToDelete));
     };
 
-    const filters = ["All", "Active", "On Leave"];
+    const handleApproveUser = async (user: any, newRole: string) => {
+        if (!newRole) return;
+        try {
+            const token = localStorage.getItem("token") || "";
+            await fetchApi(`/users/${user.id}/role`, {
+                method: "PUT",
+                headers: { "x-admin-token": token },
+                body: JSON.stringify({ role: newRole })
+            });
+
+            if (newRole === "crew" || newRole === "admin") {
+                await fetchApi("/crew", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: user.display_name || user.username,
+                        email: user.email,
+                        role: newRole === "admin" ? "Admin" : "Other",
+                        avatar: user.avatar_url || "",
+                        status: "Active"
+                    })
+                });
+            } else if (newRole === "client") {
+                await fetchApi("/clients", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: user.display_name || user.username,
+                        slug: user.username.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+                        email: user.email,
+                        status: "Active",
+                        avatar: user.avatar_url || ""
+                    })
+                });
+            } else if (newRole === "outsource") {
+                await fetchApi("/freelancers", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: user.display_name || user.username,
+                        email: user.email,
+                        role: "Freelancer",
+                        status: "available",
+                        avatar: user.avatar_url || ""
+                    })
+                });
+            }
+
+            alert(`Đã phê duyệt ${user.email} thành ${newRole}!`);
+            fetchPendingUsers();
+            if (newRole === "crew" || newRole === "admin") fetchCrewMembers();
+        } catch (error) {
+            console.error("Error approving user:", error);
+            alert("Đã xảy ra lỗi khi phê duyệt user.");
+        }
+    };
+
+    const filters = ["All", "Active", "On Leave", "Outsource", "Pending"];
     const filtered = crewMembers.filter((m) => {
         const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
             (m.role && m.role.toLowerCase().includes(search.toLowerCase()));
@@ -143,6 +238,11 @@ export function CrewPage() {
             (m.role && m.role.split(',').map(r => r.trim()).includes(selectedRoleFilter));
         return matchSearch && matchStatus && matchRole;
     });
+
+    const available = freelancers.filter((p) => p.status === "available").length;
+    const busy = freelancers.filter((p) => p.status === "busy").length;
+    const blacklisted = freelancers.filter((p) => p.status === "blacklist").length;
+    const docIssues = freelancers.filter((p) => !p.cccdDone || !p.contractSigned || !p.ndaSigned).length;
 
     if (loading) {
         return (
@@ -155,88 +255,132 @@ export function CrewPage() {
     return (
         <div className="px-8 py-7">
             {/* Header section */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
                         Crew
                     </h1>
                     <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">
-                        {crewMembers.filter((m) => m.status === "Active").length} active members · {crewMembers.length} total
+                        {filter === "Outsource" 
+                            ? "Talent Pool" 
+                            : `${crewMembers.filter((m) => m.status === "Active").length} active members · ${crewMembers.length} total`}
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => setIsRolesModalOpen(true)} 
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors" 
-                        style={{ background: "rgba(36, 28, 28, 0.4)", borderColor: "rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} 
-                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")} 
-                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}
-                    >
-                        <Briefcase size={16} color="#D84040"/>
-                        Manage Roles
-                    </button>
-                    <button 
-                        onClick={() => navigate("/admin/crew/new")} 
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg" 
-                        style={{ background: "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} 
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} 
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}
-                    >
-                        <Plus size={16}/>
-                        Add Member
-                    </button>
-                </div>
+                {filter !== "Outsource" && (
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <button 
+                            onClick={() => setIsRolesModalOpen(true)} 
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors w-fit" 
+                            style={{ background: "rgba(36, 28, 28, 0.4)", borderColor: "rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} 
+                            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")} 
+                            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}
+                        >
+                            <Briefcase size={16} color="#D84040"/>
+                            Manage Roles
+                        </button>
+                        <button 
+                            onClick={() => navigate("/admin/crew/new")} 
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-lg w-fit" 
+                            style={{ background: "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} 
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} 
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}
+                        >
+                            <Plus size={16}/>
+                            Add Member
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-7">
-                {[
-                    {
-                        label: "Active Members",
-                        value: crewMembers.filter((m) => m.status === "Active").length,
-                        icon: UserCheck,
-                        color: "#4CAF50",
-                    },
-                    {
-                        label: "On Leave",
-                        value: crewMembers.filter((m) => m.status === "On Leave").length,
-                        icon: UserX,
-                        color: "#E8A838",
-                    },
-                    {
-                        label: "Active Projects",
-                        value: crewMembers.reduce((s, m) => s + m.projects, 0),
-                        icon: Briefcase,
-                        color: "#D84040",
-                    },
-                ].map((stat) => (
-                    <div key={stat.label} className="rounded-xl p-4 flex items-center gap-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${stat.color}20` }}>
-                            <stat.icon size={22} color={stat.color}/>
+            {filter !== "Outsource" && filter !== "Pending" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+                    {[
+                        {
+                            label: "Active Members",
+                            value: crewMembers.filter((m) => m.status === "Active").length,
+                            icon: UserCheck,
+                            color: "#4CAF50",
+                            filterKey: "Active"
+                        },
+                        {
+                            label: "On Leave",
+                            value: crewMembers.filter((m) => m.status === "On Leave").length,
+                            icon: UserX,
+                            color: "#E8A838",
+                            filterKey: "On Leave"
+                        },
+                        {
+                            label: "Active Projects",
+                            value: crewMembers.reduce((s, m) => s + m.projects, 0),
+                            icon: Briefcase,
+                            color: "#D84040",
+                            filterKey: null
+                        },
+                        {
+                            label: "Chờ xét duyệt",
+                            value: pendingUsers.length,
+                            icon: Clock,
+                            color: "#9ca3af",
+                            filterKey: "Pending"
+                        },
+                    ].map((stat) => (
+                        <div key={stat.label} onClick={() => stat.filterKey && handleFilterChange(stat.filterKey)} className={`rounded-xl p-4 flex items-center gap-4 ${stat.filterKey ? "cursor-pointer transition-all" : ""}`} style={{ background: filter === stat.filterKey ? `${stat.color}15` : "rgba(36, 28, 28, 0.4)", border: `1px solid ${filter === stat.filterKey ? stat.color : "rgba(46, 32, 32, 0.6)"}`, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", transform: filter === stat.filterKey ? "scale(1.02)" : "scale(1)" }}>
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${stat.color}20` }}>
+                                <stat.icon size={22} color={stat.color}/>
+                            </div>
+                            <div>
+                                <p style={{ color: "#888", fontSize: "12px" }}>{stat.label}</p>
+                                <p style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>{stat.value}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p style={{ color: "#888", fontSize: "12px" }}>{stat.label}</p>
-                            <p style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>{stat.value}</p>
+                    ))}
+                </div>
+            ) : filter === "Outsource" ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+                    {[
+                        { label: "Đang rảnh",    value: available,   color: "#4ade80", key: "available" as const },
+                        { label: "Đang bận",     value: busy,        color: "#fbbf24", key: "busy" as const },
+                        { label: "Blacklist",    value: blacklisted, color: "#f87171", key: "blacklist" as const },
+                        { label: "Thiếu giấy tờ",value: docIssues,  color: "#c084fc", key: "doc-issues" as const },
+                    ].map((k) => {
+                        const isActive = outsourceQuickFilter === k.key;
+                        return (
+                        <div key={k.label} className="rounded-xl p-4 flex items-center gap-4 cursor-pointer transition-all"
+                            onClick={() => setOutsourceQuickFilter(isActive ? null : k.key)}
+                            style={{ 
+                                background: isActive ? `${k.color}15` : "rgba(36, 28, 28, 0.4)", 
+                                border: `1px solid ${isActive ? `${k.color}80` : "rgba(46, 32, 32, 0.6)"}`, 
+                                backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                                transform: isActive ? "scale(1.02)" : "scale(1)",
+                            }}>
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${k.color}20` }}>
+                                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: k.color }} />
+                            </div>
+                            <div>
+                                <p style={{ color: "#888", fontSize: "12px" }}>{k.label}</p>
+                                <p style={{ color: k.color, fontSize: "24px", fontWeight: 700 }}>{k.value}</p>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                        );
+                    })}
+                </div>
+            ) : null}
 
             {/* Filter bar */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
                     {/* Status Filters */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         {filters.map((f) => (
                             <button 
                                 key={f} 
-                                onClick={() => setFilter(f)} 
-                                className="px-4 py-1.5 rounded-lg transition-all" 
+                                onClick={() => handleFilterChange(f)} 
+                                className="px-4 py-1.5 rounded-lg transition-all text-xs sm:text-sm" 
                                 style={{
                                     background: filter === f ? "#D84040" : "#241C1C",
                                     color: filter === f ? "#fff" : "#888",
                                     border: `1px solid ${filter === f ? "#D84040" : "#2E2020"}`,
-                                    fontSize: "13px",
                                     fontWeight: filter === f ? 600 : 400,
                                 }}
                             >
@@ -246,99 +390,143 @@ export function CrewPage() {
                     </div>
 
                     {/* Roles Selector Filter */}
-                    <select 
-                        value={selectedRoleFilter} 
-                        onChange={(e) => setSelectedRoleFilter(e.target.value)} 
-                        className="px-3 py-1.5 rounded-lg outline-none cursor-pointer" 
-                        style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                            color: "#888",
-                            border: "1px solid #2E2020",
-                            fontSize: "13px",
-                        }}
-                    >
-                        <option value="All Roles">All Roles</option>
-                        {combinedRoles.map((role) => (
-                            <option key={role} value={role}>{role}</option>
-                        ))}
-                    </select>
+                    {filter !== "Outsource" && filter !== "Pending" && (
+                        <select 
+                            value={selectedRoleFilter} 
+                            onChange={(e) => setSelectedRoleFilter(e.target.value)} 
+                            className="px-3 py-1.5 rounded-lg outline-none cursor-pointer w-full sm:w-auto" 
+                            style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                                color: "#888",
+                                border: "1px solid #2E2020",
+                                fontSize: "13px",
+                            }}
+                        >
+                            <option value="All Roles">All Roles</option>
+                            {combinedRoles.map((role) => (
+                                <option key={role} value={role}>{role}</option>
+                            ))}
+                        </select>
+                    )}
                 </div>
 
                 {/* Search */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                    <Search size={14} color="#666"/>
-                    <input placeholder="Search crew..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "180px" }}/>
-                </div>
-            </div>
-
-            {/* Crew Grid */}
-            <div className="grid grid-cols-3 gap-5">
-                {filtered.map((member) => (
-                    <div key={member.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/crew/${member.id}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
-                        {/* Banner */}
-                        <div className="h-20 relative" style={{ background: "linear-gradient(135deg, #1D1616, #8E1616)" }}>
-                            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full" style={{
-                                background: member.status === "Active" ? "rgba(76,175,80,0.2)" : "rgba(232,168,56,0.2)",
-                                color: member.status === "Active" ? "#4CAF50" : "#E8A838",
-                                fontSize: "11px",
-                                fontWeight: 500,
-                            }}>
-                                {member.status}
-                            </div>
-                        </div>
-
-                        <div className="px-5 pb-5 relative">
-                            {/* Avatar */}
-                            <div className="relative z-10 -mt-8 mb-3">
-                                <img src={member.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80"} alt={member.name} className="w-16 h-16 rounded-full object-cover" style={{ border: "3px solid #241C1C" }}/>
-                            </div>
-
-                            <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }} className="mb-0.5">
-                                {member.name}
-                            </h3>
-                            <div className="flex flex-wrap gap-1 mb-3">
-                                {member.role ? member.role.split(',').map((r) => r.trim()).map((r) => (
-                                    <span key={r} className="px-2 py-0.5 rounded text-xs" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.2)" }}>
-                                        {r}
-                                    </span>
-                                )) : <span style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>No role assigned</span>}
-                            </div>
-
-                            {/* Skills */}
-                            <div className="flex flex-wrap gap-1.5 mb-4">
-                                {member.skills.map((skill) => (
-                                    <span key={skill} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "11px", border: "1px solid #3A2A2A" }}>
-                                        {skill}
-                                    </span>
-                                ))}
-                            </div>
-
-                            <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid #2A1F1F" }}>
-                                <div className="flex items-center gap-1.5">
-                                    <Briefcase size={13} color="#8E1616"/>
-                                    <span style={{ color: "#888", fontSize: "12px" }}>
-                                        {member.projects} project{member.projects !== 1 ? "s" : ""}
-                                    </span>
-                                </div>
-                                <button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#2A1F1F", color: "#888" }} onClick={(e) => { e.stopPropagation(); navigate(`/admin/crew/${member.id}`); }} onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = "#D84040";
-                                    e.currentTarget.style.color = "#fff";
-                                }} onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "#2A1F1F";
-                                    e.currentTarget.style.color = "#888";
-                                }}>
-                                    <Mail size={14}/>
-                                </button>
-                            </div>
-                        </div>
+                {filter !== "Outsource" && filter !== "Pending" && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg w-full md:w-auto" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                        <Search size={14} color="#666"/>
+                        <input placeholder="Search crew..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent w-full md:w-[180px]" style={{ color: "#EEEEEE", fontSize: "13px" }}/>
                     </div>
-                ))}
+                )}
             </div>
 
-            {filtered.length === 0 && (
-                <div className="text-center py-16">
-                    <UserCheck size={40} color="#3A2A2A" className="mx-auto mb-3"/>
-                    <p style={{ color: "#666", fontSize: "14px" }}>No crew members found</p>
+            {/* Grid & Content */}
+            {filter === "Pending" ? (
+                <div className="space-y-4">
+                    {pendingUsers.map(user => (
+                        <div key={user.id} className="p-5 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                            <div className="flex items-center gap-4">
+                                <img src={user.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80"} alt={user.username} className="w-12 h-12 rounded-full object-cover" style={{ border: "2px solid #241C1C" }}/>
+                                <div>
+                                    <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>{user.display_name || user.username}</h3>
+                                    <p style={{ color: "#888", fontSize: "13px" }}>{user.email}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <select 
+                                    className="px-3 py-2 rounded-lg outline-none cursor-pointer" 
+                                    style={{ background: "#2A1F1F", color: "#EEEEEE", border: "1px solid #3A2A2A", fontSize: "13px" }}
+                                    onChange={(e) => handleApproveUser(user, e.target.value)}
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled>Phê duyệt vai trò...</option>
+                                    <option value="crew">Nhân sự (Crew)</option>
+                                    <option value="client">Khách hàng (Client)</option>
+                                    <option value="outsource">Cộng tác viên (Outsource)</option>
+                                    <option value="admin">Quản trị viên (Admin)</option>
+                                </select>
+                            </div>
+                        </div>
+                    ))}
+                    {pendingUsers.length === 0 && (
+                        <div className="text-center py-16">
+                            <CheckCircle size={40} color="#3A2A2A" className="mx-auto mb-3"/>
+                            <p style={{ color: "#666", fontSize: "14px" }}>Không có user nào đang chờ duyệt</p>
+                        </div>
+                    )}
                 </div>
+            ) : filter !== "Outsource" ? (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {filtered.map((member) => (
+                            <div key={member.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/crew/${member.id}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+                                {/* Banner */}
+                                <div className="h-20 relative" style={{ background: "linear-gradient(135deg, #1D1616, #8E1616)" }}>
+                                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full" style={{
+                                        background: member.status === "Active" ? "rgba(76,175,80,0.2)" : "rgba(232,168,56,0.2)",
+                                        color: member.status === "Active" ? "#4CAF50" : "#E8A838",
+                                        fontSize: "11px",
+                                        fontWeight: 500,
+                                    }}>
+                                        {member.status}
+                                    </div>
+                                </div>
+
+                                <div className="px-5 pb-5 relative">
+                                    {/* Avatar */}
+                                    <div className="relative z-10 -mt-8 mb-3">
+                                        <img src={member.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80"} alt={member.name} className="w-16 h-16 rounded-full object-cover" style={{ border: "3px solid #241C1C" }}/>
+                                    </div>
+
+                                    <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }} className="mb-0.5">
+                                        {member.name}
+                                    </h3>
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                        {member.role ? member.role.split(',').map((r) => r.trim()).map((r) => (
+                                            <span key={r} className="px-2 py-0.5 rounded text-xs" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.2)" }}>
+                                                {r}
+                                            </span>
+                                        )) : <span style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>No role assigned</span>}
+                                    </div>
+
+                                    {/* Skills */}
+                                    <div className="flex flex-wrap gap-1.5 mb-4">
+                                        {member.skills.map((skill) => (
+                                            <span key={skill} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "11px", border: "1px solid #3A2A2A" }}>
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid #2A1F1F" }}>
+                                        <div className="flex items-center gap-1.5">
+                                            <Briefcase size={13} color="#8E1616"/>
+                                            <span style={{ color: "#888", fontSize: "12px" }}>
+                                                {member.projects} project{member.projects !== 1 ? "s" : ""}
+                                            </span>
+                                        </div>
+                                        <button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#2A1F1F", color: "#888" }} onClick={(e) => { e.stopPropagation(); navigate(`/admin/crew/${member.id}`); }} onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = "#D84040";
+                                            e.currentTarget.style.color = "#fff";
+                                        }} onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = "#2A1F1F";
+                                            e.currentTarget.style.color = "#888";
+                                        }}>
+                                            <Mail size={14}/>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {filtered.length === 0 && (
+                        <div className="text-center py-16">
+                            <UserCheck size={40} color="#3A2A2A" className="mx-auto mb-3"/>
+                            <p style={{ color: "#666", fontSize: "14px" }}>No crew members found</p>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <OutsourcePage showHeader={false} onTalentPoolChange={setFreelancers} quickFilter={outsourceQuickFilter} />
             )}
 
             {/* Manage Roles Modal */}

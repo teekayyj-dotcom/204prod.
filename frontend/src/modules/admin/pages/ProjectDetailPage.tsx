@@ -2,16 +2,695 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, Edit3, Save, X, Calendar, DollarSign, Tag, User, Briefcase, Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink, AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay } from "lucide-react";
+import {
+    ArrowLeft, Edit3, Save, X, Calendar, DollarSign, Tag, User, Briefcase,
+    Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink,
+    AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
+    Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
+    FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
+    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap,
+} from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 import { fetchApi } from "../utils/apiClient";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const statusColors = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040", border: "rgba(216,64,64,0.3)" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6", border: "rgba(107,143,214,0.3)" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
 };
+
+const inputStyle = {
+    background: "#1D1616",
+    border: "1px solid #3A2A2A",
+    color: "#EEEEEE",
+    fontSize: "14px",
+    width: "100%",
+};
+
+// ─── Mock data for admin tabs ──────────────────────────────────────────────────
+
+const MOCK_KANBAN_TASKS = [
+    { id: "t1", col: "todo", title: "Viết kịch bản phỏng vấn CEO", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-07-05", priority: "high" },
+    { id: "t2", col: "todo", title: "Book studio ngày 10/7", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-07-03", priority: "medium" },
+    { id: "t3", col: "todo", title: "Chuẩn bị prop list cho shoot", assignee: "PD", assigneeName: "Phạm Dũng", deadline: "2026-07-08", priority: "low" },
+    { id: "t4", col: "inprogress", title: "Edit teaser 30s v2", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-30", priority: "high" },
+    { id: "t5", col: "inprogress", title: "Color grading episode 1", assignee: "JT", assigneeName: "Jake Torres", deadline: "2026-07-01", priority: "high" },
+    { id: "t6", col: "inprogress", title: "Soundmix & mix âm thanh", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-07-02", priority: "medium" },
+    { id: "t7", col: "review", title: "Final cut documentary 12min", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-29", priority: "high" },
+    { id: "t8", col: "review", title: "Motion graphic intro v3", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-28", priority: "medium" },
+    { id: "t9", col: "clientreview", title: "Brand story video — cut 1", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-06-27", priority: "high" },
+    { id: "t10", col: "clientreview", title: "Photography batch A (20 ảnh)", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-28", priority: "medium" },
+    { id: "t11", col: "done", title: "Location scouting report", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-06-20", priority: "low" },
+    { id: "t12", col: "done", title: "Kickoff meeting & brief review", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-15", priority: "medium" },
+    { id: "t13", col: "done", title: "Storyboard approval", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-06-22", priority: "high" },
+];
+
+const KANBAN_COLUMNS = [
+    { id: "todo", label: "To-do", color: "#888" },
+    { id: "inprogress", label: "In Progress", color: "#E8A838" },
+    { id: "review", label: "Internal Review", color: "#6B8FD6" },
+    { id: "clientreview", label: "Client Review", color: "#C084FC" },
+    { id: "done", label: "Done", color: "#4CAF50" },
+];
+
+const MOCK_MEDIA = [
+    { id: "m1", name: "brand_story_v2.mp4", type: "video", size: "248 MB", uploaded: "28/06", published: true, comments: 3 },
+    { id: "m2", name: "intro_motion_v3.mp4", type: "video", size: "84 MB", uploaded: "27/06", published: false, comments: 1 },
+    { id: "m3", name: "photo_batch_A_001.jpg", type: "image", size: "12 MB", uploaded: "26/06", published: true, comments: 0 },
+    { id: "m4", name: "photo_batch_A_002.jpg", type: "image", size: "9 MB", uploaded: "26/06", published: false, comments: 2 },
+    { id: "m5", name: "photo_batch_A_003.jpg", type: "image", size: "11 MB", uploaded: "26/06", published: true, comments: 0 },
+    { id: "m6", name: "teaser_30s_v2.mp4", type: "video", size: "34 MB", uploaded: "25/06", published: false, comments: 4 },
+];
+
+const MOCK_FEEDBACK = [
+    { id: "f1", user: "Nguyễn Văn An (Client)", file: "brand_story_v2.mp4", timestamp: "00:24", text: "Cần cắt bỏ 3s đầu — logo xuất hiện quá muộn", resolved: false, time: "2 giờ trước" },
+    { id: "f2", user: "Lê Thị Bình (Client)", file: "brand_story_v2.mp4", timestamp: "01:45", text: "Âm thanh hơi to ở đoạn này, cần giảm xuống 20%", resolved: true, time: "5 giờ trước" },
+    { id: "f3", user: "Nguyễn Văn An (Client)", file: "photo_batch_A_002.jpg", timestamp: null, text: "Màu sắc chưa đúng với brand guideline — cần warm hơn", resolved: false, time: "1 ngày trước" },
+    { id: "f4", user: "Lê Thị Bình (Client)", file: "intro_motion_v3.mp4", timestamp: "00:05", text: "Font chữ không khớp với brand identity mới", resolved: false, time: "2 ngày trước" },
+];
+
+const MOCK_VAULT_DOCS = [
+    { id: "d1", type: "brief", name: "Creative Brief — Confirmed v3.pdf", date: "15/06/2026", size: "2.4 MB" },
+    { id: "d2", type: "contract", name: "Hợp đồng dịch vụ sản xuất.pdf", date: "14/06/2026", size: "1.8 MB" },
+    { id: "d3", type: "quotation", name: "Báo giá dự án — Đã duyệt.pdf", date: "10/06/2026", size: "890 KB" },
+    { id: "d4", type: "invoice", name: "Invoice #001 — Tạm ứng 50%", date: "16/06/2026", size: "340 KB", amount: "25,000,000 ₫", status: "paid" },
+    { id: "d5", type: "invoice", name: "Invoice #002 — Nghiệm thu 50%", date: null, size: null, amount: "25,000,000 ₫", status: "pending" },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getDaysLeft(dateStr: string): number | null {
+    if (!dateStr) return null;
+    const due = new Date(dateStr);
+    const now = new Date();
+    return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function isOverdue(dateStr: string): boolean {
+    const d = getDaysLeft(dateStr);
+    return d !== null && d < 0;
+}
+
+function fmtVND(n: number) {
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B ₫`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}M ₫`;
+    return `${n.toLocaleString()} ₫`;
+}
+
+const AVATAR_COLORS = ["#8E1616", "#1E3A5F", "#1A4731", "#4A1A6B", "#7A3A00", "#1A4A4A"];
+function avatarColor(str: string) {
+    let hash = 0;
+    for (const c of str) hash = (hash * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length;
+    return AVATAR_COLORS[hash];
+}
+
+function AvatarBubble({ initials, size = 28, color = "#8E1616" }: { initials: string; size?: number; color?: string }) {
+    return (
+        <div style={{
+            width: size, height: size, borderRadius: "50%",
+            background: color, color: "#EEEEEE",
+            fontSize: size * 0.38, fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, border: "2px solid #1D1616",
+        }}>
+            {initials}
+        </div>
+    );
+}
+
+// ─── Admin Tab: Kanban Board ───────────────────────────────────────────────────
+
+function KanbanTab() {
+    const [tasks, setTasks] = useState(MOCK_KANBAN_TASKS);
+    const [dragging, setDragging] = useState<string | null>(null);
+    const [dragOver, setDragOver] = useState<string | null>(null);
+    const [showAddTask, setShowAddTask] = useState<string | null>(null);
+    const [newTaskTitle, setNewTaskTitle] = useState("");
+
+    const onDragStart = (e: React.DragEvent, taskId: string) => {
+        setDragging(taskId);
+        e.dataTransfer.effectAllowed = "move";
+    };
+    const onDragOver = (e: React.DragEvent, colId: string) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setDragOver(colId);
+    };
+    const onDrop = (e: React.DragEvent, colId: string) => {
+        e.preventDefault();
+        if (!dragging) return;
+        setTasks(prev => prev.map(t => t.id === dragging ? { ...t, col: colId } : t));
+        setDragging(null);
+        setDragOver(null);
+    };
+    const onDragEnd = () => { setDragging(null); setDragOver(null); };
+
+    const addTask = (colId: string) => {
+        if (!newTaskTitle.trim()) return;
+        setTasks(prev => [...prev, {
+            id: `t${Date.now()}`, col: colId, title: newTaskTitle.trim(),
+            assignee: "AY", assigneeName: "Alex (Admin)", deadline: "", priority: "medium",
+        }]);
+        setNewTaskTitle("");
+        setShowAddTask(null);
+    };
+
+    return (
+        <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
+            <div style={{ display: "flex", gap: "12px", minWidth: "860px" }}>
+                {KANBAN_COLUMNS.map(col => {
+                    const colTasks = tasks.filter(t => t.col === col.id);
+                    const isOver = dragOver === col.id;
+                    return (
+                        <div
+                            key={col.id}
+                            onDragOver={e => onDragOver(e, col.id)}
+                            onDrop={e => onDrop(e, col.id)}
+                            onDragLeave={() => setDragOver(null)}
+                            style={{
+                                flex: "1", minWidth: "160px",
+                                borderRadius: "14px",
+                                background: isOver ? `${col.color}0F` : "rgba(29,22,22,0.4)",
+                                border: `1.5px solid ${isOver ? col.color + "55" : "rgba(46,32,32,0.5)"}`,
+                                backdropFilter: "blur(12px)",
+                                transition: "all 0.18s ease",
+                            }}
+                        >
+                            {/* Column Header */}
+                            <div style={{ padding: "12px 12px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                                    <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: col.color }} />
+                                    <span style={{ color: col.color, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                                        {col.label}
+                                    </span>
+                                </div>
+                                <span style={{ background: col.color + "22", color: col.color, borderRadius: "20px", padding: "1px 7px", fontSize: "10px", fontWeight: 700 }}>
+                                    {colTasks.length}
+                                </span>
+                            </div>
+
+                            {/* Cards */}
+                            <div style={{ padding: "0 8px 8px", display: "flex", flexDirection: "column", gap: "7px", minHeight: "60px" }}>
+                                {colTasks.map(task => {
+                                    const overdue = isOverdue(task.deadline);
+                                    const daysLeft = getDaysLeft(task.deadline);
+                                    const isDragging = dragging === task.id;
+                                    return (
+                                        <div
+                                            key={task.id}
+                                            draggable
+                                            onDragStart={e => onDragStart(e, task.id)}
+                                            onDragEnd={onDragEnd}
+                                            style={{
+                                                background: isDragging ? "rgba(216,64,64,0.1)" : "rgba(29,22,22,0.85)",
+                                                border: `1px solid ${overdue ? "rgba(216,64,64,0.4)" : isDragging ? "#D84040" : "rgba(46,32,32,0.7)"}`,
+                                                borderRadius: "10px", padding: "9px 11px",
+                                                cursor: "grab", opacity: isDragging ? 0.5 : 1,
+                                                transition: "all 0.15s",
+                                                boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.4)" : "0 2px 6px rgba(0,0,0,0.2)",
+                                            }}
+                                            onMouseEnter={e => { if (!isDragging) e.currentTarget.style.borderColor = col.color + "55"; }}
+                                            onMouseLeave={e => { if (!isDragging) e.currentTarget.style.borderColor = overdue ? "rgba(216,64,64,0.4)" : "rgba(46,32,32,0.7)"; }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "5px" }}>
+                                                <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: task.priority === "high" ? "#D84040" : task.priority === "medium" ? "#E8A838" : "#555" }} />
+                                                {overdue && (
+                                                    <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "#f87171", fontSize: "9px", fontWeight: 700 }}>
+                                                        <AlertTriangle size={8} /> TRỄHẠN
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500, lineHeight: 1.4, marginBottom: "8px" }}>{task.title}</p>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                                <AvatarBubble initials={task.assignee} size={22} color={avatarColor(task.assigneeName)} />
+                                                {task.deadline && (
+                                                    <span style={{ fontSize: "9px", color: overdue ? "#f87171" : daysLeft !== null && daysLeft <= 2 ? "#E8A838" : "#555", fontWeight: overdue ? 700 : 400 }}>
+                                                        {overdue ? `${Math.abs(daysLeft!)}d trễ` : daysLeft === 0 ? "Hôm nay" : `${daysLeft}d`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Add Task */}
+                                {showAddTask === col.id ? (
+                                    <div style={{ background: "rgba(29,22,22,0.9)", border: "1px solid #D84040", borderRadius: "10px", padding: "9px 11px" }}>
+                                        <input
+                                            autoFocus value={newTaskTitle}
+                                            onChange={e => setNewTaskTitle(e.target.value)}
+                                            onKeyDown={e => { if (e.key === "Enter") addTask(col.id); if (e.key === "Escape") { setShowAddTask(null); setNewTaskTitle(""); } }}
+                                            placeholder="Tên công việc..."
+                                            style={{ background: "transparent", border: "none", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%" }}
+                                        />
+                                        <div style={{ display: "flex", gap: "5px", marginTop: "7px" }}>
+                                            <button onClick={() => addTask(col.id)} style={{ flex: 1, background: "#D84040", color: "#fff", border: "none", borderRadius: "6px", padding: "4px 0", fontSize: "10px", fontWeight: 600, cursor: "pointer" }}>Thêm</button>
+                                            <button onClick={() => { setShowAddTask(null); setNewTaskTitle(""); }} style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "4px 8px", fontSize: "10px", cursor: "pointer" }}>✕</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => { setShowAddTask(col.id); setNewTaskTitle(""); }}
+                                        style={{ width: "100%", background: "transparent", border: "1px dashed #2A1F1F", borderRadius: "10px", padding: "7px", color: "#555", fontSize: "10px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", transition: "all 0.15s" }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = col.color + "55"; e.currentTarget.style.color = col.color; }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.color = "#555"; }}
+                                    >
+                                        <Plus size={11} /> Thêm task
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+// ─── Admin Tab: Overview ──────────────────────────────────────────────────────
+
+function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }) {
+    const daysLeft = getDaysLeft(project.dueDate || `${project.year}-12-31`);
+    const isLate = daysLeft !== null && daysLeft < 0;
+    const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
+
+    const projectStages = [
+        { id: "Lên kế hoạch", done: true },
+        { id: "Sản xuất", done: project.progress >= 30 },
+        { id: "Hậu kỳ", done: project.progress >= 70 },
+        { id: "Bàn giao", done: project.progress >= 95 },
+    ];
+
+    const stats = [
+        { label: "Tasks hoàn thành", value: "7 / 13", icon: CheckCheck, color: "#4CAF50" },
+        { label: "Thành viên", value: "5 người", icon: User, color: "#6B8FD6" },
+        { label: "Files đã upload", value: "6 files", icon: ImageIcon, color: "#C084FC" },
+        { label: "Phản hồi KH", value: "4 comments", icon: MessageSquare, color: "#E8A838" },
+    ];
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            {/* Hero status strip */}
+            <div style={{
+                borderRadius: "14px", padding: "18px 22px",
+                background: "linear-gradient(135deg, rgba(142,22,22,0.18) 0%, rgba(29,22,22,0.5) 100%)",
+                border: "1px solid rgba(216,64,64,0.2)", backdropFilter: "blur(16px)",
+                display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px",
+            }}>
+                <div>
+                    <span style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "8px" }}>Trạng thái hiện tại</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{
+                            padding: "4px 12px", borderRadius: "20px",
+                            background: statusColors[project.status]?.bg || "#333",
+                            color: statusColors[project.status]?.text || "#fff",
+                            fontSize: "12px", fontWeight: 700,
+                            border: `1px solid ${statusColors[project.status]?.text || "#555"}33`,
+                        }}>{project.status}</span>
+                        <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(107,143,214,0.3)" }}>
+                            📍 {projectStages.filter(s => s.done).pop()?.id || "Lên kế hoạch"}
+                        </span>
+                    </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                    <p style={{ color: "#888", fontSize: "11px", marginBottom: "4px" }}>Deadline</p>
+                    <p style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: isLate ? "#f87171" : "#E8A838", fontVariantNumeric: "tabular-nums" }}>
+                        {daysLeft === null ? "—" : isLate ? `${Math.abs(daysLeft)} ngày trễ` : daysLeft === 0 ? "Hôm nay!" : `${daysLeft} ngày`}
+                    </p>
+                    {project.dueDate && <p style={{ color: "#555", fontSize: "10px", marginTop: "2px" }}>{new Date(project.dueDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>}
+                </div>
+            </div>
+
+            {/* Progress bar + stages */}
+            <div style={{ borderRadius: "14px", padding: "18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span style={{ color: "#888", fontSize: "12px" }}>Tiến độ tổng thể</span>
+                    <span style={{ color: "#D84040", fontSize: "15px", fontWeight: 800 }}>{project.progress}%</span>
+                </div>
+                <div style={{ height: "8px", borderRadius: "99px", background: "#2A1F1F", overflow: "hidden", marginBottom: "12px" }}>
+                    <div style={{ height: "100%", borderRadius: "99px", width: `${project.progress}%`, background: project.progress === 100 ? "#4CAF50" : "linear-gradient(90deg, #8E1616, #D84040, #E8A838)", transition: "width 0.6s ease", boxShadow: "0 0 10px rgba(216,64,64,0.3)" }} />
+                </div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    {projectStages.map((stage, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <div style={{ width: "14px", height: "14px", borderRadius: "50%", background: stage.done ? "#4CAF50" : "#2A1F1F", border: `2px solid ${stage.done ? "#4CAF50" : "#3A2A2A"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                {stage.done && <CheckCircle2 size={9} color="#fff" />}
+                            </div>
+                            <span style={{ color: stage.done ? "#4CAF50" : "#444", fontSize: "11px" }}>{stage.id}</span>
+                            {i < projectStages.length - 1 && <ArrowRight size={9} color="#333" />}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* KPI mini grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                {stats.map((stat, i) => (
+                    <div key={i} style={{ borderRadius: "12px", padding: "14px 16px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ width: "34px", height: "34px", borderRadius: "9px", background: stat.color + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <stat.icon size={14} color={stat.color} />
+                        </div>
+                        <div>
+                            <p style={{ color: stat.color, fontSize: "16px", fontWeight: 700, lineHeight: 1 }}>{stat.value}</p>
+                            <p style={{ color: "#666", fontSize: "10px", marginTop: "3px" }}>{stat.label}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Linked client */}
+            <div style={{ borderRadius: "12px", padding: "14px 18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <AvatarBubble initials={project.client?.slice(0, 2).toUpperCase() || "CL"} size={36} color="#1E3A5F" />
+                    <div>
+                        <p style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Khách hàng</p>
+                        <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{project.client}</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => navigate("/admin/clients")}
+                    style={{ display: "flex", alignItems: "center", gap: "5px", padding: "7px 14px", borderRadius: "8px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", border: "1px solid rgba(107,143,214,0.3)", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(107,143,214,0.25)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "rgba(107,143,214,0.15)"}
+                >
+                    <ExternalLink size={11} /> Mở hồ sơ CRM
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Admin Tab: Financials ─────────────────────────────────────────────────────
+
+function FinancialsTab({ project }: { project: any }) {
+    const contractValue = 50_000_000;
+    const actualCosts = 21_400_000;
+    const profit = contractValue - actualCosts;
+    const margin = (profit / contractValue) * 100;
+    const isDanger = margin < 15;
+    const isWarning = margin >= 15 && margin < 30;
+    const marginColor = isDanger ? "#f87171" : isWarning ? "#E8A838" : "#4CAF50";
+
+    const costBreakdown = [
+        { label: "Nhân sự nội bộ", amount: 8_000_000, pct: 37, color: "#6B8FD6" },
+        { label: "Thuê ngoài (Outsource)", amount: 6_500_000, pct: 30, color: "#C084FC" },
+        { label: "Thiết bị & Trường quay", amount: 4_200_000, pct: 20, color: "#E8A838" },
+        { label: "Đi lại & Logistics", amount: 1_800_000, pct: 8, color: "#4CAF50" },
+        { label: "Khác", amount: 900_000, pct: 5, color: "#888" },
+    ];
+
+    const invoices = [
+        { name: "Đợt 1 — Tạm ứng 50%", amount: 25_000_000, date: "16/06/2026", status: "paid" },
+        { name: "Đợt 2 — Nghiệm thu 50%", amount: 25_000_000, date: null, status: "pending" },
+    ];
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* KPI row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                {[
+                    { label: "Tổng giá trị HĐ", value: fmtVND(contractValue), icon: Banknote, color: "#4CAF50", sub: "Hợp đồng đã ký" },
+                    { label: "Chi phí thực tế", value: fmtVND(actualCosts), icon: TrendingDown, color: "#E8A838", sub: `${Math.round((actualCosts / contractValue) * 100)}% giá trị HĐ` },
+                    { label: "Biên lợi nhuận", value: `${margin.toFixed(0)}%`, icon: Target, color: marginColor, sub: fmtVND(profit) + " lợi nhuận ròng" },
+                ].map((kpi, i) => (
+                    <div key={i} style={{ borderRadius: "12px", padding: "16px", background: i === 2 ? `${marginColor}10` : "rgba(29,22,22,0.4)", border: `1px solid ${i === 2 ? marginColor + "33" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                            <span style={{ color: "#888", fontSize: "11px" }}>{kpi.label}</span>
+                            <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: kpi.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <kpi.icon size={13} color={kpi.color} />
+                            </div>
+                        </div>
+                        <p style={{ color: kpi.color, fontSize: "20px", fontWeight: 800, lineHeight: 1, marginBottom: "4px" }}>{kpi.value}</p>
+                        <p style={{ color: "#555", fontSize: "10px" }}>{kpi.sub}</p>
+                        {i === 2 && isDanger && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "7px", padding: "3px 7px", borderRadius: "5px", background: "rgba(248,113,113,0.15)" }}>
+                                <AlertTriangle size={9} color="#f87171" />
+                                <span style={{ color: "#f87171", fontSize: "9px", fontWeight: 600 }}>Chi phí đang ăn lẹm vào lợi nhuận!</span>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Cost breakdown */}
+            <div style={{ borderRadius: "12px", padding: "18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
+                <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600, marginBottom: "14px" }}>Chi phí thực tế vs Ngân sách</p>
+                <div style={{ height: "20px", borderRadius: "6px", background: "#2A1F1F", overflow: "hidden", position: "relative", marginBottom: "4px" }}>
+                    <div style={{ height: "100%", width: `${(actualCosts / contractValue) * 100}%`, background: "linear-gradient(90deg, #8E1616, #D84040)", borderRadius: "6px", transition: "width 0.6s ease" }} />
+                    <span style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", color: "#EEEEEE", fontSize: "10px", fontWeight: 600 }}>{fmtVND(contractValue)}</span>
+                </div>
+                <p style={{ color: "#D84040", fontSize: "10px", marginBottom: "14px" }}>{fmtVND(actualCosts)} đã chi ({Math.round((actualCosts / contractValue) * 100)}%)</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                    {costBreakdown.map((item, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div style={{ width: "7px", height: "7px", borderRadius: "2px", background: item.color, flexShrink: 0 }} />
+                            <span style={{ color: "#888", fontSize: "11px", flex: 1 }}>{item.label}</span>
+                            <div style={{ width: "80px", height: "4px", borderRadius: "2px", background: "#2A1F1F" }}>
+                                <div style={{ height: "100%", width: `${item.pct}%`, borderRadius: "2px", background: item.color }} />
+                            </div>
+                            <span style={{ color: item.color, fontSize: "11px", fontWeight: 600, minWidth: "65px", textAlign: "right" }}>{fmtVND(item.amount)}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Invoices */}
+            <div style={{ borderRadius: "12px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", overflow: "hidden" }}>
+                <div style={{ padding: "14px 18px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Receipt size={13} color="#D84040" />
+                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Hóa đơn thanh toán</p>
+                </div>
+                {invoices.map((inv, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: i < invoices.length - 1 ? "1px solid #2A1F1F" : "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <div style={{ width: "30px", height: "30px", borderRadius: "7px", background: inv.status === "paid" ? "rgba(76,175,80,0.15)" : "rgba(232,168,56,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {inv.status === "paid" ? <CheckCircle2 size={14} color="#4CAF50" /> : <Clock size={14} color="#E8A838" />}
+                            </div>
+                            <div>
+                                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{inv.name}</p>
+                                <p style={{ color: "#555", fontSize: "10px" }}>{inv.date || "Chưa phát sinh"}</p>
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span style={{ color: inv.status === "paid" ? "#4CAF50" : "#E8A838", fontSize: "13px", fontWeight: 700 }}>{fmtVND(inv.amount)}</span>
+                            <span style={{ padding: "2px 8px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: inv.status === "paid" ? "rgba(76,175,80,0.15)" : "rgba(232,168,56,0.15)", color: inv.status === "paid" ? "#4CAF50" : "#E8A838" }}>
+                                {inv.status === "paid" ? "Đã thu" : "Chờ thu"}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Admin Tab: Media ──────────────────────────────────────────────────────────
+
+function MediaAdminTab({ project }: { project: any }) {
+    const [media, setMedia] = useState(MOCK_MEDIA);
+    const [feedback, setFeedback] = useState(MOCK_FEEDBACK);
+    const [mediaView, setMediaView] = useState<"grid" | "feedback">("grid");
+
+    const togglePublish = (id: string) => setMedia(prev => prev.map(m => m.id === id ? { ...m, published: !m.published } : m));
+    const resolveFeedback = (id: string) => setFeedback(prev => prev.map(f => f.id === id ? { ...f, resolved: !f.resolved } : f));
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {/* Sub-tab */}
+            <div style={{ display: "flex", gap: "4px", background: "rgba(29,22,22,0.4)", borderRadius: "10px", padding: "4px", border: "1px solid rgba(46,32,32,0.5)" }}>
+                {[
+                    { id: "grid", label: "📁 Thư viện Media" },
+                    { id: "feedback", label: `💬 Phản hồi KH (${feedback.filter(f => !f.resolved).length} chưa xử lý)` },
+                ].map(tab => (
+                    <button key={tab.id} onClick={() => setMediaView(tab.id as any)} style={{ flex: 1, padding: "7px 10px", borderRadius: "7px", border: "none", cursor: "pointer", background: mediaView === tab.id ? "#D84040" : "transparent", color: mediaView === tab.id ? "#fff" : "#666", fontSize: "12px", fontWeight: mediaView === tab.id ? 600 : 400, transition: "all 0.15s" }}>
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {mediaView === "grid" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+                    {media.map(file => (
+                        <div key={file.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: `1px solid ${file.published ? "rgba(76,175,80,0.3)" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)" }}>
+                            <div style={{ height: "80px", background: file.type === "video" ? "rgba(216,64,64,0.08)" : "rgba(107,143,214,0.08)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)" }}>
+                                {file.type === "video" ? <PlayCircle size={26} color="#D84040" style={{ opacity: 0.6 }} /> : <ImageIcon size={26} color="#6B8FD6" style={{ opacity: 0.6 }} />}
+                            </div>
+                            <div style={{ padding: "8px 10px" }}>
+                                <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</p>
+                                <p style={{ color: "#555", fontSize: "9px", marginBottom: "8px" }}>{file.size} · {file.uploaded}{file.comments > 0 && <span style={{ color: "#E8A838", marginLeft: "4px" }}>· {file.comments} cmts</span>}</p>
+                                <button onClick={() => togglePublish(file.id)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                                    {file.published ? <><Unlock size={9} /> Published</> : <><Lock size={9} /> Publish to Client</>}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                    <div style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "130px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.background = "rgba(216,64,64,0.05)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.background = "transparent"; }}>
+                        <Upload size={18} color="#555" />
+                        <span style={{ color: "#555", fontSize: "10px" }}>Upload file</span>
+                    </div>
+                </div>
+            ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {feedback.map(fb => (
+                        <div key={fb.id} style={{ borderRadius: "10px", padding: "12px 14px", background: fb.resolved ? "rgba(29,22,22,0.3)" : "rgba(232,168,56,0.06)", border: `1px solid ${fb.resolved ? "rgba(46,32,32,0.4)" : "rgba(232,168,56,0.25)"}`, backdropFilter: "blur(8px)", opacity: fb.resolved ? 0.6 : 1, transition: "all 0.2s" }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                                <AvatarBubble initials="KH" size={28} color="#1E3A5F" />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
+                                        <span style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 600 }}>{fb.user}</span>
+                                        <span style={{ padding: "2px 6px", borderRadius: "20px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "9px" }}>{fb.file}{fb.timestamp ? ` @ ${fb.timestamp}` : ""}</span>
+                                        <span style={{ color: "#555", fontSize: "9px" }}>{fb.time}</span>
+                                    </div>
+                                    <p style={{ color: fb.resolved ? "#555" : "#EEEEEE", fontSize: "11px", lineHeight: 1.5 }}>{fb.text}</p>
+                                </div>
+                                <button onClick={() => resolveFeedback(fb.id)} style={{ flexShrink: 0, padding: "4px 8px", borderRadius: "6px", border: "none", background: fb.resolved ? "rgba(76,175,80,0.15)" : "rgba(29,22,22,0.6)", color: fb.resolved ? "#4CAF50" : "#666", fontSize: "9px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}>
+                                    <CheckCheck size={9} /> {fb.resolved ? "Xong" : "Đánh dấu"}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ─── Admin Tab: Vault ──────────────────────────────────────────────────────────
+
+function VaultTab({ project }: { project: any }) {
+    const docTypeConfig = {
+        brief: { label: "Creative Brief", icon: FileCheck, color: "#6B8FD6" },
+        contract: { label: "Hợp đồng", icon: Shield, color: "#4CAF50" },
+        quotation: { label: "Báo giá", icon: DollarSign, color: "#E8A838" },
+        invoice: { label: "Hóa đơn", icon: Receipt, color: "#D84040" },
+    };
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ padding: "10px 14px", borderRadius: "9px", background: "rgba(107,143,214,0.08)", border: "1px solid rgba(107,143,214,0.2)", display: "flex", alignItems: "center", gap: "7px" }}>
+                <Lock size={12} color="#6B8FD6" />
+                <span style={{ color: "#6B8FD6", fontSize: "11px" }}>Project Vault — Khu vực lưu trữ nội bộ. Chỉ Admin mới có quyền truy cập.</span>
+            </div>
+
+            {(["brief", "contract", "quotation", "invoice"] as const).map(type => {
+                const cfg = docTypeConfig[type];
+                const docs = MOCK_VAULT_DOCS.filter(d => d.type === type);
+                return (
+                    <div key={type} style={{ borderRadius: "12px", overflow: "hidden", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
+                        <div style={{ padding: "12px 16px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                                <div style={{ width: "26px", height: "26px", borderRadius: "6px", background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <cfg.icon size={12} color={cfg.color} />
+                                </div>
+                                <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{cfg.label}</span>
+                            </div>
+                            <button style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", fontSize: "10px", cursor: "pointer" }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = cfg.color; e.currentTarget.style.color = cfg.color; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; }}>
+                                <FilePlus size={10} /> Upload
+                            </button>
+                        </div>
+                        {docs.length === 0 ? (
+                            <div style={{ padding: "16px", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
+                        ) : (
+                            docs.map((doc, i) => (
+                                <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: i < docs.length - 1 ? "1px solid #2A1F1F" : "none" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <FileText size={13} color="#555" />
+                                        <div>
+                                            <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }}>{doc.name}</p>
+                                            <p style={{ color: "#555", fontSize: "9px" }}>
+                                                {doc.date ? `${doc.date}${doc.size ? " · " + doc.size : ""}` : "Chưa phát hành"}
+                                                {doc.amount && <span style={{ color: "#D84040", marginLeft: "5px", fontWeight: 600 }}>{doc.amount}</span>}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                                        {doc.status && (
+                                            <span style={{ padding: "2px 8px", borderRadius: "20px", fontSize: "9px", fontWeight: 700, background: doc.status === "paid" ? "rgba(76,175,80,0.15)" : "rgba(232,168,56,0.15)", color: doc.status === "paid" ? "#4CAF50" : "#E8A838" }}>
+                                                {doc.status === "paid" ? "Đã thu" : "Chờ thu"}
+                                            </span>
+                                        )}
+                                        {doc.date && (
+                                            <button style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(46,32,32,0.6)", background: "transparent", color: "#666", fontSize: "9px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
+                                                onMouseEnter={e => e.currentTarget.style.color = "#EEEEEE"}
+                                                onMouseLeave={e => e.currentTarget.style.color = "#666"}>
+                                                <Eye size={9} /> Xem
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ─── VideoViewMode (helper component) ─────────────────────────────────────────────
+
+function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo: any }) {
+    const url = project?.videoUrl || "";
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+    const vmMatch = url.match(/vimeo\.com\/(\d+)/);
+    const embedUrl = ytMatch
+        ? `https://www.youtube.com/embed/${ytMatch[1]}`
+        : vmMatch ? `https://player.vimeo.com/video/${vmMatch[1]}` : null;
+
+    if (embedUrl) {
+        return (
+            <div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020" }}>
+                <iframe src={embedUrl} className="w-full" style={{ height: "220px", border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video" />
+            </div>
+        );
+    }
+    if (url) {
+        return (
+            <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl transition-all" style={{ background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", textDecoration: "none" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; }}
+            >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(216,64,64,0.12)" }}>
+                    <Video size={14} color="#D84040" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>Video Link</p>
+                    <p style={{ color: "#D84040", fontSize: "11px" }} className="truncate">{url}</p>
+                </div>
+                <ExternalLink size={13} color="#555" />
+            </a>
+        );
+    }
+    if (uploadedVideo) {
+        return (
+            <div className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(76,175,80,0.15)" }}>
+                    <Play size={14} color="#4CAF50" fill="#4CAF50" />
+                </div>
+                <div>
+                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="truncate">{uploadedVideo.name}</p>
+                    <p style={{ color: "#666", fontSize: "11px" }}>{(uploadedVideo.size / 1024 / 1024).toFixed(1)} MB uploaded</p>
+                </div>
+            </div>
+        );
+    }
+    return (
+        <p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }} className="mt-2">
+            No video attached — click <span style={{ color: "#D84040" }}>Edit Project</span> to add one.
+        </p>
+    );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────────────────
+
 const mockActivity = [
     { id: 1, user: "Sarah Kim", action: "updated project status to In Progress", time: "2 hours ago", avatar: "SK" },
     { id: 2, user: "Jake Torres", action: "pushed a new build — v0.4.1", time: "5 hours ago", avatar: "JT" },
@@ -22,13 +701,7 @@ const mockComments = [
     { id: 1, user: "Sarah Kim", text: "Client approved the direction — moving into production phase now.", time: "2 hours ago", avatar: "SK" },
     { id: 2, user: "Jake Torres", text: "Main components are all wired up. Need final copy from Emma before we can close the homepage.", time: "1 day ago", avatar: "JT" },
 ];
-const inputStyle = {
-    background: "#1D1616",
-    border: "1px solid #3A2A2A",
-    color: "#EEEEEE",
-    fontSize: "14px",
-    width: "100%",
-};
+
 export function ProjectDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -41,7 +714,6 @@ export function ProjectDetailPage() {
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState("activity");
     const [isFeatured, setIsFeatured] = useState(false);
-    // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeletingProject, setIsDeletingProject] = useState(false);
     const [activities, setActivities] = useState([]);
@@ -49,6 +721,9 @@ export function ProjectDetailPage() {
     const [assignedCrew, setAssignedCrew] = useState([]);
     const [dbCrew, setDbCrew] = useState([]);
     const [galleryImages, setGalleryImages] = useState([]);
+
+    // Admin command center tab
+    const [adminTab, setAdminTab] = useState<"overview" | "kanban" | "financials" | "media" | "vault">("overview");
 
     const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm({});
 
@@ -77,7 +752,6 @@ export function ProjectDetailPage() {
                 videoUrl: projData.videoUrl || "",
             });
 
-            // Determine if this is a mock project or a new project
             const isMockProject = [
                 "proj-aurora-rebrand", "proj-slate-site", "proj-pulse-campaign", "proj-nova-ecom", "proj-aurora-motion", "proj-slate-photo",
                 "aurora-platform-rebrand", "slate-house-portfolio", "pulse-summer-campaign", "nova-goods-product-launch", "aurora-motion-toolkit", "slate-editorial-shoot"
@@ -105,9 +779,7 @@ export function ProjectDetailPage() {
                 ]);
                 setAssignedCrew(crewMembers.slice(0, 3));
             } else {
-                setActivities([
-                    { id: 1, user: "Alex (You)", action: "created this project", time: "Just now", avatar: "AY" }
-                ]);
+                setActivities([{ id: 1, user: "Alex (You)", action: "created this project", time: "Just now", avatar: "AY" }]);
                 setComments([]);
                 setAssignedCrew([]);
             }
@@ -122,9 +794,7 @@ export function ProjectDetailPage() {
     const handleDeleteProject = async () => {
         setIsDeletingProject(true);
         try {
-            await fetchApi(`/projects/${id}`, {
-                method: "DELETE"
-            });
+            await fetchApi(`/projects/${id}`, { method: "DELETE" });
             navigate("/admin/projects");
         } catch (err) {
             console.error("Failed to delete project:", err);
@@ -134,67 +804,51 @@ export function ProjectDetailPage() {
             setShowDeleteModal(false);
         }
     };
-    // Video media state
+
     const [dragActive, setDragActive] = useState(false);
     const [uploadedVideo, setUploadedVideo] = useState(null);
-    // Thumbnail editing state
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
     const [thumbnailFile, setThumbnailFile] = useState(null);
+
     const handleDrag = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.type === "dragenter" || e.type === "dragover")
-            setDragActive(true);
-        else if (e.type === "dragleave")
-            setDragActive(false);
+        e.preventDefault(); e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+        else if (e.type === "dragleave") setDragActive(false);
     };
     const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
+        e.preventDefault(); e.stopPropagation(); setDragActive(false);
         const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith("video/"))
-            setUploadedVideo(file);
+        if (file && file.type.startsWith("video/")) setUploadedVideo(file);
     };
 
     const watched = watch();
     const statusInfo = statusColors[watched.status] || statusColors["Planning"];
+
     const onSave = async (data) => {
         setSaving(true);
         try {
             let coverMediaId = undefined;
-
-            // Upload thumbnail if selected
             if (thumbnailFile) {
                 const formData = new FormData();
                 formData.append("file", thumbnailFile);
                 formData.append("alt", data.title || "Project Thumbnail");
                 formData.append("caption", `Thumbnail for ${data.title}`);
-                const mediaAsset = await fetchApi("/media/upload", {
-                    method: "POST",
-                    body: formData,
-                });
+                const mediaAsset = await fetchApi("/media/upload", { method: "POST", body: formData });
                 coverMediaId = mediaAsset.id;
             } else if (thumbnailPreview === null) {
-                // If thumbnailPreview was explicitly set to null (i.e. removed)
                 coverMediaId = null;
             }
 
-            // Upload video if selected
             let finalVideoUrl = data.videoUrl;
             if (uploadedVideo) {
                 const formData = new FormData();
                 formData.append("file", uploadedVideo);
                 formData.append("alt", `${data.title} Video`);
                 formData.append("caption", `Video for ${data.title}`);
-                const mediaAsset = await fetchApi("/media/upload", {
-                    method: "POST",
-                    body: formData,
-                });
+                const mediaAsset = await fetchApi("/media/upload", { method: "POST", body: formData });
                 finalVideoUrl = mediaAsset.url;
             }
 
-            // Upload new gallery files
             const finalGalleryMediaIds = [];
             for (const img of galleryImages) {
                 if (img.file) {
@@ -202,10 +856,7 @@ export function ProjectDetailPage() {
                     formData.append("file", img.file);
                     formData.append("alt", `${data.title} Behind the Scenes`);
                     formData.append("caption", `Behind the Scenes for ${data.title}`);
-                    const mediaAsset = await fetchApi("/media/upload", {
-                        method: "POST",
-                        body: formData,
-                    });
+                    const mediaAsset = await fetchApi("/media/upload", { method: "POST", body: formData });
                     finalGalleryMediaIds.push(mediaAsset.id);
                 } else {
                     finalGalleryMediaIds.push(img.id);
@@ -225,17 +876,12 @@ export function ProjectDetailPage() {
                 credits: assignedCrew.map(c => `${c.role}: ${c.name}`),
                 gallery_media_ids: finalGalleryMediaIds,
             };
-            const updated = await fetchApi(`/projects/${id}`, {
-                method: "PUT",
-                body: JSON.stringify(payload)
-            });
+            const updated = await fetchApi(`/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) });
             setProject(updated);
             setSaved(true);
             setTimeout(() => {
-                setSaved(false);
-                setIsEditing(false);
-                setThumbnailFile(null);
-                setUploadedVideo(null);
+                setSaved(false); setIsEditing(false);
+                setThumbnailFile(null); setUploadedVideo(null);
             }, 1400);
         } catch (err) {
             console.error("Failed to update project:", err);
@@ -244,12 +890,10 @@ export function ProjectDetailPage() {
             setSaving(false);
         }
     };
+
     const handleCancel = () => {
-        reset();
-        setThumbnailPreview(null);
-        setThumbnailFile(null);
-        setUploadedVideo(null);
-        setGalleryImages(project.gallery || []);
+        reset(); setThumbnailPreview(null); setThumbnailFile(null);
+        setUploadedVideo(null); setGalleryImages(project.gallery || []);
         setIsEditing(false);
     };
 
@@ -278,6 +922,16 @@ export function ProjectDetailPage() {
                 </div>
             </div>);
     }
+
+    // ── Admin Command Center Tabs definition ──
+    const ADMIN_TABS = [
+        { id: "overview", label: "Tổng quan", icon: Activity },
+        { id: "kanban", label: "Kanban", icon: Kanban },
+        { id: "financials", label: "Tài chính", icon: TrendingUp },
+        { id: "media", label: "Media", icon: Image },
+        { id: "vault", label: "Tài liệu", icon: FileText },
+    ];
+
     return (<div className="px-8 py-7 w-full">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
@@ -303,18 +957,11 @@ export function ProjectDetailPage() {
                             </button>
                             <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
                                 {saving ? <><Loader2 size={13} className="animate-spin"/> Saving...</>
-                : saved ? <><CheckCircle2 size={13}/> Saved!</>
-                    : <><Save size={13}/> Save Changes</>}
+                    : saved ? <><CheckCircle2 size={13}/> Saved!</>
+                        : <><Save size={13}/> Save Changes</>}
                             </button>
                         </>) : (<>
-                            {/* Featured toggle */}
-                            <button onClick={() => setIsFeatured((v) => !v)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all" style={{
-                background: isFeatured ? "rgba(255,193,7,0.12)" : "#241C1C",
-                color: isFeatured ? "#FFC107" : "#666",
-                border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#2E2020"}`,
-                fontSize: "13px",
-                fontWeight: isFeatured ? 600 : 400,
-            }} title={isFeatured ? "Remove from featured" : "Mark as featured"}>
+                            <button onClick={() => setIsFeatured((v) => !v)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all" style={{ background: isFeatured ? "rgba(255,193,7,0.12)" : "#241C1C", color: isFeatured ? "#FFC107" : "#666", border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#2E2020"}`, fontSize: "13px", fontWeight: isFeatured ? 600 : 400 }}>
                                 <Star size={13} fill={isFeatured ? "#FFC107" : "none"}/>
                                 {isFeatured ? "Featured" : "Highlight"}
                             </button>
@@ -328,6 +975,52 @@ export function ProjectDetailPage() {
                 </div>
             </div>
 
+            {/* ══════════════ ADMIN COMMAND CENTER TABS ══════════════ */}
+            <div style={{ marginBottom: "24px" }}>
+                {/* Tab bar */}
+                <div style={{
+                    display: "flex", gap: "2px", marginBottom: "20px",
+                    background: "rgba(29,22,22,0.5)", borderRadius: "14px", padding: "5px",
+                    border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(12px)",
+                }}>
+                    {ADMIN_TABS.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setAdminTab(tab.id as any)}
+                            style={{
+                                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                                padding: "9px 10px", borderRadius: "10px", border: "none", cursor: "pointer",
+                                background: adminTab === tab.id ? "#D84040" : "transparent",
+                                color: adminTab === tab.id ? "#fff" : "#666",
+                                fontSize: "12px", fontWeight: adminTab === tab.id ? 600 : 400,
+                                transition: "all 0.18s",
+                                boxShadow: adminTab === tab.id ? "0 4px 14px rgba(216,64,64,0.3)" : "none",
+                            }}
+                            onMouseEnter={e => { if (adminTab !== tab.id) e.currentTarget.style.color = "#EEEEEE"; }}
+                            onMouseLeave={e => { if (adminTab !== tab.id) e.currentTarget.style.color = "#666"; }}
+                        >
+                            <tab.icon size={13} />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Tab Content */}
+                {adminTab === "overview" && <OverviewAdminTab project={project} navigate={navigate} />}
+                {adminTab === "kanban" && <KanbanTab />}
+                {adminTab === "financials" && <FinancialsTab project={project} />}
+                {adminTab === "media" && <MediaAdminTab project={project} />}
+                {adminTab === "vault" && <VaultTab project={project} />}
+            </div>
+
+            {/* ══════════════ ORIGINAL PROJECT DETAIL CONTENT ══════════════ */}
+            {/* Divider */}
+            <div style={{ borderTop: "1px solid #2A1F1F", marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#444", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em", background: "#1A1010", padding: "4px 10px", borderRadius: "20px", border: "1px solid #2A1F1F", marginTop: "-13px" }}>
+                    Chi tiết dự án
+                </span>
+            </div>
+
             {/* Main grid */}
             <div className="grid grid-cols-3 gap-6">
 
@@ -339,14 +1032,10 @@ export function ProjectDetailPage() {
                         <div className="relative h-56">
                             <img src={thumbnailPreview || project.cover_image || project.image} alt={project.title} className="w-full h-full object-cover"/>
                             <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #1D1616 0%, rgba(0,0,0,0.4) 50%, transparent 100%)" }}/>
-                            {/* Thumbnail edit overlay — visible only when editing */}
                             {isEditing && (<>
                                     <input id="thumb-upload-detail" type="file" accept="image/*" className="hidden" onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) {
-                    setThumbnailPreview(URL.createObjectURL(file));
-                    setThumbnailFile(file);
-                }
+                if (file) { setThumbnailPreview(URL.createObjectURL(file)); setThumbnailFile(file); }
             }}/>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background: "rgba(0,0,0,0.5)", zIndex: 4 }}>
                                         <div className="flex items-center gap-2">
@@ -367,9 +1056,7 @@ export function ProjectDetailPage() {
                                     </span>
                                 </div>
                                 <div className="flex gap-1.5">
-                                    {(project.tags || []).map((tag) => (<span key={tag} className="px-2 py-0.5 rounded" style={{ background: "rgba(29,22,22,0.8)", color: "#aaa", fontSize: "11px", backdropFilter: "blur(6px)" }}>
-                                            {tag}
-                                        </span>))}
+                                    {(project.tags || []).map((tag) => (<span key={tag} className="px-2 py-0.5 rounded" style={{ background: "rgba(29,22,22,0.8)", color: "#aaa", fontSize: "11px", backdropFilter: "blur(6px)" }}>{tag}</span>))}
                                 </div>
                             </div>
                         </div>
@@ -380,18 +1067,11 @@ export function ProjectDetailPage() {
                                 <span style={{ color: "#888", fontSize: "12px" }}>Overall Progress</span>
                                 {isEditing ? (<div className="flex items-center gap-2">
                                         <input type="range" min={0} max={100} {...register("progress", { valueAsNumber: true })} className="w-28 accent-red-500"/>
-                                        <span style={{ color: "#D84040", fontSize: "13px", fontWeight: 700, minWidth: "36px" }}>
-                                            {watched.progress}%
-                                        </span>
+                                        <span style={{ color: "#D84040", fontSize: "13px", fontWeight: 700, minWidth: "36px" }}>{watched.progress}%</span>
                                     </div>) : (<span style={{ color: "#D84040", fontSize: "14px", fontWeight: 700 }}>{project.progress}%</span>)}
                             </div>
                             <div className="rounded-full" style={{ height: "6px", background: "#2A1F1F" }}>
-                                <div className="h-full rounded-full transition-all duration-500" style={{
-            width: `${isEditing ? watched.progress : project.progress}%`,
-            background: project.progress === 100
-                ? "#6B8FD6"
-                : "linear-gradient(to right, #8E1616, #D84040)",
-        }}/>
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${isEditing ? watched.progress : project.progress}%`, background: project.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
                             </div>
                         </div>
                     </div>
@@ -400,9 +1080,7 @@ export function ProjectDetailPage() {
                     <div className="rounded-xl" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                             <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Project Information</p>
-                            {isEditing && (<span className="px-2 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", fontSize: "11px" }}>
-                                    Editing
-                                </span>)}
+                            {isEditing && (<span className="px-2 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", fontSize: "11px" }}>Editing</span>)}
                         </div>
 
                         <div className="px-5 py-5 space-y-4">
@@ -432,8 +1110,7 @@ export function ProjectDetailPage() {
                                             {dbCategories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                                         </select>) : (<button onClick={() => {
                 const catId = project.format_slug || project.category;
-                if (catId)
-                    navigate(`/admin/categories/${catId}`);
+                if (catId) navigate(`/admin/categories/${catId}`);
             }} className="flex items-center gap-1.5 group/cat" style={{ color: "#EEEEEE", fontSize: "14px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
                                             {project.format || project.category}
                                             <ExternalLink size={11} color="#555" className="opacity-0 group-hover/cat:opacity-100 transition-opacity"/>
@@ -452,9 +1129,7 @@ export function ProjectDetailPage() {
                                             <option value="In Progress">In Progress</option>
                                             <option value="Review">Review</option>
                                             <option value="Completed">Completed</option>
-                                        </select>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full" style={{ background: statusInfo.bg, color: statusInfo.text, fontSize: "12px", fontWeight: 600 }}>
-                                            {project.status}
-                                        </span>)}
+                                        </select>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full" style={{ background: statusInfo.bg, color: statusInfo.text, fontSize: "12px", fontWeight: 600 }}>{project.status}</span>)}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
@@ -477,18 +1152,14 @@ export function ProjectDetailPage() {
                                         <Tag size={11} color="#D84040"/> Tags
                                     </label>
                                     {isEditing ? (<input {...register("tags")} placeholder="Comma-separated tags" className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<div className="flex flex-wrap gap-1.5">
-                                            {(project.tags || []).map((tag) => (<span key={tag} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "12px", border: "1px solid #3A2A2A" }}>
-                                                    {tag}
-                                                </span>))}
+                                            {(project.tags || []).map((tag) => (<span key={tag} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "12px", border: "1px solid #3A2A2A" }}>{tag}</span>))}
                                         </div>)}
                                 </div>
                             </div>
 
                             {/* Description */}
                             <div>
-                                <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                    Description
-                                </label>
+                                <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Description</label>
                                 {isEditing ? (<textarea {...register("description")} rows={4} className="px-3 py-2 rounded-lg outline-none resize-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#aaa", fontSize: "13px", lineHeight: "1.7" }}>
                                         A comprehensive creative engagement focused on delivering exceptional brand experiences and driving measurable outcomes for the client. The project spans multiple phases including discovery, design, development, and delivery.
                                     </p>)}
@@ -498,16 +1169,12 @@ export function ProjectDetailPage() {
                             <div className="pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
                                 <div className="flex items-center gap-2 mb-1">
                                     <Video size={12} color="#D84040"/>
-                                    <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        Video Media
-                                    </label>
-                                    {!isEditing && (<span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.1)", color: "#666", fontSize: "10px", border: "1px solid rgba(216,64,64,0.18)" }}>
-                                            Optional
-                                        </span>)}
+                                    <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Video Media</label>
+                                    {!isEditing && <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(216,64,64,0.1)", color: "#666", fontSize: "10px", border: "1px solid rgba(216,64,64,0.18)" }}>Optional</span>}
                                 </div>
 
-                                {isEditing ? (<div className="space-y-4 mt-3">
-                                        {/* Video URL field */}
+                                {isEditing ? (
+                                    <div className="space-y-4 mt-3">
                                         <div>
                                             <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="flex items-center gap-1.5 mb-2">
                                                 <Link2 size={10} color="#D84040"/> Video URL
@@ -521,37 +1188,29 @@ export function ProjectDetailPage() {
                                                     </button>
                                                 )}
                                             </div>
-                                            {watch("videoUrl") && (<div className="flex items-center gap-2 mt-2">
+                                            {watch("videoUrl") && (
+                                                <div className="flex items-center gap-2 mt-2">
                                                     <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#4CAF50" }}/>
                                                     <span style={{ color: "#4CAF50", fontSize: "11px" }}>URL detected — will be embedded on the project page</span>
-                                                </div>)}
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Upload label */}
                                         <div>
                                             <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="flex items-center gap-1.5 mb-2">
                                                 <UploadCloud size={10} color="#D84040"/> Upload Video File
                                             </label>
-
-                                            {!uploadedVideo ? (<div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => document.getElementById("video-upload-edit")?.click()} className="rounded-xl flex flex-col items-center justify-center py-8 cursor-pointer transition-all select-none" style={{
-                    border: `2px dashed ${dragActive ? "#D84040" : "#3A2A2A"}`,
-                    background: dragActive ? "rgba(216,64,64,0.05)" : "rgba(29,22,22,0.4)",
-                }}>
-                                                    <input id="video-upload-edit" type="file" accept="video/*" className="hidden" onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file)
-                        setUploadedVideo(file);
-                }}/>
+                                            {!uploadedVideo ? (
+                                                <div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => document.getElementById("video-upload-edit")?.click()} className="rounded-xl flex flex-col items-center justify-center py-8 cursor-pointer transition-all select-none" style={{ border: `2px dashed ${dragActive ? "#D84040" : "#3A2A2A"}`, background: dragActive ? "rgba(216,64,64,0.05)" : "rgba(29,22,22,0.4)" }}>
+                                                    <input id="video-upload-edit" type="file" accept="video/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) setUploadedVideo(file); }}/>
                                                     <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: dragActive ? "rgba(216,64,64,0.15)" : "#1D1616", border: `1px solid ${dragActive ? "rgba(216,64,64,0.4)" : "#2E2020"}` }}>
                                                         <UploadCloud size={18} color={dragActive ? "#D84040" : "#555"}/>
                                                     </div>
-                                                    <p style={{ color: dragActive ? "#D84040" : "#888", fontSize: "12px", fontWeight: 500 }}>
-                                                        {dragActive ? "Drop video here" : "Drag & drop a video file"}
-                                                    </p>
-                                                    <p style={{ color: "#555", fontSize: "11px" }} className="mt-1">
-                                                        or <span style={{ color: "#D84040" }}>browse files</span> · MP4, MOV, WebM — up to 500 MB
-                                                    </p>
-                                                </div>) : (<div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
+                                                    <p style={{ color: dragActive ? "#D84040" : "#888", fontSize: "12px", fontWeight: 500 }}>{dragActive ? "Drop video here" : "Drag & drop a video file"}</p>
+                                                    <p style={{ color: "#555", fontSize: "11px" }} className="mt-1">or <span style={{ color: "#D84040" }}>browse files</span> · MP4, MOV, WebM — up to 500 MB</p>
+                                                </div>
+                                            ) : (
+                                                <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
                                                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(76,175,80,0.15)" }}>
                                                         <Play size={14} color="#4CAF50" fill="#4CAF50"/>
                                                     </div>
@@ -562,74 +1221,27 @@ export function ProjectDetailPage() {
                                                     <button type="button" onClick={() => setUploadedVideo(null)} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all" style={{ background: "#2A1F1F", color: "#666", border: "1px solid #3A2A2A" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#3A2A2A"; }}>
                                                         <X size={12}/>
                                                     </button>
-                                                </div>)}
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>) : (
-        /* View mode */
-        (() => {
-            const url = project.videoUrl || "";
-            const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-            const vmMatch = url.match(/vimeo\.com\/(\d+)/);
-            const embedUrl = ytMatch
-                ? `https://www.youtube.com/embed/${ytMatch[1]}`
-                : vmMatch
-                    ? `https://player.vimeo.com/video/${vmMatch[1]}`
-                    : null;
-            if (embedUrl) {
-                return (<div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020" }}>
-                                                    <iframe src={embedUrl} className="w-full" style={{ height: "220px", border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video"/>
-                                                </div>);
-            }
-            if (url) {
-                return (<a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", textDecoration: "none" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; }}>
-                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(216,64,64,0.12)" }}>
-                                                        <Video size={14} color="#D84040"/>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>Video Link</p>
-                                                        <p style={{ color: "#D84040", fontSize: "11px" }} className="truncate">{url}</p>
-                                                    </div>
-                                                    <ExternalLink size={13} color="#555"/>
-                                                </a>);
-            }
-            if (uploadedVideo) {
-                return (<div className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
-                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(76,175,80,0.15)" }}>
-                                                        <Play size={14} color="#4CAF50" fill="#4CAF50"/>
-                                                    </div>
-                                                    <div>
-                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="truncate">{uploadedVideo.name}</p>
-                                                        <p style={{ color: "#666", fontSize: "11px" }}>{(uploadedVideo.size / 1024 / 1024).toFixed(1)} MB uploaded</p>
-                                                    </div>
-                                                </div>);
-            }
-                                            return (<p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }} className="mt-2">
-                                                No video attached — click <span style={{ color: "#D84040" }}>Edit Project</span> to add one.
-                                            </p>);
-                                        })())}
+                                    </div>
+                                ) : (
+                                    <VideoViewMode project={project} uploadedVideo={uploadedVideo} />
+                                )}
 
-                                        {project && project.slug && (
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate(`/admin/projects/${project.slug}/playback`)}
-                                                className="mt-3 w-full py-2.5 rounded-lg flex items-center justify-center gap-2 border text-xs font-bold transition-all"
-                                                style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                                                    borderColor: "#D84040",
-                                                    color: "#D84040"
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = "#D84040";
-                                                    e.currentTarget.style.color = "#EEEEEE";
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = "#1D1616";
-                                                    e.currentTarget.style.color = "#D84040";
-                                                }}
-                                            >
-                                                <MonitorPlay size={14} />
-                                                Mở phòng chiếu & Phản hồi (Cinema Review)
-                                            </button>
-                                        )}
+                                {project && project.slug && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/admin/projects/${project.slug}/playback`)}
+                                        className="mt-3 w-full py-2.5 rounded-lg flex items-center justify-center gap-2 border text-xs font-bold transition-all"
+                                        style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderColor: "#D84040", color: "#D84040" }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = "#D84040"; e.currentTarget.style.color = "#EEEEEE"; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(29, 22, 22, 0.4)", e.currentTarget.style.color = "#D84040" }}
+                                    >
+                                        <MonitorPlay size={14} />
+                                        Mở phòng chiếu &amp; Phản hồi (Cinema Review)
+                                    </button>
+                                )}
                                     </div>
                                 </div>
                             </div>
@@ -646,23 +1258,8 @@ export function ProjectDetailPage() {
                         <div className="p-5">
                             {isEditing ? (
                                 <div className="space-y-4">
-                                    <div 
-                                        onClick={() => document.getElementById("gallery-upload-input")?.click()}
-                                        className="rounded-xl flex flex-col items-center justify-center py-6 cursor-pointer transition-all select-none"
-                                        style={{
-                                            border: "2px dashed #3A2A2A",
-                                            background: "rgba(29,22,22,0.4)"
-                                        }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; }}
-                                    >
-                                        <input 
-                                            id="gallery-upload-input" 
-                                            type="file" 
-                                            accept="image/*" 
-                                            multiple 
-                                            className="hidden" 
-                                            onChange={(e) => {
+                                    <div onClick={() => document.getElementById("gallery-upload-input")?.click()} className="rounded-xl flex flex-col items-center justify-center py-6 cursor-pointer transition-all select-none" style={{ border: "2px dashed #3A2A2A", background: "rgba(29,22,22,0.4)" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; }}>
+                                        <input id="gallery-upload-input" type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
                                                 const files = e.target.files;
                                                 if (files) {
                                                     Array.from(files).forEach(file => {
@@ -670,25 +1267,18 @@ export function ProjectDetailPage() {
                                                         setGalleryImages(prev => [...prev, { id: `new-${Date.now()}-${Math.random()}`, url: previewUrl, file }]);
                                                     });
                                                 }
-                                            }}
-                                        />
+                                            }}/>
                                         <UploadCloud size={20} color="#555" className="mb-2"/>
                                         <p style={{ color: "#888", fontSize: "12px", fontWeight: 500 }}>Click to upload multiple images</p>
                                         <p style={{ color: "#555", fontSize: "10px" }} className="mt-0.5">PNG, JPG or WebP</p>
                                     </div>
-
                                     {galleryImages.length > 0 ? (
                                         <div className="grid grid-cols-4 gap-3 mt-4">
                                             {galleryImages.map((img) => (
                                                 <div key={img.id} className="relative aspect-video rounded-lg overflow-hidden group" style={{ border: "1px solid #3A2A2A" }}>
                                                     <img src={img.url} alt="BTS" className="w-full h-full object-cover" />
                                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => setGalleryImages(prev => prev.filter(item => item.id !== img.id))}
-                                                            className="p-1.5 rounded-full bg-red-600/90 text-white hover:bg-red-700 transition-colors"
-                                                            title="Delete image"
-                                                        >
+                                                        <button type="button" onClick={() => setGalleryImages(prev => prev.filter(item => item.id !== img.id))} className="p-1.5 rounded-full bg-red-600/90 text-white hover:bg-red-700 transition-colors" title="Delete image">
                                                             <Trash2 size={12} />
                                                         </button>
                                                     </div>
@@ -718,20 +1308,10 @@ export function ProjectDetailPage() {
                     {/* Activity / Comments Tabs */}
                     <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex" style={{ borderBottom: "1px solid #2A1F1F" }}>
-                            {["activity", "comments"].map((tab) => (<button key={tab} onClick={() => setActiveTab(tab)} className="flex items-center gap-2 px-5 py-3.5 transition-all capitalize" style={{
-                color: activeTab === tab ? "#EEEEEE" : "#666",
-                borderBottom: `2px solid ${activeTab === tab ? "#D84040" : "transparent"}`,
-                fontSize: "13px",
-                fontWeight: activeTab === tab ? 600 : 400,
-                background: "transparent",
-            }}>
+                            {["activity", "comments"].map((tab) => (<button key={tab} onClick={() => setActiveTab(tab)} className="flex items-center gap-2 px-5 py-3.5 transition-all capitalize" style={{ color: activeTab === tab ? "#EEEEEE" : "#666", borderBottom: `2px solid ${activeTab === tab ? "#D84040" : "transparent"}`, fontSize: "13px", fontWeight: activeTab === tab ? 600 : 400, background: "transparent" }}>
                                     {tab === "activity" ? <Activity size={13}/> : <MessageSquare size={13}/>}
                                     {tab === "activity" ? "Activity" : "Comments"}{" "}
-                                    <span className="px-1.5 py-0.5 rounded" style={{
-                background: activeTab === tab ? "rgba(216,64,64,0.15)" : "#2A1F1F",
-                color: activeTab === tab ? "#D84040" : "#555",
-                fontSize: "10px",
-            }}>
+                                    <span className="px-1.5 py-0.5 rounded" style={{ background: activeTab === tab ? "rgba(216,64,64,0.15)" : "#2A1F1F", color: activeTab === tab ? "#D84040" : "#555", fontSize: "10px" }}>
                                         {tab === "activity" ? activities.length : comments.length}
                                     </span>
                                 </button>))}
@@ -740,9 +1320,7 @@ export function ProjectDetailPage() {
                         <div className="px-5 py-4 space-y-4">
                             {activeTab === "activity" &&
             activities.map((item) => (<div key={item.id} className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>
-                                            {item.avatar}
-                                        </div>
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>{item.avatar}</div>
                                         <div>
                                             <p style={{ color: "#EEEEEE", fontSize: "13px" }}>
                                                 <span style={{ fontWeight: 600 }}>{item.user}</span>{" "}
@@ -757,36 +1335,24 @@ export function ProjectDetailPage() {
 
                             {activeTab === "comments" && (<>
                                     {comments.map((c) => (<div key={c.id} className="flex items-start gap-3">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>
-                                                {c.avatar}
-                                            </div>
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>{c.avatar}</div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{c.user}</span>
                                                     <span style={{ color: "#555", fontSize: "11px" }}>{c.time}</span>
                                                 </div>
-                                                <p className="px-3 py-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#aaa", fontSize: "13px", lineHeight: "1.6", border: "1px solid #2A1F1F" }}>
-                                                    {c.text}
-                                                </p>
+                                                <p className="px-3 py-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#aaa", fontSize: "13px", lineHeight: "1.6", border: "1px solid #2A1F1F" }}>{c.text}</p>
                                             </div>
                                         </div>))}
                                     <div className="flex gap-3 pt-2" style={{ borderTop: "1px solid #2A1F1F" }}>
-                                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff", fontSize: "10px", fontWeight: 700 }}>
-                                            AY
-                                        </div>
+                                        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff", fontSize: "10px", fontWeight: 700 }}>AY</div>
                                         <input onKeyDown={(e) => {
-                                            if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                                                const newComment = {
-                                                    id: Date.now(),
-                                                    user: "Alex (You)",
-                                                    text: e.currentTarget.value.trim(),
-                                                    time: "Just now",
-                                                    avatar: "AY"
-                                                };
-                                                setComments((prev) => [...prev, newComment]);
-                                                e.currentTarget.value = "";
-                                            }
-                                        }} placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
+                            if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                                const newComment = { id: Date.now(), user: "Alex (You)", text: e.currentTarget.value.trim(), time: "Just now", avatar: "AY" };
+                                setComments((prev) => [...prev, newComment]);
+                                e.currentTarget.value = "";
+                            }
+                        }} placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
                                     </div>
                                 </>)}
                         </div>
@@ -817,19 +1383,12 @@ export function ProjectDetailPage() {
                             </div>
                             <span style={{ color: "#666", fontSize: "12px" }}>2 hours ago</span>
                         </div>
-                        {/* Featured status row */}
                         <div className="flex items-center justify-between py-2">
                             <div className="flex items-center gap-2">
                                 <Star size={13} color="#8E1616"/>
                                 <span style={{ color: "#888", fontSize: "12px" }}>Highlighted</span>
                             </div>
-                            <button onClick={() => setIsFeatured((v) => !v)} className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all" style={{
-            background: isFeatured ? "rgba(255,193,7,0.12)" : "#2A1F1F",
-            color: isFeatured ? "#FFC107" : "#555",
-            border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#3A2A2A"}`,
-            fontSize: "11px",
-            fontWeight: 600,
-        }}>
+                            <button onClick={() => setIsFeatured((v) => !v)} className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all" style={{ background: isFeatured ? "rgba(255,193,7,0.12)" : "#2A1F1F", color: isFeatured ? "#FFC107" : "#555", border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#3A2A2A"}`, fontSize: "11px", fontWeight: 600 }}>
                                 <Star size={10} fill={isFeatured ? "#FFC107" : "none"}/>
                                 {isFeatured ? "Yes" : "No"}
                             </button>
@@ -842,116 +1401,72 @@ export function ProjectDetailPage() {
                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Assigned Crew</p>
                             <span style={{ color: "#D84040", fontSize: "12px" }}>{assignedCrew.length} members</span>
                         </div>
-                        
+
                         {isEditing ? (
                             <div className="space-y-3">
-                                {/* List of assigned crew with remove buttons */}
                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                                     {assignedCrew.map((c) => {
                                         const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
                                         const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                         const avatarUrl = realMember?.avatar || null;
-                                        
                                         return (
                                             <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     {avatarUrl ? (
                                                         <img src={avatarUrl} alt={c.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
                                                     ) : (
-                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "#8E1616", color: "#EEEEEE" }}>
-                                                            {initials}
-                                                        </div>
+                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "#8E1616", color: "#EEEEEE" }}>{initials}</div>
                                                     )}
                                                     <div className="min-w-0">
                                                         <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }} className="truncate">{c.name}</p>
                                                         <p style={{ color: "#D84040", fontSize: "10px" }} className="truncate">{c.role}</p>
                                                     </div>
                                                 </div>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setAssignedCrew(prev => prev.filter(item => item.id !== c.id))}
-                                                    className="text-gray-500 hover:text-red-500 transition-colors p-1"
-                                                >
+                                                <button type="button" onClick={() => setAssignedCrew(prev => prev.filter(item => item.id !== c.id))} className="text-gray-500 hover:text-red-500 transition-colors p-1">
                                                     <X size={12} />
                                                 </button>
                                             </div>
                                         );
                                     })}
-                                    {assignedCrew.length === 0 && (
-                                        <p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="py-2">No crew assigned yet.</p>
-                                    )}
+                                    {assignedCrew.length === 0 && (<p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="py-2">No crew assigned yet.</p>)}
                                 </div>
-                                
-                                {/* Dropdown select to assign registered crew member */}
+
                                 <div className="mt-3 pt-3 border-t border-[#2A1F1F]">
                                     <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Assign Crew Member</label>
-                                    <select 
-                                        value="" 
-                                        onChange={(e) => {
+                                    <select value="" onChange={(e) => {
                                             const selectedId = e.target.value;
                                             const selectedMember = dbCrew.find(m => m.id.toString() === selectedId);
                                             if (selectedMember) {
                                                 const primaryRole = selectedMember.role ? selectedMember.role.split(",")[0].trim() : "Crew Member";
-                                                setAssignedCrew(prev => [
-                                                    ...prev, 
-                                                    { 
-                                                        id: `crew-${selectedMember.id}-${Date.now()}`, 
-                                                        name: selectedMember.name, 
-                                                        role: primaryRole 
-                                                    }
-                                                ]);
+                                                setAssignedCrew(prev => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: primaryRole }]);
                                             }
                                             e.target.value = "";
-                                        }}
-                                        className="px-3 py-2 rounded-lg outline-none appearance-none cursor-pointer"
-                                        style={inputStyle}
-                                    >
+                                        }} className="px-3 py-2 rounded-lg outline-none appearance-none cursor-pointer" style={inputStyle}>
                                         <option value="">Select registered crew...</option>
-                                        {dbCrew
-                                            .filter(m => !assignedCrew.some(ac => ac.name.toLowerCase() === m.name.toLowerCase()))
-                                            .map((m) => (
-                                                <option key={m.id} value={m.id}>{m.name} ({m.role ? m.role.split(",")[0].trim() : "No Role"})</option>
-                                            ))}
+                                        {dbCrew.filter(m => !assignedCrew.some(ac => ac.name.toLowerCase() === m.name.toLowerCase())).map((m) => (
+                                            <option key={m.id} value={m.id}>{m.name} ({m.role ? m.role.split(",")[0].trim() : "No Role"})</option>
+                                        ))}
                                     </select>
                                 </div>
-                                
-                                {/* Custom write-in credit */}
+
                                 <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">
                                     <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Add Custom Credit</label>
                                     <div className="flex gap-2">
-                                        <input 
-                                            id="custom-credit-role" 
-                                            placeholder="Role: e.g. Sound Designer" 
-                                            className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" 
-                                            style={inputStyle}
-                                        />
-                                        <input 
-                                            id="custom-credit-name" 
-                                            placeholder="Name: e.g. John Doe" 
-                                            className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" 
-                                            style={inputStyle}
-                                        />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => {
+                                        <input id="custom-credit-role" placeholder="Role: e.g. Sound Designer" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" style={inputStyle}/>
+                                        <input id="custom-credit-name" placeholder="Name: e.g. John Doe" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" style={inputStyle}/>
+                                        <button type="button" onClick={() => {
                                                 const roleEl = document.getElementById("custom-credit-role");
                                                 const nameEl = document.getElementById("custom-credit-name");
                                                 const roleVal = roleEl?.value.trim();
                                                 const nameVal = nameEl?.value.trim();
                                                 if (roleVal && nameVal) {
-                                                    setAssignedCrew(prev => [
-                                                        ...prev, 
-                                                        { id: `custom-${Date.now()}`, name: nameVal, role: roleVal }
-                                                    ]);
+                                                    setAssignedCrew(prev => [...prev, { id: `custom-${Date.now()}`, name: nameVal, role: roleVal }]);
                                                     if (roleEl) roleEl.value = "";
                                                     if (nameEl) nameEl.value = "";
                                                 } else {
                                                     alert("Please enter both a role and a name.");
                                                 }
-                                            }}
-                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold" 
-                                            style={{ background: "#D84040", color: "#fff" }}
-                                        >
+                                            }} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "#D84040", color: "#fff" }}>
                                             Add
                                         </button>
                                     </div>
@@ -964,40 +1479,26 @@ export function ProjectDetailPage() {
                                     const avatarUrl = realMember?.avatar || null;
                                     const status = realMember?.status || "Active";
                                     const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
-                                    
                                     return (
                                         <div key={c.id} className="flex items-center gap-3">
                                             {avatarUrl ? (
                                                 <img src={avatarUrl} alt={c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F" }}/>
                                             ) : (
-                                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>
-                                                    {initials}
-                                                </div>
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>{initials}</div>
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 {realMember ? (
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => navigate(`/admin/crew/${realMember.id}`)}
-                                                        className="text-left hover:text-[#D84040] transition-colors"
-                                                        style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}
-                                                    >
-                                                        {c.name}
-                                                    </button>
+                                                    <button type="button" onClick={() => navigate(`/admin/crew/${realMember.id}`)} className="text-left hover:text-[#D84040] transition-colors" style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</button>
                                                 ) : (
                                                     <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</p>
                                                 )}
                                                 <p style={{ color: "#D84040", fontSize: "11px" }}>{c.role}</p>
                                             </div>
-                                            {realMember && (
-                                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: status === "Active" ? "#4CAF50" : "#E8A838" }}/>
-                                            )}
+                                            {realMember && (<span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: status === "Active" ? "#4CAF50" : "#E8A838" }}/>)}
                                         </div>
                                     );
                                 })}
-                                {assignedCrew.length === 0 && (
-                                    <p style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>No crew assigned to this project yet.</p>
-                                )}
+                                {assignedCrew.length === 0 && (<p style={{ color: "#666", fontSize: "12px", fontStyle: "italic" }}>No crew assigned to this project yet.</p>)}
                             </div>
                         )}
                     </div>
