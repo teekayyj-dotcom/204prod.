@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   UserCircle2,
   Calendar,
@@ -14,7 +14,19 @@ import {
   PlaneTakeoff,
   Stethoscope,
   Coffee,
+  Edit3,
+  Save,
+  X,
+  Loader2,
+  Mail,
+  Briefcase,
+  User,
+  Tag,
+  Star,
+  Camera,
 } from "lucide-react";
+import { fetchApi } from "../../admin/utils/apiClient";
+import { allProjects } from "../../admin/data/mockData";
 
 // ─── Mock attendance data ─────────────────────────────────────────────────────
 const currentMonth = new Date().getMonth();
@@ -77,10 +89,120 @@ const statusConfig = {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewHRPage() {
-  const [activeTab, setActiveTab] = useState<"attendance" | "requests">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "requests" | "settings">("attendance");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ type: "leave", from: "", to: "", reason: "" });
   const [requests, setRequests] = useState(mockLeaveRequests);
+
+  // Settings tab states
+  const [member, setMember] = useState<any>(null);
+  const [loadingMember, setLoadingMember] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editBio, setEditBio] = useState("");
+
+  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserEmail = userObj.email || "";
+
+  useEffect(() => {
+    fetchApi<any[]>("/crew")
+      .then((crewList) => {
+        const found = crewList.find((c) => c.email === currentUserEmail);
+        if (found) {
+          setMember(found);
+          const memberSkills = found.skills_expertise ? found.skills_expertise.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+          setSkills(memberSkills);
+          const memberRoles = found.role ? found.role.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+          setSelectedRoles(memberRoles);
+          setAvatarPreview(found.avatar || null);
+          setEditName(found.name || "");
+          setEditEmail(found.email || "");
+          setEditBio(found.bio || "");
+        }
+        setLoadingMember(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching crew member:", err);
+        setLoadingMember(false);
+      });
+  }, [currentUserEmail]);
+
+  const handleCancel = () => {
+    if (member) {
+      setEditName(member.name || "");
+      setEditEmail(member.email || "");
+      setEditBio(member.bio || "");
+      const memberSkills = member.skills_expertise ? member.skills_expertise.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+      setSkills(memberSkills);
+      const memberRoles = member.role ? member.role.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+      setSelectedRoles(memberRoles);
+      setAvatarPreview(member.avatar || null);
+      setAvatarFile(null);
+    }
+    setIsEditing(false);
+  };
+
+  const onSave = async () => {
+    if (!member) return;
+    setSaving(true);
+    try {
+      let avatarUrl = avatarPreview;
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("file", avatarFile);
+        formData.append("alt", `${editName} Avatar`);
+        const mediaAsset = await fetchApi<any>("/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+        avatarUrl = mediaAsset.url;
+      }
+      const payload = {
+        name: editName,
+        email: editEmail,
+        phone: member.phone || "",
+        role: selectedRoles.join(", "),
+        avatar: avatarUrl || "",
+        bio: editBio || "",
+        skills_expertise: skills.join(","),
+        assigned_projects: member.assigned_projects || member.projects || 0,
+        status: member.status || "Active",
+        created_at: member.created_at || null,
+      };
+      const updatedMember = await fetchApi<any>(`/crew/${member.id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+
+      // Update local storage user
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      user.display_name = editName;
+      user.email = editEmail;
+      user.avatar_url = avatarUrl || "";
+      localStorage.setItem("user", JSON.stringify(user));
+
+      setMember(updatedMember);
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        setIsEditing(false);
+      }, 1400);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert(error instanceof Error ? error.message : "Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getWeekday0Based(new Date(currentYear, currentMonth, 1));
@@ -163,7 +285,7 @@ export function CrewHRPage() {
         className="flex gap-1 p-1 mb-6 w-fit rounded-xl"
         style={{ background: "#141010", border: "1px solid #2A1F1F" }}
       >
-        {(["attendance", "requests"] as const).map((tab) => (
+        {(["attendance", "requests", "settings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -175,7 +297,7 @@ export function CrewHRPage() {
               fontWeight: activeTab === tab ? 600 : 400,
             }}
           >
-            {tab === "attendance" ? "Lịch sử Chấm công" : "Quản lý Đơn từ"}
+            {tab === "attendance" ? "Lịch sử Chấm công" : tab === "requests" ? "Quản lý Đơn từ" : "Thiết lập & Dự án"}
           </button>
         ))}
       </div>
@@ -430,6 +552,327 @@ export function CrewHRPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* TAB: Settings & Projects */}
+      {activeTab === "settings" && (
+        <div>
+          {loadingMember ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin text-white/50" size={32} />
+            </div>
+          ) : !member ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <AlertCircle size={48} color="#3A2A2A" className="mb-4" />
+              <p style={{ color: "#EEEEEE", fontSize: "18px", fontWeight: 600 }}>Không tìm thấy thông tin nhân sự</p>
+            </div>
+          ) : (
+            <div>
+              {/* Profile header row with Edit/Discard/Save actions */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 700 }}>
+                    Hồ sơ của bạn
+                  </h3>
+                  <p style={{ color: "#666", fontSize: "12px" }} className="mt-0.5">
+                    Xem và chỉnh sửa thông tin cá nhân của bạn trong hệ thống
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={handleCancel}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all border text-xs font-semibold cursor-pointer"
+                        style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", color: "#888", borderColor: "#2E2020" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}
+                      >
+                        <X size={14} /> Hủy bỏ
+                      </button>
+                      <button
+                        onClick={onSave}
+                        disabled={saving || saved}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-xs font-semibold cursor-pointer"
+                        style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff" }}
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" /> Đang lưu...
+                          </>
+                        ) : saved ? (
+                          <>
+                            <CheckCircle2 size={13} /> Đã lưu!
+                          </>
+                        ) : (
+                          <>
+                            <Save size={13} /> Lưu thay đổi
+                          </>
+                        )}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-xs font-semibold cursor-pointer"
+                      style={{ background: "#D84040", color: "#fff" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}
+                    >
+                      <Edit3 size={13} /> Chỉnh sửa hồ sơ
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Layout Grid */}
+              <div className="grid grid-cols-3 gap-6">
+                {/* Left side: Profile Summary, Bio, Skills (2/3 width) */}
+                <div className="col-span-2 space-y-5">
+                  
+                  {/* Hero Card */}
+                  <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                    {/* Banner */}
+                    <div className="h-28 relative" style={{ background: "linear-gradient(135deg, #1D1616 0%, #8E1616 55%, #D84040 100%)" }}>
+                      <span className="absolute top-3 right-4 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: member.status === "Active" ? "rgba(76,175,80,0.2)" : "rgba(232,168,56,0.2)", color: member.status === "Active" ? "#4CAF50" : "#E8A838" }}>
+                        {member.status === "Active" ? "Đang hoạt động" : "Nghỉ phép"}
+                      </span>
+                    </div>
+
+                    <div className="px-6 pb-6 relative z-10">
+                      {/* Avatar & Info */}
+                      <div className="flex items-end gap-4 -mt-10 mb-4">
+                        <div className="relative group">
+                          <input
+                            id="crew-profile-avatar"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setAvatarFile(file);
+                                setAvatarPreview(URL.createObjectURL(file));
+                              }
+                            }}
+                          />
+                          <img
+                            src={avatarPreview || member.avatar || "/favicon/204-logo.png"}
+                            alt={member.name}
+                            className="w-20 h-20 rounded-full object-cover"
+                            style={{ border: "3px solid #241C1C" }}
+                          />
+                          {isEditing && (
+                            <>
+                              <div
+                                className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                style={{ background: "rgba(0,0,0,0.6)" }}
+                                onClick={() => document.getElementById("crew-profile-avatar")?.click()}
+                              >
+                                <Camera size={22} color="#EEEEEE" />
+                              </div>
+                              <div
+                                className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer"
+                                style={{ background: "#D84040", border: "2px solid #241C1C" }}
+                                onClick={() => document.getElementById("crew-profile-avatar")?.click()}
+                              >
+                                <Camera size={11} color="#fff" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="pb-1 flex-1">
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <div>
+                                <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Họ và Tên</label>
+                                <input
+                                  type="text"
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="px-3 py-2 rounded-lg outline-none w-full text-sm"
+                                  style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE" }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Vai trò / Chức danh (nhập ngăn cách bằng dấu phẩy)</label>
+                                <input
+                                  type="text"
+                                  value={selectedRoles.join(", ")}
+                                  onChange={(e) => setSelectedRoles(e.target.value.split(",").map(r => r.trim()).filter(Boolean))}
+                                  className="px-3 py-2 rounded-lg outline-none w-full text-sm"
+                                  style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE" }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <h2 style={{ color: "#EEEEEE", fontSize: "20px", fontWeight: 700 }}>{member.name}</h2>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {selectedRoles.map((r) => (
+                                  <span key={r} className="px-2 py-0.5 rounded text-xs" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.2)" }}>
+                                    {r}
+                                  </span>
+                                ))}
+                                {selectedRoles.length === 0 && (
+                                  <span style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>Chưa phân vai trò</span>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Detail contact info */}
+                      <div className="grid grid-cols-2 gap-4 pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
+                        <div>
+                          <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
+                            <Mail size={10} color="#D84040" /> Email liên hệ
+                          </label>
+                          {isEditing ? (
+                            <input
+                              type="email"
+                              value={editEmail}
+                              onChange={(e) => setEditEmail(e.target.value)}
+                              className="px-3 py-2 rounded-lg outline-none w-full text-sm"
+                              style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE" }}
+                            />
+                          ) : (
+                            <p style={{ color: "#EEEEEE", fontSize: "13px" }}>{member.email || "—"}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
+                            <Calendar size={10} color="#D84040" /> Ngày tham gia
+                          </label>
+                          <p style={{ color: "#EEEEEE", fontSize: "13px" }}>
+                            {member.created_at ? new Date(member.created_at).toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }) : "Tháng 5, 2026"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio Card */}
+                  <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                    <label style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="flex items-center gap-2 mb-3">
+                      <User size={14} color="#D84040" /> Tiểu sử & Giới thiệu
+                    </label>
+                    {isEditing ? (
+                      <textarea
+                        value={editBio}
+                        onChange={(e) => setEditBio(e.target.value)}
+                        rows={4}
+                        placeholder="Giới thiệu phong cách làm việc, kinh nghiệm và chuyên môn của bạn..."
+                        className="px-3 py-2.5 rounded-lg outline-none resize-none w-full text-sm"
+                        style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE" }}
+                      />
+                    ) : (
+                      <p style={{ color: "#aaa", fontSize: "13px", lineHeight: "1.8" }}>
+                        {member.bio || "Chưa có giới thiệu."}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Skills Card */}
+                  <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                    <label style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="flex items-center gap-2 mb-4">
+                      <Tag size={14} color="#D84040" /> Kỹ năng chuyên môn
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {skills.map((skill) => (
+                        <span key={skill} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium" style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
+                          {skill}
+                          {isEditing && (
+                            <button type="button" onClick={() => setSkills(skills.filter(s => s !== skill))} className="ml-0.5 hover:opacity-70 cursor-pointer">
+                              <X size={11} />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    {isEditing && (
+                      <div className="flex gap-2">
+                        <input
+                          value={skillInput}
+                          onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const trimmed = skillInput.trim();
+                              if (trimmed && !skills.includes(trimmed)) setSkills([...skills, trimmed]);
+                              setSkillInput("");
+                            }
+                          }}
+                          placeholder="Thêm kỹ năng mới và nhấn Enter..."
+                          className="flex-1 px-3 py-2 rounded-lg outline-none text-sm"
+                          style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid #3A2A2A", color: "#EEEEEE" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const trimmed = skillInput.trim();
+                            if (trimmed && !skills.includes(trimmed)) setSkills([...skills, trimmed]);
+                            setSkillInput("");
+                          }}
+                          className="px-3 py-2 rounded-lg flex items-center cursor-pointer"
+                          style={{ background: "rgba(216,64,64,0.15)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right side: Projects List & Stats (1/3 width) */}
+                <div className="col-span-1 space-y-5">
+                  {/* Stats Card */}
+                  <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                    <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Thống kê nhân sự</p>
+                    {[
+                      { icon: Briefcase, label: "Dự án đã tham gia", value: member.projects || 0, color: "#D84040" },
+                      { icon: Tag, label: "Số lượng kỹ năng", value: skills.length },
+                      { icon: Star, label: "Số năm gắn bó", value: (new Date().getFullYear() - (member.created_at ? new Date(member.created_at).getFullYear() : 2026)) || "< 1 năm" },
+                    ].map(({ icon: Icon, label, value, color }) => (
+                      <div key={label} className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid #2A1F1F" }}>
+                        <div className="flex items-center gap-2">
+                          <Icon size={13} color="#8E1616" />
+                          <span style={{ color: "#888", fontSize: "12px" }}>{label}</span>
+                        </div>
+                        <span style={{ color: color || "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Assigned Projects Card */}
+                  <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
+                      <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Dự án được phân công</p>
+                      <span style={{ color: "#D84040", fontSize: "12px" }}>{member.projects || 0} dự án</span>
+                    </div>
+                    <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
+                      {allProjects.slice(0, member.projects || 2).map((p) => (
+                        <div key={p.id} className="flex items-center gap-4 px-5 py-3.5 transition-colors">
+                          <img src={p.image} alt={p.title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{p.title}</p>
+                            <p style={{ color: "#666", fontSize: "11px" }}>{p.client} · {p.category}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: "rgba(216,64,64,0.15)", color: "#D84040" }}>
+                              {p.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -2,49 +2,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
-import { motion, useMotionValue, useTransform } from 'motion/react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import * as THREE from 'three';
 
 const shot = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=80`;
 
-const fallbackProjects = [
-  {
-    id: "midnight-textile",
-    number: "01",
-    title: "Midnight Textile",
-    client: "Mira Atelier",
-    year: "2025",
-    category: "Fashion Film",
-    role: "Director / DP",
-    image: shot("photo-1516321318423-f06f85e504b3"),
-    video: "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c93159318eca11d331cfb51138ec3783&profile_id=139&oauth2_token_id=57447761",
-    description: "A sharply lit studio piece balancing tactile wardrobe detail with humid city-night energy."
-  },
-  {
-    id: "neon-harvest",
-    number: "02",
-    title: "Neon Harvest",
-    client: "Field Theory",
-    year: "2024",
-    category: "Brand Film",
-    role: "Creative Director",
-    image: shot("photo-1518005020951-eccb494ad742"),
-    video: "https://player.vimeo.com/external/435674703.sd.mp4?s=7fdf70a2569e2c6599db733575971485600ff0a9&profile_id=165&oauth2_token_id=57447761",
-    description: "A saturated campaign world built around ritualized product framing and sculpted motion."
-  },
-  {
-    id: "soft-machinery",
-    number: "03",
-    title: "Soft Machinery",
-    client: "Nami Objects",
-    year: "2024",
-    category: "Digital Campaign",
-    role: "Lead Editor / Colorist",
-    image: shot("photo-1524758631624-e2822e304c36"),
-    video: "https://player.vimeo.com/external/340338356.sd.mp4?s=cfd3b5b63488820c85c2763c8be0a5fa70cb9e49&profile_id=165&oauth2_token_id=57447761",
-    description: "A graphic product narrative using modular sets, hard edges, and close texture study."
-  }
-];
+const fallbackProjects = [];
 
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();

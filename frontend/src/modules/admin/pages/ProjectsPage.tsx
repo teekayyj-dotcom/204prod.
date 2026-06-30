@@ -203,7 +203,11 @@ export function ProjectsPage() {
                             </div>
                             <div className="p-4">
                                 <div className="flex items-start justify-between mb-1">
-                                    <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{project.title}</h3>
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="truncate">{project.title}</h3>
+                                        {project.published && <span title="Published" className="text-[10px] flex-shrink-0">🌐</span>}
+                                        {project.locked && <span title="Locked" className="text-[10px] flex-shrink-0">🔒</span>}
+                                    </div>
                                     {featuredIds.has(project.slug) && (<span className="flex items-center gap-1 px-1.5 py-0.5 rounded ml-2 flex-shrink-0" style={{ background: "rgba(255,193,7,0.1)", color: "#FFC107", fontSize: "10px", border: "1px solid rgba(255,193,7,0.25)" }}>
                                             <Star size={9} fill="#FFC107"/> Featured
                                         </span>)}
@@ -254,7 +258,11 @@ export function ProjectsPage() {
                                             <div className="flex items-center gap-3">
                                                 <img src={p.cover_image} alt={p.title} className="w-10 h-7 rounded object-cover" />
                                                 <div>
-                                                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{p.title}</p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{p.title}</p>
+                                                        {p.published && <span title="Published" className="text-[10px]">🌐</span>}
+                                                        {p.locked && <span title="Locked" className="text-[10px]">🔒</span>}
+                                                    </div>
                                                     <p style={{ color: "#666", fontSize: "11px" }}>{p.year}</p>
                                                 </div>
                                             </div>

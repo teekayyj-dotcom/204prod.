@@ -10,6 +10,7 @@
     "lint": "npm run lint --workspace frontend"
   },
   "dependencies": {
-    "firebase": "^12.15.0"
+    "firebase": "^12.15.0",
+    "googleapis": "^173.0.0"
   }
 }

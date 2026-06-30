@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
 from app.modules.projects.service import get_project, get_projects, create_project, delete_project, update_project
-from app.modules.projects.schemas import ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate, ProjectFeedbackCreate
+from app.modules.projects.schemas import ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate, ProjectFeedbackCreate, ProjectTaskCreate, ProjectTaskUpdate, ApprovalRequestCreate
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -123,6 +123,66 @@ def reply_feedback_route(feedback_id: int, reply_content: str = Body(..., embed=
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found")
     return updated
+
+
+@router.get("/{slug}/tasks")
+def get_project_tasks_route(slug: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import get_project_tasks
+    return get_project_tasks(db, slug)
+
+
+@router.post("/{slug}/tasks", status_code=status.HTTP_201_CREATED)
+def create_project_task_route(slug: str, req: ProjectTaskCreate, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import create_project_task
+    return create_project_task(db, slug, req)
+
+
+@router.put("/tasks/{task_id}")
+def update_project_task_route(task_id: str, req: ProjectTaskUpdate, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import update_project_task
+    updated = update_project_task(db, task_id, req)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    return updated
+
+
+@router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project_task_route(task_id: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import delete_project_task
+    success = delete_project_task(db, task_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    return None
+
+
+@router.get("/{slug}/approval-requests")
+def get_pending_approval_requests_route(slug: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import get_pending_approval_requests
+    return get_pending_approval_requests(db, slug)
+
+
+@router.post("/{slug}/approval-requests", status_code=status.HTTP_201_CREATED)
+def create_approval_request_route(slug: str, req: ApprovalRequestCreate, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import create_approval_request
+    return create_approval_request(db, slug, req)
+
+
+@router.put("/approval-requests/{req_id}/approve")
+def approve_task_request_route(req_id: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import approve_task_request
+    success = approve_task_request(db, req_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval request not found")
+    return {"message": "Request approved successfully"}
+
+
+@router.put("/approval-requests/{req_id}/reject")
+def reject_task_request_route(req_id: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import reject_task_request
+    success = reject_task_request(db, req_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval request not found")
+    return {"message": "Request rejected successfully"}
 
 
 

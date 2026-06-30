@@ -46,6 +46,8 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
         format_slug=project.format_slug,
         featured=project.featured,
         status=project.status,
+        published=project.published,
+        locked=project.locked,
         cover_media_id=project.cover_media_id,
         video_url=video_url,
         summary=project.summary,
@@ -100,6 +102,10 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
         existing_project.featured = project.featured
     if project.status is not None:
         existing_project.status = project.status
+    if project.published is not None:
+        existing_project.published = project.published
+    if project.locked is not None:
+        existing_project.locked = project.locked
     if project.cover_media_id is not None:
         existing_project.cover_media_id = project.cover_media_id
     if project.video_url is not None:
@@ -280,4 +286,129 @@ def reply_feedback(db: Session, feedback_id: int, reply_content: str, reply_auth
     db.commit()
     db.refresh(db_feedback)
     return db_feedback
+
+
+def get_project_tasks(db: Session, project_slug: str):
+    from app.modules.projects.models import ProjectTask
+    return db.query(ProjectTask).filter(ProjectTask.project_slug == project_slug).all()
+
+
+def create_project_task(db: Session, project_slug: str, task: ProjectTaskCreate) -> ProjectTask:
+    from app.modules.projects.models import ProjectTask
+    db_task = ProjectTask(
+        id=task.id,
+        project_slug=project_slug,
+        title=task.title,
+        assignee_name=task.assignee_name,
+        assignee_initials=task.assignee_initials,
+        tag=task.tag,
+        created_by=task.created_by,
+        deadline=task.deadline,
+        status=task.status,
+        priority=task.priority
+    )
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def update_project_task(db: Session, task_id: str, task_update: ProjectTaskUpdate) -> ProjectTask | None:
+    from app.modules.projects.models import ProjectTask
+    db_task = db.query(ProjectTask).filter(ProjectTask.id == task_id).first()
+    if not db_task:
+        return None
+    if task_update.title is not None:
+        db_task.title = task_update.title
+    if task_update.assignee_name is not None:
+        db_task.assignee_name = task_update.assignee_name
+    if task_update.assignee_initials is not None:
+        db_task.assignee_initials = task_update.assignee_initials
+    if task_update.tag is not None:
+        db_task.tag = task_update.tag
+    if task_update.created_by is not None:
+        db_task.created_by = task_update.created_by
+    if task_update.deadline is not None:
+        db_task.deadline = task_update.deadline
+    if task_update.status is not None:
+        db_task.status = task_update.status
+    if task_update.priority is not None:
+        db_task.priority = task_update.priority
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
+
+def delete_project_task(db: Session, task_id: str) -> bool:
+    from app.modules.projects.models import ProjectTask
+    db_task = db.query(ProjectTask).filter(ProjectTask.id == task_id).first()
+    if not db_task:
+        return False
+    db.delete(db_task)
+    db.commit()
+    return True
+
+
+def create_approval_request(db: Session, project_slug: str, req: ApprovalRequestCreate):
+    from app.modules.projects.models import ApprovalRequest
+    db_req = ApprovalRequest(
+        id=req.id,
+        project_slug=project_slug,
+        task_id=req.task_id,
+        crew_name=req.crew_name,
+        status=req.status,
+        timestamp=req.timestamp
+    )
+    db.add(db_req)
+    db.commit()
+    db.refresh(db_req)
+    return db_req
+
+
+def get_pending_approval_requests(db: Session, project_slug: str):
+    from app.modules.projects.models import ApprovalRequest, ProjectTask
+    results = db.query(ApprovalRequest, ProjectTask.title).join(
+        ProjectTask, ApprovalRequest.task_id == ProjectTask.id
+    ).filter(
+        ApprovalRequest.project_slug == project_slug,
+        ApprovalRequest.status == "pending"
+    ).all()
+    
+    requests = []
+    for req, title in results:
+        requests.append({
+            "id": req.id,
+            "projectId": req.project_slug,
+            "taskId": req.task_id,
+            "taskLabel": title,
+            "crewName": req.crew_name,
+            "status": req.status,
+            "timestamp": req.timestamp
+        })
+    return requests
+
+
+def approve_task_request(db: Session, request_id: str) -> bool:
+    from app.modules.projects.models import ApprovalRequest, ProjectTask
+    db_req = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
+    if not db_req:
+        return False
+    db_req.status = "approved"
+    
+    db_task = db.query(ProjectTask).filter(ProjectTask.id == db_req.task_id).first()
+    if db_task:
+        db_task.status = "done"
+        
+    db.commit()
+    return True
+
+
+def reject_task_request(db: Session, request_id: str) -> bool:
+    from app.modules.projects.models import ApprovalRequest
+    db_req = db.query(ApprovalRequest).filter(ApprovalRequest.id == request_id).first()
+    if not db_req:
+        return False
+    db_req.status = "rejected"
+    db.commit()
+    return True
 

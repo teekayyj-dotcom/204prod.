@@ -8,7 +8,7 @@ import {
     AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
     Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
     FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
-    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap,
+    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe,
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -34,19 +34,19 @@ const inputStyle = {
 // ─── Mock data for admin tabs ──────────────────────────────────────────────────
 
 const MOCK_KANBAN_TASKS = [
-    { id: "t1", col: "todo", title: "Viết kịch bản phỏng vấn CEO", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-07-05", priority: "high" },
-    { id: "t2", col: "todo", title: "Book studio ngày 10/7", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-07-03", priority: "medium" },
-    { id: "t3", col: "todo", title: "Chuẩn bị prop list cho shoot", assignee: "PD", assigneeName: "Phạm Dũng", deadline: "2026-07-08", priority: "low" },
-    { id: "t4", col: "inprogress", title: "Edit teaser 30s v2", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-30", priority: "high" },
-    { id: "t5", col: "inprogress", title: "Color grading episode 1", assignee: "JT", assigneeName: "Jake Torres", deadline: "2026-07-01", priority: "high" },
-    { id: "t6", col: "inprogress", title: "Soundmix & mix âm thanh", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-07-02", priority: "medium" },
-    { id: "t7", col: "review", title: "Final cut documentary 12min", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-29", priority: "high" },
-    { id: "t8", col: "review", title: "Motion graphic intro v3", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-28", priority: "medium" },
-    { id: "t9", col: "clientreview", title: "Brand story video — cut 1", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-06-27", priority: "high" },
-    { id: "t10", col: "clientreview", title: "Photography batch A (20 ảnh)", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-28", priority: "medium" },
-    { id: "t11", col: "done", title: "Location scouting report", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-06-20", priority: "low" },
-    { id: "t12", col: "done", title: "Kickoff meeting & brief review", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-15", priority: "medium" },
-    { id: "t13", col: "done", title: "Storyboard approval", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-06-22", priority: "high" },
+    { id: "t1", col: "todo", title: "Viết kịch bản phỏng vấn CEO", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-07-05", priority: "high", tag: "Planning", createdBy: "Admin" },
+    { id: "t2", col: "todo", title: "Book studio ngày 10/7", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-07-03", priority: "medium", tag: "Planning", createdBy: "Admin" },
+    { id: "t3", col: "todo", title: "Chuẩn bị prop list cho shoot", assignee: "PD", assigneeName: "Phạm Dũng", deadline: "2026-07-08", priority: "low", tag: "Planning", createdBy: "Admin" },
+    { id: "t4", col: "inprogress", title: "Edit teaser 30s v2", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-30", priority: "high", tag: "Editing", createdBy: "Admin" },
+    { id: "t5", col: "inprogress", title: "Color grading episode 1", assignee: "JT", assigneeName: "Jake Torres", deadline: "2026-07-01", priority: "high", tag: "Color", createdBy: "Admin" },
+    { id: "t6", col: "inprogress", title: "Soundmix & mix âm thanh", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-07-02", priority: "medium", tag: "Audio", createdBy: "Admin" },
+    { id: "t7", col: "review", title: "Final cut documentary 12min", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-29", priority: "high", tag: "Editing", createdBy: "Admin" },
+    { id: "t8", col: "review", title: "Motion graphic intro v3", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-28", priority: "medium", tag: "Motion", createdBy: "Admin" },
+    { id: "t9", col: "clientreview", title: "Brand story video — cut 1", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-06-27", priority: "high", tag: "Review", createdBy: "Admin" },
+    { id: "t10", col: "clientreview", title: "Photography batch A (20 ảnh)", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-28", priority: "medium", tag: "Asset", createdBy: "Admin" },
+    { id: "t11", col: "done", title: "Location scouting report", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-06-20", priority: "low", tag: "Planning", createdBy: "Admin" },
+    { id: "t12", col: "done", title: "Kickoff meeting & brief review", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-15", priority: "medium", tag: "Planning", createdBy: "Admin" },
+    { id: "t13", col: "done", title: "Storyboard approval", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-06-22", priority: "high", tag: "Planning", createdBy: "Admin" },
 ];
 
 const KANBAN_COLUMNS = [
@@ -125,12 +125,151 @@ function AvatarBubble({ initials, size = 28, color = "#8E1616" }: { initials: st
 // ─── Admin Tab: Kanban Board ───────────────────────────────────────────────────
 
 function KanbanTab() {
-    const [tasks, setTasks] = useState(MOCK_KANBAN_TASKS);
+    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+    const currentUserName = userObj.display_name || userObj.username || "Admin User";
+
+    const { id } = useParams();
+    const [tasks, setTasks] = useState<any[]>([]);
+
+    const fetchTasks = () => {
+        if (!id) return;
+        fetchApi<any[]>(`/projects/${id}/tasks`)
+            .then(data => {
+                const mapped = data.map(t => ({
+                    id: t.id,
+                    col: t.status,
+                    title: t.title,
+                    assignee: t.assignee_initials || "",
+                    assigneeName: t.assignee_name || "",
+                    tag: t.tag || "",
+                    createdBy: t.created_by,
+                    deadline: t.deadline || "",
+                    priority: t.priority || "medium"
+                }));
+                setTasks(mapped);
+            })
+            .catch(err => console.error("Error fetching tasks:", err));
+    };
+
+    useEffect(() => {
+        fetchTasks();
+    }, [id]);
+
     const [dragging, setDragging] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState<string | null>(null);
     const [showAddTask, setShowAddTask] = useState<string | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState("");
+    const [newTaskAssigneeName, setNewTaskAssigneeName] = useState("");
+    const [newTaskAssigneeInitials, setNewTaskAssigneeInitials] = useState("");
+    const [newTaskTag, setNewTaskTag] = useState("");
+    const [newTaskCreator, setNewTaskCreator] = useState(currentUserName);
+    const [newTaskDeadline, setNewTaskDeadline] = useState("");
 
+    // Searchable Assignee Dropdown states
+    const [crewList, setCrewList] = useState<any[]>([]);
+    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+    const [searchAssigneeQuery, setSearchAssigneeQuery] = useState("");
+
+    useEffect(() => {
+        fetchApi<any[]>("/crew")
+            .then((data) => {
+                setCrewList(data || []);
+            })
+            .catch((err) => {
+                console.error("Error fetching crew list:", err);
+            });
+    }, []);
+    const [activeTaskMenu, setActiveTaskMenu] = useState<string | null>(null);
+    const [approvalRequests, setApprovalRequests] = useState<any[]>([]);
+
+    const loadApprovalRequests = () => {
+        if (!id) return;
+        fetchApi<any[]>(`/projects/${id}/approval-requests`)
+            .then(data => {
+                setApprovalRequests(data);
+            })
+            .catch(err => console.error("Error fetching approval requests:", err));
+    };
+
+    useEffect(() => {
+        loadApprovalRequests();
+        const interval = setInterval(loadApprovalRequests, 5000);
+        return () => clearInterval(interval);
+    }, [id]);
+
+    const handleApproveRequest = (req: any) => {
+        fetchApi(`/projects/approval-requests/${req.id}/approve`, {
+            method: "PUT"
+        })
+            .then(() => {
+                fetchTasks();
+                loadApprovalRequests();
+            })
+            .catch(err => console.error("Error approving request:", err));
+    };
+
+    const handleRejectRequest = (reqId: string) => {
+        fetchApi(`/projects/approval-requests/${reqId}/reject`, {
+            method: "PUT"
+        })
+            .then(() => {
+                loadApprovalRequests();
+            })
+            .catch(err => console.error("Error rejecting request:", err));
+    };
+    const [editingTask, setEditingTask] = useState<{ colId: string; task: any } | null>(null);
+    const [editTaskTitle, setEditTaskTitle] = useState("");
+    const [editTaskAssigneeName, setEditTaskAssigneeName] = useState("");
+    const [editTaskAssigneeInitials, setEditTaskAssigneeInitials] = useState("");
+    const [editTaskTag, setEditTaskTag] = useState("");
+    const [editTaskCreator, setEditTaskCreator] = useState("");
+    const [editTaskDeadline, setEditTaskDeadline] = useState("");
+    const [showEditAssigneeDropdown, setShowEditAssigneeDropdown] = useState(false);
+    const [searchEditAssigneeQuery, setSearchEditAssigneeQuery] = useState("");
+
+    const handleEditTaskClick = (colId: string, task: any) => {
+        setEditingTask({ colId, task });
+        setEditTaskTitle(task.title);
+        setEditTaskAssigneeName(task.assigneeName || "");
+        setEditTaskAssigneeInitials(task.assignee || "");
+        setEditTaskTag(task.tag || "");
+        setEditTaskCreator(task.createdBy || "");
+        setEditTaskDeadline(task.deadline || "");
+    };
+
+    const saveEditedTask = () => {
+        if (!editingTask || !editTaskTitle.trim()) return;
+        const taskUpdate = {
+            title: editTaskTitle.trim(),
+            assignee_name: editTaskAssigneeName.trim() || null,
+            assignee_initials: editTaskAssigneeInitials.trim() || null,
+            tag: editTaskTag.trim() || "Work",
+            created_by: editTaskCreator.trim() || currentUserName,
+            deadline: editTaskDeadline || null,
+        };
+
+        fetchApi(`/projects/tasks/${editingTask.task.id}`, {
+            method: "PUT",
+            body: JSON.stringify(taskUpdate)
+        })
+            .then(() => {
+                fetchTasks();
+            })
+            .catch(err => console.error("Error updating task:", err));
+
+        setEditingTask(null);
+    };
+
+    const handleDeleteTask = (taskId: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa công việc này?")) return;
+        fetchApi(`/projects/tasks/${taskId}`, {
+            method: "DELETE"
+        })
+            .then(() => {
+                fetchTasks();
+            })
+            .catch(err => console.error("Error deleting task:", err));
+    };
     const onDragStart = (e: React.DragEvent, taskId: string) => {
         setDragging(taskId);
         e.dataTransfer.effectAllowed = "move";
@@ -143,7 +282,14 @@ function KanbanTab() {
     const onDrop = (e: React.DragEvent, colId: string) => {
         e.preventDefault();
         if (!dragging) return;
-        setTasks(prev => prev.map(t => t.id === dragging ? { ...t, col: colId } : t));
+        fetchApi(`/projects/tasks/${dragging}`, {
+            method: "PUT",
+            body: JSON.stringify({ status: colId })
+        })
+            .then(() => {
+                fetchTasks();
+            })
+            .catch(err => console.error("Error updating task status:", err));
         setDragging(null);
         setDragOver(null);
     };
@@ -151,16 +297,73 @@ function KanbanTab() {
 
     const addTask = (colId: string) => {
         if (!newTaskTitle.trim()) return;
-        setTasks(prev => [...prev, {
-            id: `t${Date.now()}`, col: colId, title: newTaskTitle.trim(),
-            assignee: "AY", assigneeName: "Alex (Admin)", deadline: "", priority: "medium",
-        }]);
+        const newTaskId = `t${Date.now()}`;
+        const initials = newTaskAssigneeInitials.trim() || "AY";
+        const taskData = {
+            id: newTaskId,
+            title: newTaskTitle.trim(),
+            assignee_name: newTaskAssigneeName.trim() || "Alex (Admin)",
+            assignee_initials: initials,
+            tag: newTaskTag.trim() || "Work",
+            created_by: newTaskCreator.trim() || currentUserName,
+            deadline: newTaskDeadline || null,
+            status: colId,
+            priority: "medium"
+        };
+
+        fetchApi(`/projects/${id}/tasks`, {
+            method: "POST",
+            body: JSON.stringify(taskData)
+        })
+            .then(() => {
+                fetchTasks();
+            })
+            .catch(err => console.error("Error creating task:", err));
+
         setNewTaskTitle("");
+        setNewTaskAssigneeName("");
+        setNewTaskAssigneeInitials("");
+        setNewTaskTag("");
+        setNewTaskCreator(currentUserName);
+        setNewTaskDeadline("");
         setShowAddTask(null);
     };
 
     return (
         <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
+            {/* Approval Requests list */}
+            {approvalRequests.length > 0 && (
+                <div style={{ background: "rgba(212,168,67,0.08)", border: "1px solid #D4A843", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#D4A843" }} />
+                        <span style={{ color: "#D4A843", fontSize: "12px", fontWeight: 700 }}>YÊU CẦU DUYỆT CÔNG VIỆC ({approvalRequests.length})</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {approvalRequests.map((req) => (
+                            <div key={req.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(20,16,16,0.6)", borderRadius: "8px", padding: "8px 12px", border: "1px solid #2A1F1F" }}>
+                                <div style={{ textAlign: "left" }}>
+                                    <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 600, margin: 0 }}>{req.taskLabel}</p>
+                                    <p style={{ color: "#666", fontSize: "9px", margin: "2px 0 0" }}>Gửi bởi: <strong style={{ color: "#888" }}>{req.crewName}</strong> • {req.timestamp}</p>
+                                </div>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                    <button
+                                        onClick={() => handleRejectRequest(req.id)}
+                                        style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "5px 10px", fontSize: "10px", cursor: "pointer" }}
+                                    >
+                                        Từ chối
+                                    </button>
+                                    <button
+                                        onClick={() => handleApproveRequest(req)}
+                                        style={{ background: "#D4A843", color: "#0A0707", border: "none", borderRadius: "6px", padding: "5px 12px", fontSize: "10px", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                        Duyệt hoàn thành
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             <div style={{ display: "flex", gap: "12px", minWidth: "860px" }}>
                 {KANBAN_COLUMNS.map(col => {
                     const colTasks = tasks.filter(t => t.col === col.id);
@@ -184,11 +387,11 @@ function KanbanTab() {
                             <div style={{ padding: "12px 12px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                                     <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: col.color }} />
-                                    <span style={{ color: col.color, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                                    <span style={{ color: col.color, fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                                         {col.label}
                                     </span>
                                 </div>
-                                <span style={{ background: col.color + "22", color: col.color, borderRadius: "20px", padding: "1px 7px", fontSize: "10px", fontWeight: 700 }}>
+                                <span style={{ background: col.color + "22", color: col.color, borderRadius: "20px", padding: "1px 7px", fontSize: "11px", fontWeight: 700 }}>
                                     {colTasks.length}
                                 </span>
                             </div>
@@ -205,7 +408,12 @@ function KanbanTab() {
                                             draggable
                                             onDragStart={e => onDragStart(e, task.id)}
                                             onDragEnd={onDragEnd}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveTaskMenu(activeTaskMenu === task.id ? null : task.id);
+                                            }}
                                             style={{
+                                                position: "relative",
                                                 background: isDragging ? "rgba(216,64,64,0.1)" : "rgba(29,22,22,0.85)",
                                                 border: `1px solid ${overdue ? "rgba(216,64,64,0.4)" : isDragging ? "#D84040" : "rgba(46,32,32,0.7)"}`,
                                                 borderRadius: "10px", padding: "9px 11px",
@@ -216,17 +424,84 @@ function KanbanTab() {
                                             onMouseEnter={e => { if (!isDragging) e.currentTarget.style.borderColor = col.color + "55"; }}
                                             onMouseLeave={e => { if (!isDragging) e.currentTarget.style.borderColor = overdue ? "rgba(216,64,64,0.4)" : "rgba(46,32,32,0.7)"; }}
                                         >
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "5px" }}>
-                                                <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: task.priority === "high" ? "#D84040" : task.priority === "medium" ? "#E8A838" : "#555" }} />
+                                            {activeTaskMenu === task.id && (
+                                                <>
+                                                    <div 
+                                                        style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveTaskMenu(null);
+                                                        }}
+                                                    />
+                                                    <div style={{
+                                                        position: "absolute", right: "8px", top: "28px", width: "110px",
+                                                        borderRadius: "8px", border: "1px solid #2A1F1F", zIndex: 40,
+                                                        padding: "4px", background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
+                                                    }} onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={() => {
+                                                                handleEditTaskClick(col.id, task);
+                                                                setActiveTaskMenu(null);
+                                                            }}
+                                                            style={{
+                                                                width: "100%", textAlign: "left", padding: "5px 8px",
+                                                                borderRadius: "4px", fontSize: "10px", display: "block",
+                                                                background: "transparent", border: "none", color: "#EEEEEE",
+                                                                fontWeight: 500, cursor: "pointer"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                                                        >
+                                                            Sửa công việc
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                handleDeleteTask(task.id);
+                                                                setActiveTaskMenu(null);
+                                                            }}
+                                                            style={{
+                                                                width: "100%", textAlign: "left", padding: "5px 8px",
+                                                                borderRadius: "4px", fontSize: "10px", display: "block",
+                                                                background: "transparent", border: "none", color: "#D84040",
+                                                                fontWeight: 500, cursor: "pointer"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(216,64,64,0.1)"; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                                                        >
+                                                            Xóa công việc
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                    {task.tag && (
+                                                        <span style={{
+                                                            background: "#0A0707",
+                                                            color: "#666",
+                                                            fontSize: "9px",
+                                                            fontWeight: 600,
+                                                            textTransform: "uppercase",
+                                                            padding: "1px 5px",
+                                                            borderRadius: "4px"
+                                                        }}>
+                                                            {task.tag}
+                                                        </span>
+                                                    )}
+                                                    <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: task.priority === "high" ? "#D84040" : task.priority === "medium" ? "#E8A838" : "#555" }} />
+                                                </div>
                                                 {overdue && (
                                                     <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "#f87171", fontSize: "9px", fontWeight: 700 }}>
                                                         <AlertTriangle size={8} /> TRỄHẠN
                                                     </span>
                                                 )}
                                             </div>
-                                            <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500, lineHeight: 1.4, marginBottom: "8px" }}>{task.title}</p>
+                                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500, lineHeight: 1.4, marginBottom: "8px" }}>{task.title}</p>
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                                <AvatarBubble initials={task.assignee} size={22} color={avatarColor(task.assigneeName)} />
+                                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                    <AvatarBubble initials={task.assignee} size={22} color={avatarColor(task.assigneeName)} />
+                                                    <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assigneeName}</span>
+                                                </div>
                                                 {task.deadline && (
                                                     <span style={{ fontSize: "9px", color: overdue ? "#f87171" : daysLeft !== null && daysLeft <= 2 ? "#E8A838" : "#555", fontWeight: overdue ? 700 : 400 }}>
                                                         {overdue ? `${Math.abs(daysLeft!)}d trễ` : daysLeft === 0 ? "Hôm nay" : `${daysLeft}d`}
@@ -239,22 +514,116 @@ function KanbanTab() {
 
                                 {/* Add Task */}
                                 {showAddTask === col.id ? (
-                                    <div style={{ background: "rgba(29,22,22,0.9)", border: "1px solid #D84040", borderRadius: "10px", padding: "9px 11px" }}>
+                                    <div style={{ background: "rgba(29,22,22,0.9)", border: "1px solid #D84040", borderRadius: "10px", padding: "9px 11px", display: "flex", flexDirection: "column", gap: "6px" }}>
                                         <input
                                             autoFocus value={newTaskTitle}
                                             onChange={e => setNewTaskTitle(e.target.value)}
-                                            onKeyDown={e => { if (e.key === "Enter") addTask(col.id); if (e.key === "Escape") { setShowAddTask(null); setNewTaskTitle(""); } }}
-                                            placeholder="Tên công việc..."
-                                            style={{ background: "transparent", border: "none", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%" }}
+                                            placeholder="Nội dung task..."
+                                            style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "12px", width: "100%", paddingBottom: "3px" }}
                                         />
-                                        <div style={{ display: "flex", gap: "5px", marginTop: "7px" }}>
-                                            <button onClick={() => addTask(col.id)} style={{ flex: 1, background: "#D84040", color: "#fff", border: "none", borderRadius: "6px", padding: "4px 0", fontSize: "10px", fontWeight: 600, cursor: "pointer" }}>Thêm</button>
-                                            <button onClick={() => { setShowAddTask(null); setNewTaskTitle(""); }} style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "4px 8px", fontSize: "10px", cursor: "pointer" }}>✕</button>
+                                        <div style={{ position: "relative" }}>
+                                            <input
+                                                value={newTaskAssigneeName}
+                                                onChange={e => {
+                                                    setNewTaskAssigneeName(e.target.value);
+                                                    setSearchAssigneeQuery(e.target.value);
+                                                    setShowAssigneeDropdown(true);
+                                                }}
+                                                onFocus={() => {
+                                                    setShowAssigneeDropdown(true);
+                                                    setSearchAssigneeQuery(newTaskAssigneeName);
+                                                }}
+                                                placeholder="Chọn người thực hiện..."
+                                                style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
+                                            />
+                                            {showAssigneeDropdown && (
+                                                <>
+                                                    <div 
+                                                        style={{ position: "fixed", inset: 0, zIndex: 10 }}
+                                                        onClick={() => setShowAssigneeDropdown(false)}
+                                                    />
+                                                    <div style={{
+                                                        position: "absolute", left: 0, right: 0, marginTop: "4px",
+                                                        maxHeight: "160px", overflowY: "auto", borderRadius: "8px",
+                                                        border: "1px solid #2A1F1F", zIndex: 20, padding: "4px",
+                                                        background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
+                                                    }}>
+                                                        {crewList
+                                                            .filter(c => c.name.toLowerCase().includes(searchAssigneeQuery.toLowerCase()))
+                                                            .map(c => {
+                                                                const initials = c.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+                                                                return (
+                                                                    <button
+                                                                        key={c.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setNewTaskAssigneeName(c.name);
+                                                                            setNewTaskAssigneeInitials(initials);
+                                                                            setShowAssigneeDropdown(false);
+                                                                        }}
+                                                                        style={{
+                                                                            width: "100%", textAlign: "left", padding: "6px 10px",
+                                                                            borderRadius: "4px", fontSize: "11px", display: "flex",
+                                                                            alignItems: "center", gap: "6px", background: "transparent",
+                                                                            border: "none", color: "#EEEEEE", cursor: "pointer"
+                                                                        }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(216, 64, 64, 0.1)"; e.currentTarget.style.color = "#D84040"; }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#EEEEEE"; }}
+                                                                    >
+                                                                        {c.avatar ? (
+                                                                            <img src={c.avatar} alt={c.name} style={{ width: "14px", height: "14px", borderRadius: "50%", objectFit: "cover" }} />
+                                                                        ) : (
+                                                                            <div style={{ width: "14px", height: "14px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", color: "white", background: "#2A1F1F" }}>
+                                                                                {c.name.substring(0, 1).toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                        <span>{c.name}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        {crewList.filter(c => c.name.toLowerCase().includes(searchAssigneeQuery.toLowerCase())).length === 0 && (
+                                                            <p style={{ fontSize: "10px", color: "#555", padding: "6px", fontStyle: "italic", textAlign: "center", margin: 0 }}>
+                                                                Không tìm thấy thành viên
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input
+                                            value={newTaskTag}
+                                            onChange={e => setNewTaskTag(e.target.value)}
+                                            placeholder="Tag (ví dụ: Motion)..."
+                                            style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
+                                        />
+                                        <input
+                                            value={newTaskCreator}
+                                            onChange={e => setNewTaskCreator(e.target.value)}
+                                            placeholder="Người tạo..."
+                                            style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
+                                        />
+                                        <input
+                                            type="date"
+                                            value={newTaskDeadline}
+                                            onChange={e => setNewTaskDeadline(e.target.value)}
+                                            style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#666", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
+                                        />
+                                        <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
+                                            <button onClick={() => addTask(col.id)} style={{ flex: 1, background: "#D84040", color: "#fff", border: "none", borderRadius: "6px", padding: "5px 0", fontSize: "10px", fontWeight: 600, cursor: "pointer" }}>Thêm</button>
+                                            <button onClick={() => { setShowAddTask(null); setNewTaskTitle(""); setNewTaskAssigneeName(""); setNewTaskAssigneeInitials(""); setNewTaskTag(""); setNewTaskCreator(currentUserName); setNewTaskDeadline(""); }} style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "5px 8px", fontSize: "10px", cursor: "pointer" }}>✕</button>
                                         </div>
                                     </div>
                                 ) : (
                                     <button
-                                        onClick={() => { setShowAddTask(col.id); setNewTaskTitle(""); }}
+                                        onClick={() => {
+                                            setShowAddTask(col.id);
+                                            setNewTaskTitle("");
+                                            setNewTaskAssigneeName("");
+                                            setNewTaskAssigneeInitials("");
+                                            setNewTaskTag("");
+                                            setNewTaskCreator(currentUserName);
+                                            setNewTaskDeadline("");
+                                        }}
                                         style={{ width: "100%", background: "transparent", border: "1px dashed #2A1F1F", borderRadius: "10px", padding: "7px", color: "#555", fontSize: "10px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", transition: "all 0.15s" }}
                                         onMouseEnter={e => { e.currentTarget.style.borderColor = col.color + "55"; e.currentTarget.style.color = col.color; }}
                                         onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.color = "#555"; }}
@@ -267,6 +636,129 @@ function KanbanTab() {
                     );
                 })}
             </div>
+            {/* Edit Task Modal */}
+            {editingTask && (
+                <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "16px", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+                    <div style={{ width: "100%", maxWidth: "360px", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", border: "1px solid #2A1F1F", background: "#141010", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}>
+                        <h3 style={{ color: "#fff", fontSize: "14px", fontWeight: 600, borderBottom: "1px solid #2A1F1F", paddingBottom: "8px", margin: 0 }}>Chỉnh sửa công việc</h3>
+                        
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            <div>
+                                <label style={{ display: "block", fontSize: "10px", color: "#888", marginBottom: "4px" }}>Tên công việc</label>
+                                <input
+                                    type="text"
+                                    value={editTaskTitle}
+                                    onChange={e => setEditTaskTitle(e.target.value)}
+                                    style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
+                                />
+                            </div>
+                            
+                            <div style={{ position: "relative" }}>
+                                <label style={{ display: "block", fontSize: "10px", color: "#888", marginBottom: "4px" }}>Người thực hiện</label>
+                                <input
+                                    type="text"
+                                    value={editTaskAssigneeName}
+                                    onChange={e => {
+                                        setEditTaskAssigneeName(e.target.value);
+                                        setSearchEditAssigneeQuery(e.target.value);
+                                        setShowEditAssigneeDropdown(true);
+                                    }}
+                                    onFocus={() => {
+                                        setShowEditAssigneeDropdown(true);
+                                        setSearchEditAssigneeQuery(editTaskAssigneeName);
+                                    }}
+                                    style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
+                                />
+                                {showEditAssigneeDropdown && (
+                                    <>
+                                        <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setShowEditAssigneeDropdown(false)} />
+                                        <div style={{
+                                            position: "absolute", left: 0, right: 0, marginTop: "4px",
+                                            maxHeight: "120px", overflowY: "auto", borderRadius: "4px",
+                                            border: "1px solid #2A1F1F", zIndex: 20, padding: "4px",
+                                            background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
+                                        }}>
+                                            {crewList
+                                                .filter(c => c.name.toLowerCase().includes(searchEditAssigneeQuery.toLowerCase()))
+                                                .map(c => {
+                                                    const initials = c.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+                                                    return (
+                                                        <button
+                                                            key={c.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditTaskAssigneeName(c.name);
+                                                                setEditTaskAssigneeInitials(initials);
+                                                                setShowEditAssigneeDropdown(false);
+                                                            }}
+                                                            style={{
+                                                                width: "100%", textAlign: "left", padding: "6px 10px",
+                                                                borderRadius: "4px", fontSize: "11px", display: "flex",
+                                                                alignItems: "center", gap: "6px", background: "transparent",
+                                                                border: "none", color: "#EEEEEE", cursor: "pointer"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(216, 64, 64, 0.1)"; e.currentTarget.style.color = "#D84040"; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#EEEEEE"; }}
+                                                        >
+                                                            {c.avatar ? (
+                                                                <img src={c.avatar} alt={c.name} style={{ width: "14px", height: "14px", borderRadius: "50%", objectFit: "cover" }} />
+                                                            ) : (
+                                                                <div style={{ width: "14px", height: "14px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", color: "white", background: "#2A1F1F" }}>
+                                                                    {c.name.substring(0, 1).toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                            <span>{c.name}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            {crewList.filter(c => c.name.toLowerCase().includes(searchEditAssigneeQuery.toLowerCase())).length === 0 && (
+                                                <p style={{ fontSize: "10px", color: "#555", padding: "6px", fontStyle: "italic", textAlign: "center", margin: 0 }}>
+                                                    Không tìm thấy thành viên
+                                                </p>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div>
+                                <label style={{ display: "block", fontSize: "10px", color: "#888", marginBottom: "4px" }}>Tag (Nhãn)</label>
+                                <input
+                                    type="text"
+                                    value={editTaskTag}
+                                    onChange={e => setEditTaskTag(e.target.value)}
+                                    style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: "block", fontSize: "10px", color: "#888", marginBottom: "4px" }}>Người tạo</label>
+                                <input
+                                    type="text"
+                                    value={editTaskCreator}
+                                    onChange={e => setEditTaskCreator(e.target.value)}
+                                    style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "8px", borderTop: "1px solid #2A1F1F", paddingTop: "12px", justifyContent: "flex-end" }}>
+                            <button
+                                onClick={() => setEditingTask(null)}
+                                style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", fontWeight: 500, cursor: "pointer" }}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={saveEditedTask}
+                                style={{ background: "#D84040", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 12px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                            >
+                                Lưu thay đổi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -314,6 +806,20 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                         <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(107,143,214,0.3)" }}>
                             📍 {projectStages.filter(s => s.done).pop()?.id || "Lên kế hoạch"}
                         </span>
+                        {project.published ? (
+                            <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(76,175,80,0.15)", color: "#4CAF50", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(76,175,80,0.3)" }}>
+                                🌐 Published
+                            </span>
+                        ) : (
+                            <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(136,136,136,0.15)", color: "#888", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(136,136,136,0.3)" }}>
+                                🔒 Draft
+                            </span>
+                        )}
+                        {project.locked && (
+                            <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(216,64,64,0.15)", color: "#D84040", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(216,64,64,0.3)" }}>
+                                ⛔ Locked
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -714,6 +1220,8 @@ export function ProjectDetailPage() {
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState("activity");
     const [isFeatured, setIsFeatured] = useState(false);
+    const [isPublished, setIsPublished] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeletingProject, setIsDeletingProject] = useState(false);
     const [activities, setActivities] = useState([]);
@@ -736,6 +1244,8 @@ export function ProjectDetailPage() {
         ]).then(([projData, clientsData, categoriesData, crewData]) => {
             setProject(projData);
             setIsFeatured(!!projData.featured);
+            setIsPublished(!!projData.published);
+            setIsLocked(!!projData.locked);
             setDbClients(clientsData);
             setDbCategories(categoriesData);
             setDbCrew(crewData);
@@ -869,6 +1379,8 @@ export function ProjectDetailPage() {
                 year: parseInt(new Date(data.dueDate || Date.now()).getFullYear()),
                 format_slug: data.category,
                 featured: isFeatured,
+                published: isPublished,
+                locked: isLocked,
                 status: data.status,
                 cover_media_id: coverMediaId,
                 summary: data.description || null,
@@ -894,7 +1406,61 @@ export function ProjectDetailPage() {
     const handleCancel = () => {
         reset(); setThumbnailPreview(null); setThumbnailFile(null);
         setUploadedVideo(null); setGalleryImages(project.gallery || []);
+        setIsFeatured(!!project.featured);
+        setIsPublished(!!project.published);
+        setIsLocked(!!project.locked);
         setIsEditing(false);
+    };
+
+    const handleToggleFeatured = async () => {
+        const nextVal = !isFeatured;
+        setIsFeatured(nextVal);
+        if (!isEditing && project) {
+            try {
+                await fetchApi(`/projects/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ featured: nextVal })
+                });
+                setProject(prev => prev ? { ...prev, featured: nextVal } : null);
+            } catch (err) {
+                console.error("Failed to update featured state:", err);
+                setIsFeatured(!nextVal);
+            }
+        }
+    };
+
+    const handleTogglePublished = async () => {
+        const nextVal = !isPublished;
+        setIsPublished(nextVal);
+        if (!isEditing && project) {
+            try {
+                await fetchApi(`/projects/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ published: nextVal })
+                });
+                setProject(prev => prev ? { ...prev, published: nextVal } : null);
+            } catch (err) {
+                console.error("Failed to update publish state:", err);
+                setIsPublished(!nextVal);
+            }
+        }
+    };
+
+    const handleToggleLocked = async () => {
+        const nextVal = !isLocked;
+        setIsLocked(nextVal);
+        if (!isEditing && project) {
+            try {
+                await fetchApi(`/projects/${id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ locked: nextVal })
+                });
+                setProject(prev => prev ? { ...prev, locked: nextVal } : null);
+            } catch (err) {
+                console.error("Failed to update lock state:", err);
+                setIsLocked(!nextVal);
+            }
+        }
     };
 
     if (loading) {
@@ -951,26 +1517,82 @@ export function ProjectDetailPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* Publish Toggle */}
+                    <button
+                        onClick={handleTogglePublished}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all"
+                        style={{
+                            background: isPublished ? "rgba(76,175,80,0.12)" : "#241C1C",
+                            color: isPublished ? "#4CAF50" : "#666",
+                            border: `1px solid ${isPublished ? "rgba(76,175,80,0.4)" : "#2E2020"}`,
+                            fontSize: "13px",
+                            fontWeight: isPublished ? 600 : 400
+                        }}
+                    >
+                        <Globe size={13} />
+                        {isPublished ? "Published" : "Draft"}
+                    </button>
+
+                    {/* Lock Toggle */}
+                    <button
+                        onClick={handleToggleLocked}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all"
+                        style={{
+                            background: isLocked ? "rgba(216,64,64,0.12)" : "#241C1C",
+                            color: isLocked ? "#D84040" : "#666",
+                            border: `1px solid ${isLocked ? "rgba(216,64,64,0.4)" : "#2E2020"}`,
+                            fontSize: "13px",
+                            fontWeight: isLocked ? 600 : 400
+                        }}
+                    >
+                        {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
+                        {isLocked ? "Locked" : "Unlocked"}
+                    </button>
+
+                    {/* Highlight Toggle */}
+                    <button
+                        onClick={handleToggleFeatured}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all"
+                        style={{
+                            background: isFeatured ? "rgba(255,193,7,0.12)" : "#241C1C",
+                            color: isFeatured ? "#FFC107" : "#666",
+                            border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#2E2020"}`,
+                            fontSize: "13px",
+                            fontWeight: isFeatured ? 600 : 400
+                        }}
+                    >
+                        <Star size={13} fill={isFeatured ? "#FFC107" : "none"}/>
+                        {isFeatured ? "Featured" : "Highlight"}
+                    </button>
+
+                    <div className="h-6 w-[1px] bg-[#2E2020] mx-1" />
+
                     {isEditing ? (<>
                             <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
                                 <X size={14}/> Discard
                             </button>
                             <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
                                 {saving ? <><Loader2 size={13} className="animate-spin"/> Saving...</>
-                    : saved ? <><CheckCircle2 size={13}/> Saved!</>
-                        : <><Save size={13}/> Save Changes</>}
+                                : saved ? <><CheckCircle2 size={13}/> Saved!</>
+                                : <><Save size={13}/> Save Changes</>}
                             </button>
                         </>) : (<>
-                            <button onClick={() => setIsFeatured((v) => !v)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all" style={{ background: isFeatured ? "rgba(255,193,7,0.12)" : "#241C1C", color: isFeatured ? "#FFC107" : "#666", border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#2E2020"}`, fontSize: "13px", fontWeight: isFeatured ? 600 : 400 }}>
-                                <Star size={13} fill={isFeatured ? "#FFC107" : "none"}/>
-                                {isFeatured ? "Featured" : "Highlight"}
-                            </button>
-                            <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
+                            <button onClick={() => window.open(`/works/${project.slug}`, "_blank")} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
                                 <ExternalLink size={13}/> Preview
                             </button>
-                            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
-                                <Edit3 size={13}/> Edit Project
-                            </button>
+                            {isLocked ? (
+                                <button
+                                    onClick={() => alert("Dự án này đang bị khóa. Vui lòng click vào nút 'Locked' ở trên để mở khóa trước khi chỉnh sửa.")}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all opacity-60 cursor-not-allowed"
+                                    style={{ background: "#2A1F1F", color: "#666", border: "1px solid #3A2A2A", fontSize: "13px", fontWeight: 600 }}
+                                >
+                                    <Lock size={13}/> Locked
+                                </button>
+                            ) : (
+                                <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
+                                    <Edit3 size={13}/> Edit Project
+                                </button>
+                            )}
                         </>)}
                 </div>
             </div>

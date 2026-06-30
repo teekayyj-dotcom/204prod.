@@ -289,7 +289,7 @@ export function AuthPage() {
                 const role = response.user.role;
                 if (role === "pending") navigate("/pending");
                 else if (role === "client") navigate("/client");
-                else if (role === "crew" || role === "editor") navigate("/crew");
+                else if (role === "crew" || role === "editor") navigate("/crew-dashboard");
                 else navigate("/admin");
 
             } else if (isRegister) {
@@ -530,7 +530,7 @@ export function AuthPage() {
                                             const role = response.user.role;
                                             if (role === "pending") navigate("/pending");
                                             else if (role === "client") navigate("/client");
-                                            else if (role === "crew" || role === "editor") navigate("/crew");
+                                            else if (role === "crew" || role === "editor") navigate("/crew-dashboard");
                                             else navigate("/admin");
                                         } catch (error: any) {
                                             console.error("Google auth error:", error);

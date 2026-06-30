@@ -97,12 +97,16 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                     style={{ background: "#1D1616" }}
                 >
                     <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                         style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}
                     >
                         {(() => {
                             try {
                                 const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                                const avatar = userObj.avatar_url || userObj.avatar || userObj.photo_url || userObj.photoURL;
+                                if (avatar) {
+                                    return <img src={avatar} alt="User Avatar" className="w-full h-full object-cover" />;
+                                }
                                 const name = userObj.display_name || userObj.username || "Client";
                                 return name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
                             } catch {

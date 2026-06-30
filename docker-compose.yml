@@ -52,21 +52,6 @@ services:
       - frontend
       - backend
 
-  ngrok:
-    image: ngrok/ngrok:latest
-    restart: unless-stopped
-    ports:
-      - "4040:4040"
-    command:
-      - "start"
-      - "--all"
-      - "--config"
-      - "/etc/ngrok.yml"
-    volumes:
-      - ./infra/ngrok/ngrok.yml:/etc/ngrok.yml
-    depends_on:
-      - nginx
-
 volumes:
   mysql_data:
   frontend_node_modules:

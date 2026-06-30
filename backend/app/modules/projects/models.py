@@ -55,6 +55,8 @@ class Project(Base):
     )
     featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", index=True)
+    published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
     cover_media_id: Mapped[str | None] = mapped_column(
         String(160),
         ForeignKey("media_assets.id", ondelete="SET NULL"),
@@ -163,3 +165,49 @@ class ProjectFeedback(Base):
 
 
     project: Mapped[Project] = relationship()
+
+
+class ProjectTask(Base):
+    __tablename__ = "project_tasks"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    assignee_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    assignee_initials: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    tag: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(180), nullable=False)
+    deadline: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="todo")
+    priority: Mapped[str] = mapped_column(String(50), nullable=False, default="medium")
+
+    project: Mapped[Project] = relationship()
+
+
+class ApprovalRequest(Base):
+    __tablename__ = "approval_requests"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    task_id: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("project_tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    crew_name: Mapped[str] = mapped_column(String(180), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    timestamp: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    project: Mapped[Project] = relationship()
+    task: Mapped[ProjectTask] = relationship()

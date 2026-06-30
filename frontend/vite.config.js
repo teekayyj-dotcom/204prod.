@@ -7,10 +7,6 @@ export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
     host: true,
-    allowedHosts: [
-      'gluten-pope-cucumber.ngrok-free.dev',
-      '.ngrok-free.dev'
-    ],
     proxy: {
       '/api': {
         target: 'http://backend:8000',

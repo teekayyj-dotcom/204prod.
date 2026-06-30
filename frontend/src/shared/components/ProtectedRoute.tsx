@@ -9,20 +9,25 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-    const [isFirebaseChecking, setIsFirebaseChecking] = useState(!auth.currentUser);
-    const [hasFirebaseUser, setHasFirebaseUser] = useState(!!auth.currentUser);
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const [isFirebaseChecking, setIsFirebaseChecking] = useState(!isLocalhost && !auth.currentUser);
+    const [hasFirebaseUser, setHasFirebaseUser] = useState(isLocalhost || !!auth.currentUser);
 
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role") || "client";
+    const token = localStorage.getItem("token") || (isLocalhost ? "mock-token" : "");
+    const role = localStorage.getItem("role") || (isLocalhost ? "crew" : "client");
     const location = useLocation();
 
     useEffect(() => {
+        if (isLocalhost) {
+            setIsFirebaseChecking(false);
+            return;
+        }
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setHasFirebaseUser(!!user);
             setIsFirebaseChecking(false);
         });
         return () => unsubscribe();
-    }, []);
+    }, [isLocalhost]);
 
     if (isFirebaseChecking) {
         return <div className="min-h-screen bg-[#0A0707] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#D84040] border-t-transparent rounded-full animate-spin"></div></div>;
@@ -47,7 +52,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         } else if (role === "admin") {
             return <Navigate to="/admin" replace />;
         } else if (["crew", "editor"].includes(role)) {
-            return <Navigate to="/crew" replace />;
+            return <Navigate to="/crew-dashboard" replace />;
         } else {
             // Unknown role or no specific home, kick to login
             return <Navigate to="/login" replace />;

@@ -45,7 +45,7 @@ export function ClientPlaybackPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const isAdmin = location.pathname.startsWith("/admin");
-    
+
     const [project, setProject] = useState<ProjectData | null>(null);
     const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ export function ClientPlaybackPage() {
             videoRef.current.playbackRate = speed;
         }
     };
-    
+
     // New comment pin drafting state
     const [tempPin, setTempPin] = useState<{ x: number; y: number; time: number } | null>(null);
     const [commentText, setCommentText] = useState("");
@@ -117,8 +117,8 @@ export function ClientPlaybackPage() {
         const handleKeyDown = (e: KeyboardEvent) => {
             const activeEl = document.activeElement;
             if (activeEl && (
-                activeEl.tagName === "INPUT" || 
-                activeEl.tagName === "TEXTAREA" || 
+                activeEl.tagName === "INPUT" ||
+                activeEl.tagName === "TEXTAREA" ||
                 activeEl.getAttribute("contenteditable") === "true"
             )) {
                 return;
@@ -385,7 +385,7 @@ export function ClientPlaybackPage() {
 
     return (
         <div className="flex h-screen bg-[#0A0707] text-[#EEEEEE] overflow-hidden">
-            
+
             {/* Left Column: Video Room (75% width) */}
             <div className="flex-1 flex flex-col justify-between p-6 relative overflow-hidden bg-black">
                 {/* Top Header */}
@@ -413,10 +413,10 @@ export function ClientPlaybackPage() {
 
                 {/* Video Player Centerpiece */}
                 <div className="flex-1 flex items-center justify-center relative w-full h-[65vh] rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]">
-                    
+
                     {/* Native HTML5 Video Element wrapper */}
                     <div className="relative max-w-full max-h-full aspect-video group">
-                        
+
                         <video
                             ref={videoRef}
                             src={finalVideoSource}
@@ -430,7 +430,7 @@ export function ClientPlaybackPage() {
                         />
 
                         {/* Interactive Overlay to capture click pin coordinates */}
-                        <div 
+                        <div
                             className="absolute inset-0 cursor-crosshair bg-transparent"
                             onClick={handleVideoFrameClick}
                         />
@@ -467,7 +467,7 @@ export function ClientPlaybackPage() {
                                 </div>
 
                                 {/* Form Popup at coordinates position */}
-                                <form 
+                                <form
                                     onSubmit={handleSubmitComment}
                                     className="absolute z-40 bg-[#141010] border border-[#2A1F1F] p-3 rounded-lg shadow-2xl space-y-2 w-64 text-xs transform -translate-x-1/2 mt-3"
                                     style={{
@@ -514,16 +514,16 @@ export function ClientPlaybackPage() {
 
                 {/* Custom Playback Controls & Seek timeline */}
                 <div className="space-y-3 mt-4 z-10 bg-[#0A0707] py-2">
-                    
+
                     {/* Timeline Slider bar with markers */}
                     <div className="relative">
                         {/* Interactive Click seek container */}
-                        <div 
+                        <div
                             onClick={handleTimelineSeek}
                             className="h-2.5 rounded-full bg-[#1A1515] relative cursor-pointer group/seek"
                         >
                             {/* Fill active progress */}
-                            <div 
+                            <div
                                 className="h-full rounded-full bg-[#D84040] relative"
                                 style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                             >
@@ -577,8 +577,8 @@ export function ClientPlaybackPage() {
                                 <Rewind size={12} />
                             </button>
 
-                            <button 
-                                onClick={togglePlay} 
+                            <button
+                                onClick={togglePlay}
                                 className="w-9 h-9 rounded-full bg-[#D84040] hover:bg-[#c03030] text-white flex items-center justify-center transition-all shadow-md shadow-[#D84040]/15"
                                 title="Phát / Tạm dừng (Space)"
                             >
@@ -620,12 +620,11 @@ export function ClientPlaybackPage() {
                             </button>
 
                             {/* Slide up menu container */}
-                            <div 
-                                className={`absolute bottom-full right-0 mb-2 bg-[#141010]/95 backdrop-blur-md border border-[#2E2020] rounded-lg shadow-2xl p-1.5 w-36 z-50 text-left transition-all duration-300 ease-out origin-bottom transform ${
-                                    showSpeedMenu 
-                                        ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" 
+                            <div
+                                className={`absolute bottom-full right-0 mb-2 bg-[#141010]/95 backdrop-blur-md border border-[#2E2020] rounded-lg shadow-2xl p-1.5 w-36 z-50 text-left transition-all duration-300 ease-out origin-bottom transform ${showSpeedMenu
+                                        ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
                                         : "opacity-0 translate-y-4 scale-95 pointer-events-none group-hover/speed:opacity-100 group-hover/speed:translate-y-0 group-hover/speed:scale-100 group-hover/speed:pointer-events-auto"
-                                }`}
+                                    }`}
                                 onMouseLeave={() => setShowSpeedMenu(false)}
                             >
                                 <div className="text-[9px] text-gray-500 font-bold px-2 py-1 uppercase tracking-wider border-b border-[#2A1F1F] mb-1">
@@ -639,11 +638,10 @@ export function ClientPlaybackPage() {
                                             handleSpeedChange(speed);
                                             setShowSpeedMenu(false);
                                         }}
-                                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center justify-between ${
-                                            playbackSpeed === speed 
-                                                ? "bg-[#D84040]/15 text-[#D84040] font-bold" 
+                                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center justify-between ${playbackSpeed === speed
+                                                ? "bg-[#D84040]/15 text-[#D84040] font-bold"
                                                 : "hover:bg-[#2A1F1F] text-gray-300"
-                                        }`}
+                                            }`}
                                     >
                                         <span>{speed === 1 ? "1.0x (Chuẩn)" : `${speed}x`}</span>
                                         {playbackSpeed === speed && <Check size={11} />}
@@ -669,7 +667,7 @@ export function ClientPlaybackPage() {
                     {feedbacks.map((fb) => {
                         const isHighlighted = highlightedId === fb.id;
                         const isResolved = fb.status === "Resolved";
-                        
+
                         return (
                             <div
                                 key={fb.id}
@@ -697,7 +695,7 @@ export function ClientPlaybackPage() {
                                             {fb.user_id}
                                         </span>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-1">
                                         {/* Status Switcher checkbox */}
                                         <button
@@ -728,7 +726,7 @@ export function ClientPlaybackPage() {
                                 </div>
 
                                 <p className="text-gray-200 leading-relaxed text-[14px] whitespace-pre-line">{fb.content}</p>
-                                
+
                                 {fb.reply_content && (
                                     <div className="mt-2 pl-2.5 border-l-2 border-[#D84040]/55 bg-[#141010] p-2 rounded text-xs space-y-1" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex justify-between text-gray-400 font-bold uppercase tracking-wider text-[9px]">
@@ -739,54 +737,54 @@ export function ClientPlaybackPage() {
                                     </div>
                                 )}
 
-                                    <div className="pt-1.5 flex justify-end" onClick={(e) => e.stopPropagation()}>
-                                        {replyingToId === fb.id ? (
-                                            <div className="w-full space-y-2 mt-1.5">
-                                                <textarea
-                                                    value={replyText}
-                                                    onChange={(e) => setReplyText(e.target.value)}
-                                                    placeholder="Nhập câu trả lời..."
-                                                    rows={2}
-                                                    className="w-full bg-[#141010] border border-[#2E2020] rounded p-2 text-xs outline-none text-[#EEEEEE] resize-none focus:border-[#D84040]"
-                                                    autoFocus
-                                                />
-                                                <div className="flex justify-end gap-1.5 text-[10px]">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setReplyingToId(null);
-                                                            setReplyText("");
-                                                        }}
-                                                        className="px-2.5 py-1 rounded bg-[#2A1F1F] hover:bg-[#3A3A3A] font-semibold text-gray-400"
-                                                    >
-                                                        Hủy
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleSaveReply(fb.id)}
-                                                        className="px-2.5 py-1 rounded bg-[#D84040] hover:bg-[#c03030] text-white font-semibold"
-                                                    >
-                                                        Lưu
-                                                    </button>
-                                                </div>
+                                <div className="pt-1.5 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                                    {replyingToId === fb.id ? (
+                                        <div className="w-full space-y-2 mt-1.5">
+                                            <textarea
+                                                value={replyText}
+                                                onChange={(e) => setReplyText(e.target.value)}
+                                                placeholder="Nhập câu trả lời..."
+                                                rows={2}
+                                                className="w-full bg-[#141010] border border-[#2E2020] rounded p-2 text-xs outline-none text-[#EEEEEE] resize-none focus:border-[#D84040]"
+                                                autoFocus
+                                            />
+                                            <div className="flex justify-end gap-1.5 text-[10px]">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setReplyingToId(null);
+                                                        setReplyText("");
+                                                    }}
+                                                    className="px-2.5 py-1 rounded bg-[#2A1F1F] hover:bg-[#3A3A3A] font-semibold text-gray-400"
+                                                >
+                                                    Hủy
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSaveReply(fb.id)}
+                                                    className="px-2.5 py-1 rounded bg-[#D84040] hover:bg-[#c03030] text-white font-semibold"
+                                                >
+                                                    Lưu
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => {
-                                                    setReplyingToId(fb.id);
-                                                    setReplyText(fb.reply_content || "");
-                                                }}
-                                                className="text-[10px] text-[#D84040] hover:underline font-semibold"
-                                            >
-                                                {fb.reply_content ? "Sửa phản hồi" : "Phản hồi"}
-                                            </button>
-                                        )}
-                                    </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                setReplyingToId(fb.id);
+                                                setReplyText(fb.reply_content || "");
+                                            }}
+                                            className="text-[10px] text-[#D84040] hover:underline font-semibold"
+                                        >
+                                            {fb.reply_content ? "Sửa phản hồi" : "Phản hồi"}
+                                        </button>
+                                    )}
+                                </div>
 
                                 <div className="text-[10px] text-gray-500 flex justify-between">
                                     <span>
-                                        {fb.position_x >= 0 && fb.position_y >= 0 
-                                            ? `Tọa độ: ${fb.position_x}%, ${fb.position_y}%` 
+                                        {fb.position_x >= 0 && fb.position_y >= 0
+                                            ? `Tọa độ: ${fb.position_x}%, ${fb.position_y}%`
                                             : "Không ghim điểm"}
                                     </span>
                                     <span className="flex items-center gap-1">

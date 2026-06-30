@@ -28,7 +28,7 @@ export function PendingApprovalPage() {
             
             if (newRole !== "pending") {
                 if (newRole === "client") navigate("/client");
-                else if (newRole === "crew" || newRole === "editor") navigate("/crew");
+                else if (newRole === "crew" || newRole === "editor") navigate("/crew-dashboard");
                 else navigate("/admin");
             }
         } catch (error) {

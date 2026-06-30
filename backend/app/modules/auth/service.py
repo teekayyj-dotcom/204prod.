@@ -98,13 +98,22 @@ def firebase_auth(db: Session, payload: FirebaseAuthRequest) -> AuthResponse:
     # 1. Try to find user by firebase_uid
     user = db.query(User).filter(User.firebase_uid == firebase_uid).first()
     
-    if not user:
+    is_admin_uid = (firebase_uid == "F9EfRJmOX7ShH96AhxnZ6wHovPn1")
+    
+    if user:
+        if is_admin_uid and user.role != "admin":
+            user.role = "admin"
+            db.commit()
+            db.refresh(user)
+    else:
         # 2. Try to find by email (if they registered normally, then logged in via Google)
         user = db.query(User).filter(User.email == email).first()
         if user:
             # Update existing user to link Firebase
             user.firebase_uid = firebase_uid
             user.auth_provider = auth_provider
+            if is_admin_uid:
+                user.role = "admin"
             db.commit()
             db.refresh(user)
         else:
@@ -125,6 +134,7 @@ def firebase_auth(db: Session, payload: FirebaseAuthRequest) -> AuthResponse:
                 display_name=display_name,
                 avatar_url=avatar_url,
                 password_hash=None, # No password for external providers
+                role="admin" if is_admin_uid else "pending"
             )
             db.add(user)
             db.commit()

@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { CrewSidebar } from "./CrewSidebar";
 import { Menu } from "lucide-react";
 
 export function CrewMainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const isPlaybackPage = location.pathname.endsWith("/playback");
 
   return (
     <div className="flex min-h-screen relative overflow-hidden bg-[#0A0707]">
@@ -14,32 +16,36 @@ export function CrewMainLayout() {
       <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-[#D4A843]/3 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* Backdrop overlay for mobile */}
-      {sidebarOpen && (
+      {sidebarOpen && !isPlaybackPage && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      <CrewSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {!isPlaybackPage && (
+        <CrewSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      )}
 
-      <div className="flex-1 flex flex-col min-h-screen z-10 lg:ml-64 transition-all duration-300">
+      <div className={`flex-1 flex flex-col min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
         {/* Mobile Header Bar */}
-        <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <img src="/favicon/204-logo.png" alt="204 Logo" className="h-10 w-10 object-contain" />
-            <div className="flex flex-col">
-              <span className="tracking-widest uppercase text-white font-extrabold text-sm leading-none">CREW</span>
-              <span style={{ color: "#D84040", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1rem" }}>WORKSPACE</span>
+        {!isPlaybackPage && (
+          <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
+            <div className="flex items-center gap-3">
+              <img src="/favicon/204-logo.png" alt="204 Logo" className="h-10 w-10 object-contain" />
+              <div className="flex flex-col">
+                <span className="tracking-widest uppercase text-white font-extrabold text-sm leading-none">CREW</span>
+                <span style={{ color: "#D84040", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1rem" }}>WORKSPACE</span>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
-          >
-            <Menu size={20} />
-          </button>
-        </header>
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+          </header>
+        )}
 
         <main className="flex-1 overflow-y-auto min-h-screen">
           <Outlet />

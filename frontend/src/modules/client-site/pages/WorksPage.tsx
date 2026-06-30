@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { Square, List, LayoutGrid, Search, ChevronDown } from "lucide-react";
 
 function FluidHero({ title, children }) {
@@ -650,7 +650,8 @@ export function WorksPage() {
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
-            const mapped = data.map((proj, idx) => ({
+            const publishedData = data.filter((proj: any) => proj.published && !proj.locked);
+            const mapped = publishedData.map((proj: any, idx: number) => ({
               id: proj.slug,
               number: String(idx + 1).padStart(2, '0'),
               title: proj.title,
@@ -678,44 +679,7 @@ export function WorksPage() {
     };
 
     const useFallbackMock = () => {
-      const fallbackList = [
-        {
-          id: "midnight-textile",
-          number: "01",
-          title: "Midnight Textile",
-          client: "Mira Atelier",
-          year: "2025",
-          services: "Fashion Film",
-          category: "Fashion Film",
-          image: shot("photo-1516321318423-f06f85e504b3"),
-          video: "https://player.vimeo.com/external/371433846.sd.mp4?s=236da2f3c93159318eca11d331cfb51138ec3783&profile_id=139&oauth2_token_id=57447761",
-          description: "A sharply lit studio piece balancing tactile wardrobe detail with humid city-night energy."
-        },
-        {
-          id: "neon-harvest",
-          number: "02",
-          title: "Neon Harvest",
-          client: "Field Theory",
-          year: "2024",
-          services: "Brand Film",
-          category: "Brand Film",
-          image: shot("photo-1518005020951-eccb494ad742"),
-          video: "https://player.vimeo.com/external/435674703.sd.mp4?s=7fdf70a2569e2c6599db733575971485600ff0a9&profile_id=165&oauth2_token_id=57447761",
-          description: "A saturated campaign world built around ritualized product framing and sculpted motion."
-        },
-        {
-          id: "soft-machinery",
-          number: "03",
-          title: "Soft Machinery",
-          client: "Nami Objects",
-          year: "2024",
-          services: "Digital Campaign",
-          category: "Digital Campaign",
-          image: shot("photo-1524758631624-e2822e304c36"),
-          video: "https://player.vimeo.com/external/340338356.sd.mp4?s=cfd3b5b63488820c85c2763c8be0a5fa70cb9e49&profile_id=165&oauth2_token_id=57447761",
-          description: "A graphic product narrative using modular sets, hard edges, and close texture study."
-        }
-      ];
+      const fallbackList = [];
       setProjects(fallbackList);
     };
 

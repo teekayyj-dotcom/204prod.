@@ -22,6 +22,8 @@ def _map_to_detail(p: Project) -> ProjectDetail:
         video_url=p.video_url,
         videoUrl=p.video_url,
         status=p.status,
+        published=p.published,
+        locked=p.locked,
         summary=p.summary or "",
         credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
         gallery=[

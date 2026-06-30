@@ -24,7 +24,7 @@ def init_firebase_admin():
         # Fallback: use Application Default Credentials or no-cred init
         # We MUST provide projectId for verify_id_token to work without credentials
         try:
-            firebase_admin.initialize_app(options={"projectId": "webapp-204-prod"})
+            firebase_admin.initialize_app(options={"projectId": "system-204prod"})
         except Exception as e:
             # Minimal init — token verification won't work but app won't crash
             print(f"⚠️  Firebase Admin SDK: No credentials found. Token verification disabled. Error: {e}")

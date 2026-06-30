@@ -4,6 +4,7 @@ import { CrewProjectsPage } from "./pages/CrewProjectsPage";
 import { CrewMediaLibraryPage } from "./pages/CrewMediaLibraryPage";
 import { CrewHRPage } from "./pages/CrewHRPage";
 import { ProtectedRoute } from "../../shared/components/ProtectedRoute";
+import { ClientPlaybackPage } from "../client-view/pages/ClientPlaybackPage";
 
 function CrewNotFound() {
   return (
@@ -20,7 +21,7 @@ function CrewNotFound() {
 }
 
 export const crewRoute = {
-  path: "/crew",
+  path: "/crew-dashboard",
   element: (
     <ProtectedRoute allowedRoles={["crew", "editor"]}>
       <CrewMainLayout />
@@ -29,6 +30,7 @@ export const crewRoute = {
   children: [
     { index: true, Component: CrewWorkspacePage },
     { path: "projects", Component: CrewProjectsPage },
+    { path: "projects/:id/playback", Component: ClientPlaybackPage },
     { path: "media", Component: CrewMediaLibraryPage },
     { path: "hr", Component: CrewHRPage },
     { path: "*", Component: CrewNotFound },

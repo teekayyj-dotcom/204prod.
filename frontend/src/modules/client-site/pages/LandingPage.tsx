@@ -128,7 +128,7 @@ export function LandingPage() {
         const response = await fetch("/api/v1/projects");
         if (response.ok) {
           const data: Project[] = await response.json();
-          const featured = data.filter((p) => p.featured);
+          const featured = data.filter((p) => p.featured && (p as any).published && !(p as any).locked);
           setProjects(featured);
         } else {
           setProjects([]);

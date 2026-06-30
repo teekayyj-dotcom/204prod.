@@ -15,28 +15,28 @@ const navItems = [
     label: "Tổng quan",
     sublabel: "My Workspace",
     icon: LayoutGrid,
-    path: "/crew",
+    path: "/crew-dashboard",
     exact: true,
   },
   {
     label: "Dự án của tôi",
     sublabel: "My Projects",
     icon: Clapperboard,
-    path: "/crew/projects",
+    path: "/crew-dashboard/projects",
     exact: false,
   },
   {
     label: "Thư viện Tài nguyên",
     sublabel: "Media Library",
     icon: Library,
-    path: "/crew/media",
+    path: "/crew-dashboard/media",
     exact: false,
   },
   {
     label: "Cá nhân & HR",
     sublabel: "My HR",
     icon: UserCircle2,
-    path: "/crew/hr",
+    path: "/crew-dashboard/hr",
     exact: false,
   },
 ];
@@ -173,12 +173,16 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
           style={{ background: "#1D1616" }}
         >
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
             style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}
           >
             {(() => {
               try {
                 const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                const avatar = userObj.avatar_url || userObj.avatar || userObj.photo_url || userObj.photoURL;
+                if (avatar) {
+                  return <img src={avatar} alt="User Avatar" className="w-full h-full object-cover" />;
+                }
                 const name = userObj.display_name || userObj.username || "Crew";
                 return name
                   .split(" ")
