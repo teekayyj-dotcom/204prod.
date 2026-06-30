@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from app.modules.projects.models import Project
+from app.modules.projects.models import Project, ProjectTask
 from app.modules.projects.repository import get_project_by_slug, list_projects
-from app.modules.projects.schemas import ProjectDetail, ProjectCreate, ProjectUpdate
+from app.modules.projects.schemas import ProjectDetail, ProjectCreate, ProjectUpdate, ProjectTaskCreate, ProjectTaskUpdate, ApprovalRequestCreate
 
 
 def get_projects(db: Session) -> list[ProjectDetail]:
