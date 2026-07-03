@@ -1303,38 +1303,57 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
 
             {mediaView === "grid" ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                    {media.map(file => (
-                        <div key={file.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: `1px solid ${file.published ? "rgba(76,175,80,0.3)" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)", position: "relative" }}>
-                            <button 
-                                onClick={() => handleDeleteMedia(file.id)}
-                                style={{ position: "absolute", top: "5px", right: "5px", padding: "4px", background: "rgba(0,0,0,0.6)", borderRadius: "50%", border: "none", cursor: "pointer", color: "#f87171", zIndex: 10 }}
-                                title="Xóa khỏi dự án"
-                            >
-                                <Trash2 size={11} />
-                            </button>
-                            <div style={{ height: "80px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden", position: "relative" }}>
-                                {file.type === "video" ? (
-                                    <>
-                                        <video src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
-                                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
-                                            <PlayCircle size={24} color="#D84040" style={{ opacity: 0.8 }} />
-                                        </div>
-                                    </>
-                                ) : file.type === "image" ? (
-                                    <img src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={file.name} />
-                                ) : (
-                                    <ImageIcon size={26} color="#6B8FD6" style={{ opacity: 0.6 }} />
-                                )}
-                            </div>
-                            <div style={{ padding: "8px 10px" }}>
-                                <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
-                                <p style={{ color: "#555", fontSize: "9px", marginBottom: "8px" }}>{file.size} · {file.uploaded}</p>
-                                <button onClick={() => togglePublish(file.id, file.published)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
-                                    {file.published ? <><Unlock size={9} /> Published</> : <><Lock size={9} /> Publish to Client</>}
+                    {media.map(file => {
+                        const videoThumb = file.type === "video"
+                            ? (file.bunny_video_id 
+                                ? `https://vz-f1a07f87-b02.b-cdn.net/${file.bunny_video_id}/thumbnail.jpg`
+                                : (file.thumbnail_url && !file.thumbnail_url.includes("iframe") ? file.thumbnail_url : null))
+                            : null;
+                        return (
+                            <div key={file.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: `1px solid ${file.published ? "rgba(76,175,80,0.3)" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)", position: "relative" }}>
+                                <button 
+                                    onClick={() => handleDeleteMedia(file.id)}
+                                    style={{ position: "absolute", top: "5px", right: "5px", padding: "4px", background: "rgba(0,0,0,0.6)", borderRadius: "50%", border: "none", cursor: "pointer", color: "#f87171", zIndex: 10 }}
+                                    title="Xóa khỏi dự án"
+                                >
+                                    <Trash2 size={11} />
                                 </button>
+                                <div 
+                                    onClick={() => {
+                                        if (file.type === "video") {
+                                            navigate(`/admin/projects/${project.slug}/playback?video=${encodeURIComponent(file.url)}`);
+                                        }
+                                    }}
+                                    title={file.type === "video" ? "Mở phòng chiếu Cinema Review" : undefined}
+                                    style={{ height: "80px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden", position: "relative", cursor: file.type === "video" ? "pointer" : "default" }}
+                                >
+                                    {file.type === "video" ? (
+                                        <>
+                                            {videoThumb ? (
+                                                <img src={videoThumb} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={file.name} />
+                                            ) : (
+                                                <video src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
+                                            )}
+                                            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
+                                                <PlayCircle size={24} color="#D84040" style={{ opacity: 0.8 }} />
+                                            </div>
+                                        </>
+                                    ) : file.type === "image" ? (
+                                        <img src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={file.name} />
+                                    ) : (
+                                        <ImageIcon size={26} color="#6B8FD6" style={{ opacity: 0.6 }} />
+                                    )}
+                                </div>
+                                <div style={{ padding: "8px 10px" }}>
+                                    <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                                    <p style={{ color: "#555", fontSize: "9px", marginBottom: "8px" }}>{file.size} · {file.uploaded}</p>
+                                    <button onClick={() => togglePublish(file.id, file.published)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                                        {file.published ? <><Unlock size={9} /> Published</> : <><Lock size={9} /> Publish to Client</>}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     <div 
                         onClick={handleFileUpload}
                         style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "130px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
