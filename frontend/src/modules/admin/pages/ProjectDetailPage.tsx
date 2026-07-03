@@ -1319,8 +1319,14 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                             >
                                 <Trash2 size={11} />
                             </button>
-                            <div style={{ height: "80px", background: file.type === "video" ? "rgba(216,64,64,0.08)" : "rgba(107,143,214,0.08)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)" }}>
-                                {file.type === "video" ? <PlayCircle size={26} color="#D84040" style={{ opacity: 0.6 }} /> : <ImageIcon size={26} color="#6B8FD6" style={{ opacity: 0.6 }} />}
+                            <div style={{ height: "80px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden" }}>
+                                {file.type === "video" ? (
+                                    <PlayCircle size={26} color="#D84040" style={{ opacity: 0.6 }} />
+                                ) : file.type === "image" ? (
+                                    <img src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={file.name} />
+                                ) : (
+                                    <ImageIcon size={26} color="#6B8FD6" style={{ opacity: 0.6 }} />
+                                )}
                             </div>
                             <div style={{ padding: "8px 10px" }}>
                                 <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
