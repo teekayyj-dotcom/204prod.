@@ -2,78 +2,77 @@
 import { Plus, Bell, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { OverviewMetrics } from "../dashboard/OverviewMetrics";
-import { ProjectTimeline } from "../dashboard/ProjectTimeline";
-import { RecentActivity } from "../dashboard/RecentActivity";
-import { FeaturedProjects } from "../dashboard/FeaturedProjects";
-import { CrewOverview } from "../dashboard/CrewOverview";
-import { ClientTestimonials } from "../dashboard/ClientTestimonials";
+import { AnalyticsCharts } from "../dashboard/AnalyticsCharts";
+import { TopActiveProjects } from "../dashboard/TopActiveProjects";
+import { ActionCenter } from "../dashboard/ActionCenter";
+import { CrewRadar } from "../dashboard/CrewRadar";
+
 export function DashboardPage() {
     const navigate = useNavigate();
-    return (<div className="px-8 py-7">
+    return (
+        <div className="px-8 py-7" style={{ background: "#110D0D", minHeight: "100vh" }}>
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
                         Dashboard
                     </h1>
-                    <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">
-                        Welcome back, Alex — here's what's happening today.
+                    <p style={{ color: "#888", fontSize: "14px" }} className="mt-0.5">
+                        Welcome back — here's your operational command center.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Search */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg backdrop-blur-md transition-all border border-[#2E2020]/60 hover:border-[#D84040]/50 focus-within:border-[#D84040]" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>
                         <Search size={15} color="#666"/>
                         <input placeholder="Quick search..." className="outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "13px", width: "160px" }}/>
                     </div>
 
                     {/* Notifications */}
-                    <button className="relative w-10 h-10 rounded-lg flex items-center justify-center backdrop-blur-md transition-all border border-[#2E2020]/60 hover:border-[#D84040]/50 hover:bg-[#2A1F1F]/40" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
+                    <button className="relative w-10 h-10 rounded-lg flex items-center justify-center transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>
                         <Bell size={17} color="#888"/>
                         <span className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ background: "#D84040" }}/>
                     </button>
 
                     {/* Add New Project CTA */}
                     <button onClick={() => navigate("/admin/projects/new")} className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200" style={{
-            background: "#D84040",
-            color: "#EEEEEE",
-            fontSize: "14px",
-            fontWeight: 600,
-        }} onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}>
+                        background: "#D84040",
+                        color: "#EEEEEE",
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        border: "none",
+                        boxShadow: "0 4px 14px rgba(216, 64, 64, 0.4)"
+                    }} onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")} onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}>
                         <Plus size={16}/>
                         Add New Project
                     </button>
                 </div>
             </div>
 
-            {/* Overview Metrics */}
+            {/* Overview KPIs */}
             <section className="mb-7">
                 <OverviewMetrics />
             </section>
 
-            {/* Timeline */}
+            {/* Analytics Charts */}
             <section className="mb-7">
-                <ProjectTimeline />
+                <AnalyticsCharts />
             </section>
 
-            {/* Two column: Recent Activity + Crew */}
+            {/* Action Center & Top Projects */}
             <div className="grid grid-cols-3 gap-6 mb-7">
-                <div className="col-span-2">
-                    <RecentActivity />
+                <div className="col-span-1">
+                    <ActionCenter />
                 </div>
-                <div>
-                    <CrewOverview />
+                <div className="col-span-2">
+                    <TopActiveProjects />
                 </div>
             </div>
 
-            {/* Featured Projects + Testimonials */}
-            <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-2">
-                    <FeaturedProjects />
-                </div>
-                <div>
-                    <ClientTestimonials />
-                </div>
-            </div>
-        </div>);
+            {/* Crew Radar */}
+            <section className="mb-7">
+                <CrewRadar />
+            </section>
+        </div>
+    );
 }

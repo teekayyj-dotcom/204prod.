@@ -109,7 +109,7 @@ export function CrewProjectsPage() {
   const navigate = useNavigate();
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<{ id: string, name: string, progress: number, type: string, previewUrl: string }[]>([]);
 
   const fetchProjects = async () => {
     try {
@@ -237,20 +237,26 @@ export function CrewProjectsPage() {
   };
 
   const handleFileUpload = () => {
-    if (!selectedProject || isUploading) return;
+    if (!selectedProject) return;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*,video/*";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      setIsUploading(true);
+      
+      const uploadId = Math.random().toString(36).substring(7);
+      const previewUrl = URL.createObjectURL(file);
+      setUploadingFiles(prev => [...prev, { id: uploadId, name: file.name, progress: 0, type: file.type, previewUrl }]);
+      
       try {
         await uploadMediaPipeline(
           file,
           "projects",
           fetchApi,
-          undefined,
+          (p) => {
+            setUploadingFiles(prev => prev.map(f => f.id === uploadId ? { ...f, progress: p } : f));
+          },
           null,
           selectedProject.id,
           "project/gallery"
@@ -261,7 +267,8 @@ export function CrewProjectsPage() {
         console.error("Failed to upload deliverable:", err);
         alert("Upload file thất bại. Vui lòng thử lại!");
       } finally {
-        setIsUploading(false);
+        setUploadingFiles(prev => prev.filter(f => f.id !== uploadId));
+        URL.revokeObjectURL(previewUrl);
       }
     };
     input.click();
@@ -987,21 +994,44 @@ export function CrewProjectsPage() {
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A1F1F")}
             >
               <Upload size={24} style={{ color: "#333", marginBottom: "8px" }} />
-              <p style={{ color: "#555", fontSize: "13px" }}>{isUploading ? "Đang upload..." : "Upload file kết quả"}</p>
+              <p style={{ color: "#555", fontSize: "13px" }}>Upload file kết quả</p>
               <p style={{ color: "#333", fontSize: "11px", marginTop: "4px" }}>
                 Video Draft, Hình ảnh, File xuất
               </p>
               <button
                 className="mt-4 px-5 py-2 rounded-lg flex items-center gap-1.5"
                 style={{ background: "#D84040", color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}
-                disabled={isUploading}
               >
-                {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Chọn file
+                <Plus size={13} /> Chọn file
               </button>
             </div>
 
             {/* Existing deliverables */}
             <div className="mt-3 space-y-2">
+              {uploadingFiles.map(upFile => (
+                <div
+                  key={upFile.id}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  style={{ background: "rgba(29,22,22,0.3)", border: "1px solid rgba(216,64,64,0.3)" }}
+                >
+                  <div style={{ position: "relative", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="32" height="32" viewBox="0 0 32 32" style={{ position: "absolute", transform: "rotate(-90deg)" }}>
+                          <circle cx="16" cy="16" r="14" fill="none" stroke="rgba(216,64,64,0.2)" strokeWidth="3" />
+                          <circle cx="16" cy="16" r="14" fill="none" stroke="#D84040" strokeWidth="3" strokeDasharray="88" strokeDashoffset={88 - (upFile.progress / 100) * 88} style={{ transition: "stroke-dashoffset 0.2s ease" }} />
+                      </svg>
+                      {upFile.type.startsWith("image/") ? (
+                          <ImageIcon size={12} style={{ color: "#D84040" }} />
+                      ) : (
+                          <Film size={12} style={{ color: "#D84040" }} />
+                      )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={upFile.name}>{upFile.name}</p>
+                    <p style={{ color: "#D84040", fontSize: "10px" }}>Đang tải lên... {upFile.progress}%</p>
+                  </div>
+                </div>
+              ))}
+              
               {deliverables.map((file) => (
                 <div
                   key={file.id}
@@ -1010,9 +1040,24 @@ export function CrewProjectsPage() {
                 >
                   <Film size={15} style={{ color: "#D84040", flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
-                    <a href={file.url} target="_blank" rel="noreferrer" className="hover:underline">
-                      <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
-                    </a>
+                    {file.type === "video" ? (
+                      <button 
+                        onClick={() => {
+                            // Use embed URL for Bunny Stream (direct mp4 URL returns 403)
+                            // thumbnail_url holds the iframe embed URL in DB
+                            const videoUrlForReview = file.url;
+                            navigate(`/crew-dashboard/projects/${selectedProject.id}/playback?video=${encodeURIComponent(videoUrlForReview)}`);
+                        }}
+                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+                        className="hover:underline"
+                      >
+                        <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                      </button>
+                    ) : (
+                      <a href={file.url} target="_blank" rel="noreferrer" className="hover:underline">
+                        <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                      </a>
+                    )}
                     <p style={{ color: "#555", fontSize: "10px" }}>
                       {file.size} · {file.uploaded}
                     </p>

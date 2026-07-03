@@ -28,6 +28,13 @@ class ProjectSummary(BaseModel):
 class GalleryImageDetail(BaseModel):
     id: str
     url: str
+    thumbnail_url: str | None = None
+    bunny_video_id: str | None = None
+    name: str | None = None
+    size: str | None = None
+    type: str | None = None
+    uploaded: str | None = None
+    published: bool = False
 
 
 class ProjectDetail(ProjectSummary):
@@ -128,6 +135,7 @@ class ClientUpdate(BaseModel):
 
 
 class ProjectFeedbackBase(BaseModel):
+    video_url: str | None = None
     timecode: float
     position_x: float
     position_y: float

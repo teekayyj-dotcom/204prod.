@@ -8,7 +8,7 @@
 
 export interface ProcessedImage {
   mainBlob: Blob;
-  thumbBlob: Blob;
+  thumbBlob: Blob | null;
   width: number;
   height: number;
   mainSize: number;
@@ -54,7 +54,7 @@ const resizeAndConvert = (
   });
 };
 
-export const processImage = async (file: File): Promise<ProcessedImage> => {
+export const processImage = async (file: File, skipThumb: boolean = false): Promise<ProcessedImage> => {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
       return reject(new Error("File must be an image"));
@@ -71,8 +71,13 @@ export const processImage = async (file: File): Promise<ProcessedImage> => {
           // Main image max width 1920
           const mainBlob = await resizeAndConvert(img, 1920, 0.85);
           
-          // Thumbnail max width 400
-          const thumbBlob = await resizeAndConvert(img, 400, 0.7);
+          let thumbBlob = null;
+          let thumbSize = 0;
+          if (!skipThumb) {
+            // Thumbnail max width 400
+            thumbBlob = await resizeAndConvert(img, 400, 0.7);
+            thumbSize = thumbBlob.size;
+          }
 
           resolve({
             mainBlob,
@@ -80,7 +85,7 @@ export const processImage = async (file: File): Promise<ProcessedImage> => {
             width: originalWidth,
             height: originalHeight,
             mainSize: mainBlob.size,
-            thumbSize: thumbBlob.size,
+            thumbSize,
             contentType: "image/webp",
           });
         } catch (error) {
@@ -102,10 +107,11 @@ export const uploadMediaPipeline = async (
   onProgress?: (p: number) => void,
   clientSlug?: string | null,
   projectSlug?: string | null,
-  folder?: string | null
+  folder?: string | null,
+  skipThumb: boolean = false
 ): Promise<any> => {
   if (file.type.startsWith("image/")) {
-    const processed = await processImage(file);
+    const processed = await processImage(file, skipThumb);
     
     // 1. Get presigned URLs
     const presignedData = await fetchApi("/media/presigned-url", {
@@ -123,6 +129,7 @@ export const uploadMediaPipeline = async (
 
     // 2. Upload to R2 directly
     const uploadToS3 = async (urlData: any, blob: Blob) => {
+        if (!urlData || !urlData.url || !blob) return;
         const res = await fetch(urlData.url, {
             method: "PUT",
             headers: {
@@ -133,10 +140,11 @@ export const uploadMediaPipeline = async (
         if (!res.ok) throw new Error("S3 Upload Failed");
     };
 
-    await Promise.all([
-        uploadToS3(presignedData.main_upload_data, processed.mainBlob),
-        uploadToS3(presignedData.thumb_upload_data, processed.thumbBlob)
-    ]);
+    const uploads = [uploadToS3(presignedData.main_upload_data, processed.mainBlob)];
+    if (!skipThumb && processed.thumbBlob) {
+        uploads.push(uploadToS3(presignedData.thumb_upload_data, processed.thumbBlob));
+    }
+    await Promise.all(uploads);
 
     // 3. Finalize in database
     return await fetchApi("/media/finalize", {
@@ -144,7 +152,7 @@ export const uploadMediaPipeline = async (
         body: JSON.stringify({
             asset_id: presignedData.asset_id,
             url: presignedData.main_url,
-            thumbnail_url: presignedData.thumb_url,
+            thumbnail_url: skipThumb ? null : presignedData.thumb_url,
             alt: file.name,
             caption: `Uploaded: ${file.name}`,
             width: processed.width,

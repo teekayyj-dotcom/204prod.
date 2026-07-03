@@ -329,15 +329,19 @@ def delete_client(db: Session, slug: str) -> bool:
     return True
 
 
-def get_feedbacks(db: Session, project_slug: str):
+def get_feedbacks(db: Session, project_slug: str, video_url: str | None = None):
     from app.modules.projects.models import ProjectFeedback
-    return db.query(ProjectFeedback).filter(ProjectFeedback.project_slug == project_slug).order_by(ProjectFeedback.timecode).all()
+    query = db.query(ProjectFeedback).filter(ProjectFeedback.project_slug == project_slug)
+    if video_url:
+        query = query.filter(ProjectFeedback.video_url == video_url)
+    return query.order_by(ProjectFeedback.timecode).all()
 
 
 def create_feedback(db: Session, project_slug: str, req):
     from app.modules.projects.models import ProjectFeedback
     db_feedback = ProjectFeedback(
         project_slug=project_slug,
+        video_url=req.video_url,
         user_id=req.user_id,
         timecode=req.timecode,
         position_x=req.position_x,

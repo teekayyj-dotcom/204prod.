@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star, Loader2 } from "lucide-react";
+import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star, Loader2, Coins } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 const statusColors = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },
@@ -221,7 +221,7 @@ export function ProjectsPage() {
                                         <span style={{ color: "#666", fontSize: "11px" }}>{project.year}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <DollarSign size={12} color="#D84040"/>
+                                        <Coins size={12} color="#D84040"/>
                                         <span style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{project.budget}</span>
                                     </div>
                                 </div>

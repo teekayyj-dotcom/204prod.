@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
@@ -90,9 +90,9 @@ def delete_project_route(slug: str, db: Session = Depends(get_db_session)):
 
 
 @router.get("/{slug}/feedback")
-def list_feedback_route(slug: str, db: Session = Depends(get_db_session)):
+def list_feedback_route(slug: str, video_url: str | None = Query(None), db: Session = Depends(get_db_session)):
     from app.modules.projects.service import get_feedbacks
-    return get_feedbacks(db, slug)
+    return get_feedbacks(db, slug, video_url)
 
 
 @router.post("/{slug}/feedback")

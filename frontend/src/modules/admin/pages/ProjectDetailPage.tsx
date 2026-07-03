@@ -8,7 +8,7 @@ import {
     AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
     Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
     FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
-    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe,
+    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -740,19 +740,55 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
     const isLate = daysLeft !== null && daysLeft < 0;
     const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
 
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [docs, setDocs] = useState<any[]>([]);
+    const [feedbacks, setFeedbacks] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!project?.id && !project?.slug) return;
+        
+        // Fetch tasks
+        if (project.id) {
+            fetchApi<any[]>(`/projects/${project.id}/tasks`)
+                .then(data => setTasks(data))
+                .catch(() => {});
+                
+            fetchApi<any[]>(`/projects/${project.id}/feedback`)
+                .then(data => setFeedbacks(data))
+                .catch(() => {});
+        }
+        
+        // Fetch docs
+        if (project.slug) {
+            fetchApi<any[]>("/media")
+                .then(data => {
+                    const filtered = data.filter(d => d.project_slug === project.slug && ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"].includes(d.folder));
+                    setDocs(filtered);
+                })
+                .catch(() => {});
+        }
+    }, [project?.id, project?.slug]);
+
     const projectStages = [
-        { id: "Lên kế hoạch", done: project.progress > 0 },
         { id: "Sản xuất", done: project.progress >= 30 },
         { id: "Hậu kỳ", done: project.progress >= 70 },
         { id: "Bàn giao", done: project.progress >= 95 },
     ];
 
+    const completedTasks = tasks.filter(t => t.status === "done").length;
+    const totalTasks = tasks.length;
+    const crewCount = project.credits?.length || 0;
+    const fileCount = (project.gallery?.filter((g: any) => g.type === "video")?.length || 0) + docs.length;
+    const commentCount = feedbacks.length;
+
     const stats = [
-        { label: "Tasks hoàn thành", value: "0 / 0", icon: CheckCheck, color: "#4CAF50" },
-        { label: "Thành viên", value: "0 người", icon: User, color: "#6B8FD6" },
-        { label: "Files đã upload", value: "0 files", icon: ImageIcon, color: "#C084FC" },
-        { label: "Phản hồi KH", value: "0 comments", icon: MessageSquare, color: "#E8A838" },
+        { label: "Tasks hoàn thành", value: `${completedTasks} / ${totalTasks}`, icon: CheckCheck, color: "#4CAF50" },
+        { label: "Thành viên", value: `${crewCount} người`, icon: User, color: "#6B8FD6" },
+        { label: "Files đã upload", value: `${fileCount} files`, icon: ImageIcon, color: "#C084FC" },
+        { label: "Phản hồi KH", value: `${commentCount} comments`, icon: MessageSquare, color: "#E8A838" },
     ];
+
+    const activeStage = projectStages.filter(s => s.done).pop()?.id;
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -773,9 +809,11 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                             fontSize: "12px", fontWeight: 700,
                             border: `1px solid ${statusColors[project.status]?.text || "#555"}33`,
                         }}>{project.status}</span>
-                        <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(107,143,214,0.3)" }}>
-                            📍 {projectStages.filter(s => s.done).pop()?.id || "Lên kế hoạch"}
-                        </span>
+                        {activeStage && (
+                            <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(107,143,214,0.3)" }}>
+                                📍 {activeStage}
+                            </span>
+                        )}
                         {project.published ? (
                             <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(76,175,80,0.15)", color: "#4CAF50", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(76,175,80,0.3)" }}>
                                 🌐 Published
@@ -1171,9 +1209,10 @@ function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: 
 // ─── Admin Tab: Media ──────────────────────────────────────────────────────────
 
 function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { project: any, feedbacks: any[], setFeedbacks: React.Dispatch<React.SetStateAction<any[]>>, setProject: React.Dispatch<React.SetStateAction<any>> }) {
-    const media = project?.gallery || [];
+    const navigate = useNavigate();
+    const media = (project?.gallery || []).filter((item: any) => item.type === 'video');
     const [mediaView, setMediaView] = useState<"grid" | "feedback">("grid");
-    const [isUploading, setIsUploading] = useState(false);
+    const [uploadingFiles, setUploadingFiles] = useState<{ id: string, name: string, progress: number, type: string, previewUrl: string }[]>([]);
     const [replyText, setReplyText] = useState<Record<number, string>>({});
 
     const formattedFeedbacks = feedbacks.map(fb => ({
@@ -1259,20 +1298,34 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
     const handleFileUpload = () => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = "image/*,video/*";
+        input.accept = "video/*";
         input.onchange = async (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (!file) return;
-            setIsUploading(true);
+            
+            // Rename file: ProjectName_demovX.mp4
+            const demoNumber = media.length + 1;
+            // project.title might contain spaces or special chars, but for simplicity we just use it directly
+            // or replace spaces with underscores to be safe
+            const cleanTitle = (project.title || "Project").replace(/[^a-zA-Z0-9]/g, '');
+            const newFileName = `${cleanTitle}_demov${demoNumber}.mp4`;
+            const renamedFile = new File([file], newFileName, { type: file.type });
+            
+            const uploadId = Math.random().toString(36).substring(7);
+            const previewUrl = URL.createObjectURL(renamedFile);
+            setUploadingFiles(prev => [...prev, { id: uploadId, name: renamedFile.name, progress: 0, type: renamedFile.type, previewUrl }]);
+            
             try {
                 await uploadMediaPipeline(
-                    file,
+                    renamedFile,
                     "projects",
                     fetchApi,
-                    undefined,
+                    (p) => {
+                        setUploadingFiles(prev => prev.map(f => f.id === uploadId ? { ...f, progress: p } : f));
+                    },
                     null,
                     project.slug,
-                    "project/gallery"
+                    "demo (admin dashboard)"
                 );
                 
                 const updatedProj = await fetchApi<any>(`/projects/${project.slug}`);
@@ -1281,7 +1334,8 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                 console.error("Failed to upload project media:", err);
                 alert("Upload file thất bại. Vui lòng thử lại!");
             } finally {
-                setIsUploading(false);
+                setUploadingFiles(prev => prev.filter(f => f.id !== uploadId));
+                URL.revokeObjectURL(previewUrl);
             }
         };
         input.click();
@@ -1309,19 +1363,21 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                 ? `https://vz-f1a07f87-b02.b-cdn.net/${file.bunny_video_id}/thumbnail.jpg`
                                 : (file.thumbnail_url && !file.thumbnail_url.includes("iframe") ? file.thumbnail_url : null))
                             : null;
+                        const embedUrlForReview = file.url;
                         return (
                             <div key={file.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: `1px solid ${file.published ? "rgba(76,175,80,0.3)" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)", position: "relative" }}>
                                 <button 
-                                    onClick={() => handleDeleteMedia(file.id)}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteMedia(file.id); }}
                                     style={{ position: "absolute", top: "5px", right: "5px", padding: "4px", background: "rgba(0,0,0,0.6)", borderRadius: "50%", border: "none", cursor: "pointer", color: "#f87171", zIndex: 10 }}
                                     title="Xóa khỏi dự án"
                                 >
                                     <Trash2 size={11} />
                                 </button>
                                 <div 
+                                    className="group/thumb"
                                     onClick={() => {
                                         if (file.type === "video") {
-                                            navigate(`/admin/projects/${project.slug}/playback?video=${encodeURIComponent(file.url)}`);
+                                            navigate(`/admin/projects/${project.slug}/playback?video=${encodeURIComponent(embedUrlForReview)}`);
                                         }
                                     }}
                                     title={file.type === "video" ? "Mở phòng chiếu Cinema Review" : undefined}
@@ -1332,10 +1388,14 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                             {videoThumb ? (
                                                 <img src={videoThumb} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={file.name} />
                                             ) : (
-                                                <video src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
+                                                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
+                                                    <Film size={28} color="#D84040" style={{ opacity: 0.7 }} />
+                                                </div>
                                             )}
-                                            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
-                                                <PlayCircle size={24} color="#D84040" style={{ opacity: 0.8 }} />
+                                            {/* Hover overlay with Cinema Review label */}
+                                            <div className="opacity-0 group-hover/thumb:opacity-100 transition-opacity" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)", gap: "4px" }}>
+                                                <PlayCircle size={22} color="#D84040" />
+                                                <span style={{ color: "#EEEEEE", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Cinema Review</span>
                                             </div>
                                         </>
                                     ) : file.type === "image" ? (
@@ -1346,7 +1406,15 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                 </div>
                                 <div style={{ padding: "8px 10px" }}>
                                     <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
-                                    <p style={{ color: "#555", fontSize: "9px", marginBottom: "8px" }}>{file.size} · {file.uploaded}</p>
+                                    <p style={{ color: "#555", fontSize: "9px", marginBottom: "6px" }}>{file.size} · {file.uploaded}</p>
+                                    {file.type === "video" && (
+                                        <button 
+                                            onClick={() => navigate(`/admin/projects/${project.slug}/playback?video=${encodeURIComponent(embedUrlForReview)}`)}
+                                            style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: "rgba(216,64,64,0.15)", color: "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", marginBottom: "5px" }}
+                                        >
+                                            <MonitorPlay size={9} /> Mở Cinema Review
+                                        </button>
+                                    )}
                                     <button onClick={() => togglePublish(file.id, file.published)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
                                         {file.published ? <><Unlock size={9} /> Published</> : <><Lock size={9} /> Publish to Client</>}
                                     </button>
@@ -1354,23 +1422,38 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                             </div>
                         );
                     })}
+                    {/* Uploading files */}
+                    {uploadingFiles.map(upFile => (
+                        <div key={upFile.id} style={{ borderRadius: "10px", border: "1px solid rgba(46,32,32,0.5)", background: "rgba(29,22,22,0.3)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                            <div style={{ height: "80px", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                {upFile.type.startsWith("image/") ? (
+                                    <img src={upFile.previewUrl} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }} alt="preview" />
+                                ) : (
+                                    <Film size={26} color="#6B8FD6" style={{ opacity: 0.5 }} />
+                                )}
+                                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)" }}>
+                                    <svg width="44" height="44" viewBox="0 0 44 44" style={{ transform: "rotate(-90deg)" }}>
+                                        <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(216,64,64,0.2)" strokeWidth="4" />
+                                        <circle cx="22" cy="22" r="18" fill="none" stroke="#D84040" strokeWidth="4" strokeDasharray="113" strokeDashoffset={113 - (upFile.progress / 100) * 113} style={{ transition: "stroke-dashoffset 0.2s ease" }} />
+                                    </svg>
+                                    <span style={{ position: "absolute", color: "#EEEEEE", fontSize: "10px", fontWeight: "bold" }}>{upFile.progress}%</span>
+                                </div>
+                            </div>
+                            <div style={{ padding: "8px 10px" }}>
+                                <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={upFile.name}>{upFile.name}</p>
+                                <p style={{ color: "#D84040", fontSize: "9px" }}>Đang tải lên...</p>
+                            </div>
+                        </div>
+                    ))}
+
                     <div 
                         onClick={handleFileUpload}
                         style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "130px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.background = "rgba(216,64,64,0.05)"; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.background = "transparent"; }}
                     >
-                        {isUploading ? (
-                            <>
-                                <Loader2 size={18} color="#D84040" className="animate-spin" />
-                                <span style={{ color: "#D84040", fontSize: "10px" }}>Đang upload...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Upload size={18} color="#555" />
-                                <span style={{ color: "#555", fontSize: "10px" }}>Upload file</span>
-                            </>
-                        )}
+                        <Upload size={18} color="#555" />
+                        <span style={{ color: "#555", fontSize: "10px" }}>Upload file</span>
                     </div>
                 </div>
             ) : (
@@ -1440,7 +1523,7 @@ function VaultTab({ project }: { project: any }) {
     const docTypeConfig = {
         brief: { label: "Creative Brief", icon: FileCheck, color: "#6B8FD6" },
         contract: { label: "Hợp đồng", icon: Shield, color: "#4CAF50" },
-        quotation: { label: "Báo giá", icon: DollarSign, color: "#E8A838" },
+        quotation: { label: "Báo giá", icon: Coins, color: "#E8A838" },
         invoice: { label: "Hóa đơn", icon: Receipt, color: "#D84040" },
     };
 
@@ -1448,7 +1531,7 @@ function VaultTab({ project }: { project: any }) {
         setLoading(true);
         fetchApi("/media")
             .then((data: any[]) => {
-                const filtered = data.filter(d => d.project_slug === project?.slug && ["brief", "contract", "quotation", "invoice"].includes(d.folder));
+                const filtered = data.filter(d => d.project_slug === project?.slug && ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"].includes(d.folder));
                 setDocs(filtered);
                 setLoading(false);
             })
@@ -1474,6 +1557,13 @@ function VaultTab({ project }: { project: any }) {
             setUploadingType(type);
             try {
                 const clientSlug = project?.client_slug || project?.client;
+                const folderMap: Record<string, string> = {
+                    brief: "creative brief",
+                    contract: "tài liệu hợp đồng",
+                    quotation: "báo giá",
+                    invoice: "hoá đơn"
+                };
+                const targetFolder = folderMap[type] || type;
                 await uploadMediaPipeline(
                     file, 
                     "projects", 
@@ -1481,7 +1571,7 @@ function VaultTab({ project }: { project: any }) {
                     undefined, 
                     clientSlug, 
                     project.slug, 
-                    type
+                    targetFolder
                 );
                 fetchDocs();
             } catch (err) {
@@ -1519,7 +1609,14 @@ function VaultTab({ project }: { project: any }) {
             ) : (
                 (["brief", "contract", "quotation", "invoice"] as const).map(type => {
                     const cfg = docTypeConfig[type];
-                    const typeDocs = docs.filter(d => d.folder === type);
+                    const folderMap: Record<string, string> = {
+                        brief: "creative brief",
+                        contract: "tài liệu hợp đồng",
+                        quotation: "báo giá",
+                        invoice: "hoá đơn"
+                    };
+                    const targetFolder = folderMap[type];
+                    const typeDocs = docs.filter(d => d.folder === targetFolder);
                     const isUploading = uploadingType === type;
 
                     return (
@@ -1805,7 +1902,7 @@ export function ProjectDetailPage() {
         try {
             let coverMediaId = undefined;
             if (thumbnailFile) {
-                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi);
+                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi, undefined, data.client, project.slug, "thumbnail");
                 coverMediaId = mediaAsset.id;
             } else if (thumbnailPreview === null) {
                 coverMediaId = null;
@@ -1813,14 +1910,14 @@ export function ProjectDetailPage() {
 
             let finalVideoUrl = data.videoUrl;
             if (uploadedVideo) {
-                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi);
+                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, project.slug, "demo (admin dashboard)");
                 finalVideoUrl = mediaAsset.url;
             }
 
             const finalGalleryMediaIds = [];
             for (const img of galleryImages) {
                 if (img.file) {
-                    const mediaAsset = await uploadMediaPipeline(img.file, "projects", fetchApi);
+                    const mediaAsset = await uploadMediaPipeline(img.file, "projects", fetchApi, undefined, data.client, project.slug, "behind the scenes", true);
                     finalGalleryMediaIds.push(mediaAsset.id);
                 } else {
                     finalGalleryMediaIds.push(img.id);
@@ -2222,7 +2319,7 @@ export function ProjectDetailPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <DollarSign size={11} color="#D84040"/> Budget
+                                        <Coins size={11} color="#D84040"/> Budget
                                     </label>
                                     {isEditing ? (
                                         <input {...register("budget")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
@@ -2325,19 +2422,7 @@ export function ProjectDetailPage() {
                                     <VideoViewMode project={project} uploadedVideo={uploadedVideo} />
                                 )}
 
-                                {project && project.slug && (
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate(`/admin/projects/${project.slug}/playback`)}
-                                        className="mt-3 w-full py-2.5 rounded-lg flex items-center justify-center gap-2 border text-xs font-bold transition-all"
-                                        style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderColor: "#D84040", color: "#D84040" }}
-                                        onMouseEnter={(e) => { e.currentTarget.style.background = "#D84040"; e.currentTarget.style.color = "#EEEEEE"; }}
-                                        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(29, 22, 22, 0.4)", e.currentTarget.style.color = "#D84040" }}
-                                    >
-                                        <MonitorPlay size={14} />
-                                        Mở phòng chiếu &amp; Phản hồi (Cinema Review)
-                                    </button>
-                                )}
+
                                     </div>
                                 </div>
                             </div>
@@ -2462,7 +2547,7 @@ export function ProjectDetailPage() {
                     <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Quick Stats</p>
                         {[
-            { icon: DollarSign, label: "Budget", value: project.budget, color: "#D84040" },
+            { icon: Coins, label: "Budget", value: project.budget, color: "#D84040" },
             { icon: Calendar, label: "Due Date", value: project.dueDate, color: "#EEEEEE" },
             { icon: Activity, label: "Progress", value: `${project.progress}%`, color: project.progress === 100 ? "#4CAF50" : "#D84040" },
         ].map(({ icon: Icon, label, value, color }) => (<div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #2A1F1F" }}>
@@ -2527,22 +2612,42 @@ export function ProjectDetailPage() {
                                     {assignedCrew.length === 0 && (<p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="py-2">No crew assigned yet.</p>)}
                                 </div>
 
-                                <div className="mt-3 pt-3 border-t border-[#2A1F1F]">
+                                <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">
                                     <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Assign Crew Member</label>
-                                    <select value="" onChange={(e) => {
-                                            const selectedId = e.target.value;
-                                            const selectedMember = dbCrew.find(m => m.id.toString() === selectedId);
-                                            if (selectedMember) {
-                                                const primaryRole = selectedMember.role ? selectedMember.role.split(",")[0].trim() : "Crew Member";
-                                                setAssignedCrew(prev => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: primaryRole }]);
-                                            }
-                                            e.target.value = "";
-                                        }} className="px-3 py-2 rounded-lg outline-none appearance-none cursor-pointer" style={inputStyle}>
-                                        <option value="">Select registered crew...</option>
-                                        {dbCrew.filter(m => !assignedCrew.some(ac => ac.name.toLowerCase() === m.name.toLowerCase())).map((m) => (
-                                            <option key={m.id} value={m.id}>{m.name} ({m.role ? m.role.split(",")[0].trim() : "No Role"})</option>
-                                        ))}
-                                    </select>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                        <select id="assign-crew-select" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" style={inputStyle}>
+                                            <option value="">Select registered crew...</option>
+                                            {dbCrew.filter(m => !assignedCrew.some(ac => ac.name.toLowerCase() === m.name.toLowerCase())).map((m) => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="flex gap-2 flex-1">
+                                            <input id="assign-crew-role" placeholder="Role (e.g. Director)" list="common-roles" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs w-full" style={inputStyle} />
+                                            <datalist id="common-roles">
+                                                {dbCategories.filter((c: any) => c.type === 'hr_role').map((c: any) => (
+                                                    <option key={c.slug} value={c.name} />
+                                                ))}
+                                            </datalist>
+                                            <button type="button" onClick={() => {
+                                                const selectEl = document.getElementById("assign-crew-select") as HTMLSelectElement;
+                                                const roleEl = document.getElementById("assign-crew-role") as HTMLInputElement;
+                                                const selectedId = selectEl?.value;
+                                                const roleVal = roleEl?.value.trim();
+                                                if (selectedId && roleVal) {
+                                                    const selectedMember = dbCrew.find(m => m.id.toString() === selectedId);
+                                                    if (selectedMember) {
+                                                        setAssignedCrew(prev => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: roleVal }]);
+                                                        selectEl.value = "";
+                                                        roleEl.value = "";
+                                                    }
+                                                } else {
+                                                    alert("Vui lòng chọn nhân sự và nhập/chọn chức vụ (Role).");
+                                                }
+                                            }} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-[#EEEEEE]" style={{ background: "#D84040" }}>
+                                                Add
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">

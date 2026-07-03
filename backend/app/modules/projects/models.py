@@ -151,6 +151,7 @@ class ProjectFeedback(Base):
         nullable=False,
         index=True,
     )
+    video_url: Mapped[str | None] = mapped_column(String(500), nullable=True, index=True)
     user_id: Mapped[str] = mapped_column(String(100), nullable=False)
     timecode: Mapped[float] = mapped_column(Float, nullable=False)
     position_x: Mapped[float] = mapped_column(Float, nullable=False)

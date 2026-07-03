@@ -14,7 +14,8 @@ import {
     AlertCircle,
     Rewind,
     FastForward,
-    Gauge
+    Gauge,
+    MousePointer
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 
@@ -55,6 +56,7 @@ export function ClientPlaybackPage() {
     const [replyText, setReplyText] = useState("");
 
     // Video state
+    const containerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -62,11 +64,12 @@ export function ClientPlaybackPage() {
     const [duration, setDuration] = useState(0);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Send command to Bunny Stream iframe via playerjs postMessage protocol
     const sendBunnyCommand = (method: string, value?: any) => {
         if (!iframeRef.current?.contentWindow) return;
-        const msg: any = { method };
+        const msg: any = { context: "player.js", version: "0.0.11", method };
         if (value !== undefined) msg.value = value;
         iframeRef.current.contentWindow.postMessage(JSON.stringify(msg), "*");
     };
@@ -90,23 +93,36 @@ export function ClientPlaybackPage() {
     // Sidebar comment state
     const [sidebarComment, setSidebarComment] = useState("");
 
+    // Feedback Mode toggle
+    const [isFeedbackMode, setIsFeedbackMode] = useState(true);
+
     useEffect(() => {
         if (!id) return;
         setLoading(true);
-        Promise.all([
-            fetchApi<ProjectData>(`/projects/${id}`),
-            fetchApi<FeedbackItem[]>(`/projects/${id}/feedback`)
-        ])
-            .then(([projData, feedbackData]) => {
+        const searchParams = new URLSearchParams(location.search);
+        const videoUrlParam = searchParams.get("video");
+
+        fetchApi<ProjectData>(`/projects/${id}`)
+            .then(async (projData) => {
                 setProject(projData);
-                setFeedbacks(feedbackData);
+                const currentVideo = videoUrlParam || projData.video_url;
+                try {
+                    let feedbackUrl = `/projects/${id}/feedback`;
+                    if (currentVideo) {
+                        feedbackUrl += `?video_url=${encodeURIComponent(currentVideo)}`;
+                    }
+                    const feedbackData = await fetchApi<FeedbackItem[]>(feedbackUrl);
+                    setFeedbacks(feedbackData);
+                } catch (err) {
+                    console.error("Error loading feedback:", err);
+                }
                 setLoading(false);
             })
             .catch((err) => {
-                console.error("Error loading playback data:", err);
+                console.error("Error loading project data:", err);
                 setLoading(false);
             });
-    }, [id]);
+    }, [id, location.search]);
 
     // Handle play/pause — works for both native video and Bunny iframe
     const togglePlay = () => {
@@ -275,19 +291,48 @@ export function ClientPlaybackPage() {
 
     // Specific click-to-pin target calculation
     const handleVideoFrameClick = (e: React.MouseEvent<HTMLElement>) => {
-        if (!videoRef.current) return;
+        if (!isFeedbackMode) {
+            togglePlay();
+            return;
+        }
 
         // Pause video on click
-        videoRef.current.pause();
+        if (iframeRef.current) {
+            sendBunnyCommand("pause");
+        } else if (videoRef.current) {
+            videoRef.current.pause();
+        }
         setIsPlaying(false);
 
         const rect = e.currentTarget.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        const time = videoRef.current.currentTime;
+        const time = currentTime; // Use state currentTime since videoRef might not be available
 
         setTempPin({ x, y, time });
     };
+
+    const toggleFullscreen = () => {
+        if (!containerRef.current) return;
+        if (!document.fullscreenElement) {
+            containerRef.current.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    };
+
+    // Fullscreen change listener
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    }, []);
 
     // Submit new feedback item
     const handleSubmitComment = async (e: React.FormEvent) => {
@@ -298,9 +343,10 @@ export function ClientPlaybackPage() {
         try {
             const payload = {
                 timecode: parseFloat(tempPin.time.toFixed(3)),
-                position_x: parseFloat(tempPin.x.toFixed(2)),
-                position_y: parseFloat(tempPin.y.toFixed(2)),
+                position_x: parseFloat(tempPin.x.toFixed(3)),
+                position_y: parseFloat(tempPin.y.toFixed(3)),
                 content: commentText.trim(),
+                video_url: videoToPlay,
                 user_id: isAdmin ? "Admin" : "Alex Johnson",
                 status: "Open"
             };
@@ -429,9 +475,9 @@ export function ClientPlaybackPage() {
     const defaultSampleVideo = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
     // Read selected video from query parameters if present
-    const searchParams = new URLSearchParams(location.search);
-    const videoUrlParam = searchParams.get("video");
-    const videoToPlay = videoUrlParam || project.video_url;
+    const searchParamsParams = new URLSearchParams(location.search);
+    const videoUrlParamFallback = searchParamsParams.get("video");
+    const videoToPlay = videoUrlParamFallback || project.video_url;
 
     // Detect YouTube / Vimeo embed (these need an iframe)
     const ytMatch = videoToPlay?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
@@ -479,59 +525,56 @@ export function ClientPlaybackPage() {
                         </div>
                     </div>
 
-                    {isEmbedVideo ? (
-                        <div className="px-3 py-1 rounded bg-green-900/20 border border-green-500/25 text-green-400 text-[10px] flex items-center gap-1.5">
-                            <Play size={12} fill="currentColor" />
-                            <span>Đang chiếu video thật từ Bunny Stream</span>
-                        </div>
-                    ) : !isDirectVideo && (
-                        <div className="px-3 py-1 rounded bg-[#FFC107]/10 border border-[#FFC107]/25 text-[#FFC107] text-[10px] flex items-center gap-1.5 animate-pulse">
-                            <AlertCircle size={12} />
-                            <span>Đang chiếu bản Demo (Native Player) để hỗ trợ phản hồi tọa độ</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2 bg-[#1A1515] p-1 rounded-lg border border-[#2A1F1F]">
+                        <button
+                            onClick={() => setIsFeedbackMode(false)}
+                            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${!isFeedbackMode ? 'bg-[#EEEEEE] text-[#0A0707]' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <Play size={12} fill={!isFeedbackMode ? "currentColor" : "none"} />
+                            Xem Video
+                        </button>
+                        <button
+                            onClick={() => setIsFeedbackMode(true)}
+                            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${isFeedbackMode ? 'bg-[#D84040] text-white' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <MousePointer size={12} fill={isFeedbackMode ? "currentColor" : "none"} />
+                            Góp ý toạ độ
+                        </button>
+                    </div>
                 </div>
 
                 {/* Video Player Centerpiece */}
-                <div className="flex-1 flex items-center justify-center relative w-full h-[65vh] rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]">
+                <div ref={containerRef} className={`flex-1 flex flex-col items-center justify-center relative w-full ${isFullscreen ? 'h-screen' : 'h-[65vh]'} rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]`}>
 
-                    {isEmbedVideo ? (
-                        /* ─── YouTube / Vimeo / legacy Bunny iframe mode ─── */
-                        <div className="relative w-full h-full flex flex-col">
+                    <div className="relative w-full max-h-full aspect-video group flex items-center justify-center">
+                        {isEmbedVideo ? (
+                            /* ─── YouTube / Vimeo / legacy Bunny iframe mode ─── */
                             <iframe
                                 ref={iframeRef}
                                 src={getEmbedUrl()}
-                                className="w-full h-full"
+                                className="w-full h-full absolute inset-0"
                                 style={{ border: "none" }}
                                 allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
                                 allowFullScreen
                                 title={project.title}
                             />
-                            {/* Note banner about pin limitation */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-4 py-2 text-[10px] text-yellow-400/80 flex items-center gap-2 border-t border-yellow-400/10">
-                                <AlertCircle size={11} />
-                                Chế độ chiếu Bunny Stream: Góp ý tọa độ frame không khả dụng. Dùng ô Góp ý chung bên phải.
-                            </div>
-                        </div>
-                    ) : (
-                        /* ─── Native HTML5 video mode (with pin overlay) ─── */
-                        <div className="relative max-w-full max-h-full aspect-video group">
+                        ) : (
+                            /* ─── Native HTML5 video mode ─── */
+                            <video
+                                ref={videoRef}
+                                src={finalVideoSource}
+                                className="w-full h-full object-contain absolute inset-0 rounded-lg"
+                                onTimeUpdate={handleTimeUpdate}
+                                onLoadedMetadata={handleLoadedMetadata}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
+                                playsInline
+                            />
+                        )}
 
-                        <video
-                            ref={videoRef}
-                            src={finalVideoSource}
-                            className="w-full h-full object-contain cursor-crosshair rounded-lg"
-                            onTimeUpdate={handleTimeUpdate}
-                            onLoadedMetadata={handleLoadedMetadata}
-                            onClick={handleVideoFrameClick}
-                            onPlay={() => setIsPlaying(true)}
-                            onPause={() => setIsPlaying(false)}
-                            playsInline
-                        />
-
-                        {/* Interactive Overlay to capture click pin coordinates */}
+                        {/* Interactive Overlay to capture click pin coordinates for both modes */}
                         <div
-                            className="absolute inset-0 cursor-crosshair bg-transparent"
+                            className={`absolute inset-0 bg-transparent z-10 ${isFeedbackMode ? 'cursor-crosshair' : 'cursor-default'}`}
                             onClick={handleVideoFrameClick}
                         />
 
@@ -610,7 +653,6 @@ export function ClientPlaybackPage() {
                             </>
                         )}
                     </div>
-                    )}
                 </div>
 
                 {/* Custom Playback Controls & Seek timeline */}
@@ -714,6 +756,15 @@ export function ClientPlaybackPage() {
 
                         {/* Playback speed controls - Slide Up Transition */}
                         <div className="flex items-center justify-end gap-2 text-right relative group/speed select-none">
+                            <button
+                                type="button"
+                                onClick={toggleFullscreen}
+                                className="px-2.5 py-1.5 bg-[#1D1616]/40 border border-[#2E2020]/60 text-gray-400 rounded transition-all hover:border-[#D84040]/70 hover:bg-[#1D1616]/60 hover:text-white shadow backdrop-blur-sm"
+                                title="Bật/Tắt Toàn màn hình"
+                            >
+                                <Maximize2 size={13} />
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={() => setShowSpeedMenu(!showSpeedMenu)}

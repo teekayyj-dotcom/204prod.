@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight } from "lucide-react";
 import { API_BASE_URL, fetchApi } from "../utils/apiClient";
+import { useNavigate } from "react-router-dom";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 
 const typeIcons = {
@@ -27,6 +28,7 @@ const getImagePreviewUrl = (asset) => {
 };
 
 export function MediaLibraryPage() {
+    const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("All");
     const [view, setView] = useState("grid");
@@ -49,18 +51,7 @@ export function MediaLibraryPage() {
         if (path.length >= 1) clientSlug = path[0];
         if (path.length >= 2) projectSlug = path[1];
         
-        if (path.length === 3) {
-            const sub = path[2];
-            if (sub === "media") folder = "media";
-            else if (sub === "demo") folder = "demo";
-            else if (sub === "final video") folder = "final_video";
-        } else if (path.length === 4) {
-            const docType = path[3];
-            if (docType === "creative brief") folder = "brief";
-            else if (docType === "hợp đồng") folder = "contract";
-            else if (docType === "báo giá") folder = "quotation";
-            else if (docType === "hóa đơn") folder = "invoice";
-        }
+        folder = getFolderDbValue(path) || null;
 
         return { clientSlug, projectSlug, folder };
     };
@@ -147,12 +138,15 @@ export function MediaLibraryPage() {
     const currentClientSlug = currentPath[0] || null;
     const currentProjectSlug = currentPath[1] || null;
 
-    const projectSubfolders = ["media", "demo", "final video", "tài liệu"];
-    const documentSubfolders = ["creative brief", "hợp đồng", "báo giá", "hóa đơn"];
+    const projectSubfolders = ["thumbnail", "behind the scenes", "demo (admin dashboard)", "tài liệu"];
+    const documentSubfolders = ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"];
 
     const getFolderDbValue = (path: string[]) => {
         if (path.length === 3) {
             const sub = path[2];
+            if (sub === "thumbnail") return "thumbnail";
+            if (sub === "behind the scenes") return "behind the scenes";
+            if (sub === "demo (admin dashboard)") return "demo (admin dashboard)";
             if (sub === "media") return "media";
             if (sub === "demo") return "demo";
             if (sub === "final video") return "final_video";
@@ -160,9 +154,12 @@ export function MediaLibraryPage() {
         }
         if (path.length === 4) {
             const docType = path[3];
-            if (docType === "creative brief") return "brief";
+            if (docType === "creative brief") return "creative brief";
+            if (docType === "tài liệu hợp đồng") return "tài liệu hợp đồng";
+            if (docType === "báo giá") return "báo giá";
+            if (docType === "hoá đơn") return "hoá đơn";
+            // Legacy mapping
             if (docType === "hợp đồng") return "contract";
-            if (docType === "báo giá") return "quotation";
             if (docType === "hóa đơn") return "invoice";
             return null;
         }
@@ -401,7 +398,14 @@ export function MediaLibraryPage() {
                     {filesToRender.map((asset) => {
                         const IconComp = typeIcons[asset.type] || FileText;
                         return (
-                            <div key={asset.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")} onClick={() => setPreviewAsset(asset)}>
+                            <div key={asset.id} className="rounded-xl overflow-hidden group cursor-pointer" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")} onClick={() => {
+                                if (asset.type === "video" && asset.projectSlug) {
+                                    const videoUrlForReview = asset.url;
+                                    navigate(`/admin/projects/${asset.projectSlug}/playback?video=${encodeURIComponent(videoUrlForReview)}`);
+                                } else {
+                                    setPreviewAsset(asset);
+                                }
+                            }}>
                                 {/* Preview */}
                                 <div className="relative h-36 overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                     {asset.type === "video" ? (
@@ -427,7 +431,15 @@ export function MediaLibraryPage() {
                                     )}
                                     {/* Overlay actions */}
                                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2" style={{ background: "rgba(0,0,0,0.6)" }}>
-                                        <button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#EEEEEE", color: "#1D1616" }} onClick={(e) => { e.stopPropagation(); setPreviewAsset(asset); }}>
+                                        <button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#EEEEEE", color: "#1D1616" }} onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            if (asset.type === "video" && asset.projectSlug) {
+                                                const videoUrlForReview = asset.url;
+                                                navigate(`/admin/projects/${asset.projectSlug}/playback?video=${encodeURIComponent(videoUrlForReview)}`);
+                                            } else {
+                                                setPreviewAsset(asset); 
+                                            }
+                                        }}>
                                             <Eye size={14}/>
                                         </button>
                                         <button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#D84040", color: "#fff" }} onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: asset.id, name: asset.name }); }}>
