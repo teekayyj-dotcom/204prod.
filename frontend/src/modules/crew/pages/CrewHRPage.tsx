@@ -34,11 +34,7 @@ const currentYear = new Date().getFullYear();
 
 // Real attendance data is fetched dynamically
 
-const mockLeaveRequests = [
-  { id: "lr1", type: "Nghỉ phép", from: "2025-07-05", to: "2025-07-06", reason: "Việc cá nhân", status: "pending", created: "25 Th6" },
-  { id: "lr2", type: "WFH", from: "2025-07-10", to: "2025-07-10", reason: "Sức khỏe không tốt", status: "approved", created: "20 Th6" },
-  { id: "lr3", type: "Nghỉ phép", from: "2025-06-15", to: "2025-06-15", reason: "Việc gia đình", status: "rejected", created: "10 Th6" },
-];
+
 
 const leaveTypes = [
   { id: "leave", label: "Nghỉ phép năm", icon: PlaneTakeoff, color: "#D84040" },

@@ -113,30 +113,33 @@ export function CrewProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const data = await fetchApi<any[]>("/projects");
-      if (data && data.length > 0) {
-        const mapped = data.map((p: any) => ({
-          id: p.slug,
-          name: p.title,
-          client: p.client_slug || "Client",
-          status: p.status === "draft" ? "Planning" : p.status === "published" ? "Completed" : "In Progress",
-          deadline: new Date(p.created_at || Date.now() + 5 * 24 * 60 * 60 * 1000),
-          progress: p.status === "published" ? 100 : p.status === "draft" ? 15 : 65,
-          brief: p.summary || "Chưa có brief cho dự án này.",
-          timelineFiles: ["Script_v2.pdf", "Shotlist_Final.xlsx", "Storyboard.fig"],
-          moodboard: [
-            { label: "Scene 1", color: "from-orange-900 to-red-900" },
-            { label: "Scene 2", color: "from-blue-900 to-purple-900" },
-            { label: "Scene 3", color: "from-green-900 to-teal-900" },
-            { label: "Scene 4", color: "from-yellow-900 to-orange-900" },
-          ],
-          gallery: p.gallery || [],
-        }));
+      const [projectsData, allTasks] = await Promise.all([
+        fetchApi<any[]>("/projects"),
+        fetchApi<any[]>("/projects/tasks/all").catch(() => [])
+      ]);
+      if (projectsData && projectsData.length > 0) {
+        const mapped = projectsData.map((p: any) => {
+          const pTasks = allTasks.filter((t: any) => t.project_slug === p.slug);
+          const doneTasks = pTasks.filter((t: any) => t.status === "done").length;
+          const progress = pTasks.length > 0 ? Math.round((doneTasks / pTasks.length) * 100) : 0;
+          return {
+            id: p.slug,
+            name: p.title,
+            client: p.client_slug || "Client",
+            status: p.status === "draft" ? "Planning" : p.status === "published" ? "Completed" : "In Progress",
+            deadline: p.dueDate || p.due_date ? new Date(p.dueDate || p.due_date) : new Date(p.created_at || Date.now() + 5 * 24 * 60 * 60 * 1000),
+            progress: progress,
+            brief: p.summary || "Chưa có brief cho dự án này.",
+            timelineFiles: [],
+            moodboard: [],
+            gallery: p.gallery || [],
+          };
+        });
         setProjectsList(mapped);
         
         setSelectedProject((prev: any) => {
           if (!prev) return mapped[0];
-          const updated = mapped.find(p => p.id === prev.id);
+          const updated = mapped.find((p: any) => p.id === prev.id);
           return updated || mapped[0];
         });
       }
@@ -245,13 +248,20 @@ export function CrewProjectsPage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       
+      const cleanTitle = (selectedProject.name || selectedProject.id || "Project").replace(/[^a-zA-Z0-9]/g, '');
+      const existingDeliverables = (selectedProject.gallery || []).filter((f: any) => f.folder === "deliverables" || f.folder === "demo (admin dashboard)");
+      const deliverableNumber = existingDeliverables.length + 1;
+      const extension = file.name.split('.').pop() || 'mp4';
+      const newFileName = `${cleanTitle}_deliverable_v${deliverableNumber}.${extension}`;
+      const renamedFile = new File([file], newFileName, { type: file.type });
+
       const uploadId = Math.random().toString(36).substring(7);
-      const previewUrl = URL.createObjectURL(file);
-      setUploadingFiles(prev => [...prev, { id: uploadId, name: file.name, progress: 0, type: file.type, previewUrl }]);
+      const previewUrl = URL.createObjectURL(renamedFile);
+      setUploadingFiles(prev => [...prev, { id: uploadId, name: renamedFile.name, progress: 0, type: renamedFile.type, previewUrl }]);
       
       try {
         await uploadMediaPipeline(
-          file,
+          renamedFile,
           "projects",
           fetchApi,
           (p) => {
@@ -259,7 +269,7 @@ export function CrewProjectsPage() {
           },
           null,
           selectedProject.id,
-          "project/gallery"
+          "deliverables"
         );
         
         await fetchProjects();
@@ -283,7 +293,7 @@ export function CrewProjectsPage() {
 
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
-  const deliverables = selectedProject ? (selectedProject.gallery || []) : [];
+  const deliverables = selectedProject ? (selectedProject.gallery || []).filter((f: any) => f.folder === "deliverables" || f.folder === "demo (admin dashboard)") : [];
 
   const [showBadge, setShowBadge] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
@@ -563,7 +573,7 @@ export function CrewProjectsPage() {
         </div>
         <div className="flex justify-end">
           <button
-            onClick={() => navigate(`/crew-dashboard/projects/${selectedProject.id}/playback`)}
+            onClick={() => navigate(playbackUrl)}
             className="px-4 py-2 rounded-lg flex items-center gap-2 border text-xs font-bold transition-all cursor-pointer"
             style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", borderColor: "#D84040", color: "#D84040" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "#D84040"; e.currentTarget.style.color = "#EEEEEE"; }}

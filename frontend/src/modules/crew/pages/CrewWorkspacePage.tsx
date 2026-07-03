@@ -17,34 +17,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-
-const mockAlerts = [
-  {
-    id: 1,
-    type: "overdue",
-    title: "Task bị quá hạn!",
-    desc: "Scene 5 SFX Mix — dự án \"Brand X TVC\" đã trễ 2 giờ.",
-    time: "2 giờ trước",
-    icon: AlertTriangle,
-  },
-  {
-    id: 2,
-    type: "feedback",
-    title: "Yêu cầu sửa khẩn — Khách hàng phản hồi",
-    desc: "Client ABC gắn pin tại 00:34 — \"Chỉnh lại màu nền, quá sáng so với brief.\"",
-    time: "15 phút trước",
-    icon: MessageSquareWarning,
-  },
-];
-
-const mockStats = [
-  { label: "Tasks hoàn thành", value: "12", sub: "tuần này", icon: CheckSquare, color: "#10B981" },
-  { label: "Giờ làm việc", value: "38.5h", sub: "tuần này", icon: Timer, color: "#D84040" },
-  { label: "Dự án đang chạy", value: "3", sub: "được phân công", icon: TrendingUp, color: "#D4A843" },
-];
-
 // ─── Check-in timer ───────────────────────────────────────────────────────────
 function useCheckinTimer() {
   const [isCheckedIn, setIsCheckedIn] = useState(() => {
@@ -136,15 +108,9 @@ function useCheckinTimer() {
 export function CrewWorkspacePage() {
   const { isCheckedIn, elapsed, checkIn, checkOut, format } = useCheckinTimer();
   const [tasks, setTasks] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchApi("/projects/tasks/all").then(data => {
-      // Filter tasks assigned to current user or keep all? 
-      // For now we keep all, or filter by getUserName()
-      const myName = getUserName();
-      setTasks(data);
-    }).catch(console.error);
-  }, []);
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [workHours, setWorkHours] = useState(0);
+  const [activeProjectsCount, setActiveProjectsCount] = useState(0);
 
   const getUserName = () => {
     try {
@@ -154,6 +120,36 @@ export function CrewWorkspacePage() {
       return "Crew";
     }
   };
+
+  useEffect(() => {
+    fetchApi("/projects/tasks/all").then(data => {
+      // Keep all tasks or filter by user
+      const mappedTasks = Array.isArray(data) ? data : [];
+      setTasks(mappedTasks);
+      
+      const now = Date.now();
+      const overdue = mappedTasks.filter(t => t.status !== "done" && t.deadline && new Date(t.deadline).getTime() < now);
+      
+      setAlerts(overdue.map(t => ({
+        id: t.id,
+        type: "overdue",
+        title: "Task bị quá hạn!",
+        desc: `${t.title} đã trễ deadline.`,
+        time: new Date(t.deadline).toLocaleDateString("vi-VN"),
+        icon: AlertTriangle,
+      })));
+    }).catch(console.error);
+
+    fetchApi("/crew/members").then(data => {
+      const me = data.find((m: any) => m.name === getUserName() || m.email === JSON.parse(localStorage.getItem("user") || "{}").email);
+      if (me) {
+        setActiveProjectsCount(me.projects_count || 0);
+      }
+    }).catch(console.error);
+    
+    // Fallback hours logic
+    setWorkHours(Math.floor(elapsed / 3600));
+  }, [elapsed]);
 
   const toggleTask = (id: string | number) => {
     const task = tasks.find(t => t.id === id);
@@ -183,13 +179,19 @@ export function CrewWorkspacePage() {
   const greeting =
     now.getHours() < 12 ? "Chào buổi sáng" : now.getHours() < 18 ? "Chào buổi chiều" : "Chào buổi tối";
 
+  const dynamicStats = [
+    { label: "Tasks hoàn thành", value: String(doneTasks.length), sub: "tổng cộng", icon: CheckSquare, color: "#10B981" },
+    { label: "Giờ làm việc", value: `${workHours}h`, sub: "phiên này", icon: Timer, color: "#D84040" },
+    { label: "Dự án đang chạy", value: String(activeProjectsCount), sub: "được phân công", icon: TrendingUp, color: "#D4A843" },
+  ];
+
   return (
     <div className="px-8 py-7">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
-            {greeting}, {getUserName()} 👋
+            {greeting}, {getUserName()}
           </h1>
           <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">
             {new Date().toLocaleDateString("vi-VN", {
@@ -206,12 +208,12 @@ export function CrewWorkspacePage() {
         >
           <Bell size={15} />
           <span>Thông báo</span>
-          {mockAlerts.length > 0 && (
+          {alerts.length > 0 && (
             <span
               className="w-5 h-5 rounded-full flex items-center justify-center text-white"
               style={{ background: "#D84040", fontSize: "10px", fontWeight: 700 }}
             >
-              {mockAlerts.length}
+              {alerts.length}
             </span>
           )}
         </button>
@@ -219,7 +221,7 @@ export function CrewWorkspacePage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4 mb-7">
-        {mockStats.map((stat) => (
+        {dynamicStats.map((stat) => (
           <div
             key={stat.label}
             className="rounded-xl px-5 py-4"
@@ -462,18 +464,18 @@ export function CrewWorkspacePage() {
               <h2 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>
                 Thông báo khẩn
               </h2>
-              {mockAlerts.length > 0 && (
+              {alerts.length > 0 && (
                 <span
                   className="ml-auto w-5 h-5 rounded-full flex items-center justify-center"
                   style={{ background: "#D84040", color: "#fff", fontSize: "10px", fontWeight: 700 }}
                 >
-                  {mockAlerts.length}
+                  {alerts.length}
                 </span>
               )}
             </div>
 
             <div className="space-y-3">
-              {mockAlerts.map((alert) => (
+              {alerts.map((alert) => (
                 <div
                   key={alert.id}
                   className="rounded-xl p-4"
@@ -513,7 +515,7 @@ export function CrewWorkspacePage() {
                 </div>
               ))}
 
-              {mockAlerts.length === 0 && (
+              {alerts.length === 0 && (
                 <div className="py-8 text-center">
                   <p style={{ color: "#333", fontSize: "13px" }}>Không có thông báo khẩn</p>
                 </div>
@@ -528,37 +530,47 @@ export function CrewWorkspacePage() {
           >
             <div className="flex items-center gap-2 mb-4">
               <Clock size={14} style={{ color: "#D4A843" }} />
-              <h2 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>Lịch hôm nay</h2>
+              <h2 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>Lịch công việc</h2>
             </div>
-            {[
-              { time: "09:00", label: "Morning sync với PM", tag: "Meeting" },
-              { time: "11:00", label: "Dựng draft 1 — Brand X TVC", tag: "Production" },
-              { time: "14:00", label: "Color grading session", tag: "Production" },
-              { time: "17:00", label: "Bàn giao draft cho review", tag: "Deadline" },
-            ].map((ev, i) => (
-              <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: i < 3 ? "1px solid #1D1616" : "none" }}>
-                <span style={{ color: "#555", fontSize: "11px", minWidth: "36px", fontFamily: "monospace" }}>
-                  {ev.time}
-                </span>
-                <div className="flex-1">
-                  <p style={{ color: "#EEEEEE", fontSize: "12px" }}>{ev.label}</p>
-                </div>
-                <span
-                  className="px-2 py-0.5 rounded-full"
-                  style={{
-                    background: ev.tag === "Deadline" ? "rgba(216,64,64,0.15)" : "rgba(212,168,67,0.1)",
-                    color: ev.tag === "Deadline" ? "#D84040" : "#D4A843",
-                    fontSize: "9px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    border: `1px solid ${ev.tag === "Deadline" ? "rgba(216,64,64,0.3)" : "rgba(212,168,67,0.2)"}`,
-                  }}
-                >
-                  {ev.tag}
-                </span>
-              </div>
-            ))}
+            {pendingTasks
+              .filter(t => t.deadline)
+              .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+              .slice(0, 5)
+              .map((t, i) => {
+                const d = new Date(t.deadline);
+                const isToday = d.toDateString() === new Date().toDateString();
+                const tag = isToday ? "Deadline" : "Upcoming";
+                const time = isToday ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : d.toLocaleDateString("vi-VN");
+                return (
+                  <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: "1px solid #1D1616" }}>
+                    <span style={{ color: "#555", fontSize: "11px", minWidth: "36px", fontFamily: "monospace" }}>
+                      {time}
+                    </span>
+                    <div className="flex-1">
+                      <p style={{ color: "#EEEEEE", fontSize: "12px" }}>{t.title}</p>
+                    </div>
+                    <span
+                      className="px-2 py-0.5 rounded-full"
+                      style={{
+                        background: tag === "Deadline" ? "rgba(216,64,64,0.15)" : "rgba(212,168,67,0.1)",
+                        color: tag === "Deadline" ? "#D84040" : "#D4A843",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        border: `1px solid ${tag === "Deadline" ? "rgba(216,64,64,0.3)" : "rgba(212,168,67,0.2)"}`,
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  </div>
+                );
+              })}
+            {pendingTasks.filter(t => t.deadline).length === 0 && (
+               <div className="py-4 text-center">
+                 <p style={{ color: "#555", fontSize: "12px" }}>Không có lịch trình sắp tới</p>
+               </div>
+            )}
           </div>
         </div>
       </div>

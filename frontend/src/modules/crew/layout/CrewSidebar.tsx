@@ -149,21 +149,6 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
         {/* Divider */}
         <div style={{ margin: "16px 12px", borderTop: "1px solid #2A1F1F" }} />
 
-        {/* Access Note */}
-        <div
-          className="mx-2 px-3 py-2.5 rounded-lg"
-          style={{ background: "#1D1616", border: "1px solid #2A1F1F" }}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <Zap size={11} style={{ color: "#D84040" }} />
-            <span style={{ color: "#D84040", fontSize: "9px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-              Crew Access
-            </span>
-          </div>
-          <p style={{ color: "#555", fontSize: "10.5px", lineHeight: 1.5 }}>
-            Chỉ hiển thị dự án được phân công. Dữ liệu tài chính được ẩn.
-          </p>
-        </div>
       </nav>
 
       {/* User Profile */}
