@@ -1570,17 +1570,29 @@ function VaultTab({ project }: { project: any }) {
 // ─── VideoViewMode (helper component) ─────────────────────────────────────────────
 
 function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo: any }) {
-    const url = project?.videoUrl || "";
-    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-    const vmMatch = url.match(/vimeo\.com\/(\d+)/);
+    const url = project?.video_url || project?.videoUrl || "";
+    const ytMatch = url ? url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/) : null;
+    const vmMatch = url ? url.match(/vimeo\.com\/(\d+)/) : null;
     const embedUrl = ytMatch
         ? `https://www.youtube.com/embed/${ytMatch[1]}`
         : vmMatch ? `https://player.vimeo.com/video/${vmMatch[1]}` : null;
+
+    const isDirectVideo = !!url && !embedUrl && (
+        url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || 
+        url.includes("play_1080p.mp4") || url.includes("mediadelivery.net") || url.includes("r2.dev")
+    );
 
     if (embedUrl) {
         return (
             <div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020" }}>
                 <iframe src={embedUrl} className="w-full" style={{ height: "220px", border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video" />
+            </div>
+        );
+    }
+    if (isDirectVideo) {
+        return (
+            <div className="mt-3 rounded-xl overflow-hidden bg-black" style={{ border: "1px solid #2E2020", height: "220px" }}>
+                <video src={url} controls className="w-full h-full object-contain" />
             </div>
         );
     }
