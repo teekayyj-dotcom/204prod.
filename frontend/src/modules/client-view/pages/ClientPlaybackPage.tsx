@@ -56,11 +56,20 @@ export function ClientPlaybackPage() {
 
     // Video state
     const videoRef = useRef<HTMLVideoElement>(null);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+
+    // Send command to Bunny Stream iframe via playerjs postMessage protocol
+    const sendBunnyCommand = (method: string, value?: any) => {
+        if (!iframeRef.current?.contentWindow) return;
+        const msg: any = { method };
+        if (value !== undefined) msg.value = value;
+        iframeRef.current.contentWindow.postMessage(JSON.stringify(msg), "*");
+    };
 
     const handleSpeedChange = (speed: number) => {
         setPlaybackSpeed(speed);
@@ -99,18 +108,56 @@ export function ClientPlaybackPage() {
             });
     }, [id]);
 
-    // Handle play/pause
+    // Handle play/pause — works for both native video and Bunny iframe
     const togglePlay = () => {
-        if (!videoRef.current) return;
-        if (videoRef.current.paused) {
-            videoRef.current.play();
-            // Clear temp draft pin when playing resumes
-            setTempPin(null);
-            setCommentText("");
-        } else {
-            videoRef.current.pause();
+        if (iframeRef.current) {
+            if (isPlaying) {
+                sendBunnyCommand("pause");
+            } else {
+                sendBunnyCommand("play");
+                setTempPin(null);
+                setCommentText("");
+            }
+            setIsPlaying(!isPlaying);
+        } else if (videoRef.current) {
+            if (videoRef.current.paused) {
+                videoRef.current.play();
+                setTempPin(null);
+                setCommentText("");
+            } else {
+                videoRef.current.pause();
+            }
         }
     };
+
+    // Listen for Bunny Stream playerjs postMessage events
+    useEffect(() => {
+        const handleMessage = (e: MessageEvent) => {
+            if (!iframeRef.current) return;
+            try {
+                const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+                if (data.event === "timeupdate" && data.value) {
+                    setCurrentTime(data.value.seconds ?? data.value.currentTime ?? 0);
+                    if (data.value.duration) setDuration(data.value.duration);
+                } else if (data.event === "play") {
+                    setIsPlaying(true);
+                } else if (data.event === "pause") {
+                    setIsPlaying(false);
+                } else if (data.event === "ended") {
+                    setIsPlaying(false);
+                } else if (data.event === "ready") {
+                    // Subscribe to all events once ready
+                    sendBunnyCommand("addEventListener", "timeupdate");
+                    sendBunnyCommand("addEventListener", "play");
+                    sendBunnyCommand("addEventListener", "pause");
+                    sendBunnyCommand("addEventListener", "ended");
+                    sendBunnyCommand("getDuration");
+                }
+            } catch (_) { /* ignore non-playerjs messages */ }
+        };
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, []);
 
     // Keyboard shortcuts for video controls
     useEffect(() => {
@@ -124,20 +171,20 @@ export function ClientPlaybackPage() {
                 return;
             }
 
-            if (!videoRef.current) return;
-
             if (e.key === " ") {
                 e.preventDefault();
                 togglePlay();
             } else if (e.key === "ArrowLeft") {
                 e.preventDefault();
-                const newTime = Math.max(0, videoRef.current.currentTime - 10);
-                videoRef.current.currentTime = newTime;
+                const newTime = Math.max(0, currentTime - 10);
+                if (videoRef.current) { videoRef.current.currentTime = newTime; }
+                else { sendBunnyCommand("seekTo", newTime); }
                 setCurrentTime(newTime);
             } else if (e.key === "ArrowRight") {
                 e.preventDefault();
-                const newTime = Math.min(duration, videoRef.current.currentTime + 10);
-                videoRef.current.currentTime = newTime;
+                const newTime = Math.min(duration || 9999, currentTime + 10);
+                if (videoRef.current) { videoRef.current.currentTime = newTime; }
+                else { sendBunnyCommand("seekTo", newTime); }
                 setCurrentTime(newTime);
             }
         };
@@ -146,7 +193,7 @@ export function ClientPlaybackPage() {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [duration]);
+    }, [duration, currentTime, isPlaying]);
 
     // Loop to update playhead time at millisecond precision during playback
     useEffect(() => {
@@ -211,14 +258,18 @@ export function ClientPlaybackPage() {
         videoRef.current.playbackRate = playbackSpeed;
     };
 
-    // Seek video from timeline click
+    // Seek video from timeline click — works for both native video and Bunny iframe
     const handleTimelineSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!videoRef.current || duration === 0) return;
+        if (duration === 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const percentage = clickX / rect.width;
         const targetTime = percentage * duration;
-        videoRef.current.currentTime = targetTime;
+        if (videoRef.current) {
+            videoRef.current.currentTime = targetTime;
+        } else {
+            sendBunnyCommand("seekTo", targetTime);
+        }
         setCurrentTime(targetTime);
     };
 
@@ -374,11 +425,31 @@ export function ClientPlaybackPage() {
         );
     }
 
-    // Direct sample video fallback for testing local interactive pins
+    // Direct sample video fallback
     const defaultSampleVideo = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-    // Check if the URL is direct mp4 or direct playable video, otherwise use fallback sample for perfect interactive demonstration
-    const isDirectVideo = project.video_url && (project.video_url.endsWith(".mp4") || project.video_url.endsWith(".mov") || project.video_url.endsWith(".webm") || project.video_url.includes("commondatastorage"));
-    const finalVideoSource = isDirectVideo ? project.video_url : defaultSampleVideo;
+
+    // Detect YouTube / Vimeo embed (these need an iframe)
+    const ytMatch = project.video_url?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+    const vmMatch = project.video_url?.match(/vimeo\.com\/(\d+)/);
+    // Legacy Bunny embed URL (old records before backend fix)
+    const bunnyLegacy = !!project.video_url && /iframe\.mediadelivery\.net\/embed\//.test(project.video_url);
+
+    const isEmbedVideo = !!(ytMatch || vmMatch || bunnyLegacy);
+
+    const getEmbedUrl = () => {
+        if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&controls=1`;
+        if (vmMatch) return `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=0&controls=1`;
+        if (bunnyLegacy && project.video_url) {
+            return project.video_url.includes("?")
+                ? `${project.video_url}&autoplay=false&loop=false&muted=false`
+                : `${project.video_url}?autoplay=false&loop=false&muted=false`;
+        }
+        return "";
+    };
+
+    // Direct playable video (.mp4/.mov/.webm) — Bunny CDN or self-hosted
+    const isDirectVideo = !isEmbedVideo && !!project.video_url;
+    const finalVideoSource = isDirectVideo ? project.video_url! : defaultSampleVideo;
 
     // Filter feedback that is active (showing within 1.5s window of current time)
     const activePins = feedbacks.filter(f => Math.abs(f.timecode - currentTime) < 1.5);
@@ -403,10 +474,15 @@ export function ClientPlaybackPage() {
                         </div>
                     </div>
 
-                    {!isDirectVideo && (
+                    {isEmbedVideo ? (
+                        <div className="px-3 py-1 rounded bg-green-900/20 border border-green-500/25 text-green-400 text-[10px] flex items-center gap-1.5">
+                            <Play size={12} fill="currentColor" />
+                            <span>Đang chiếu video thật từ Bunny Stream</span>
+                        </div>
+                    ) : !isDirectVideo && (
                         <div className="px-3 py-1 rounded bg-[#FFC107]/10 border border-[#FFC107]/25 text-[#FFC107] text-[10px] flex items-center gap-1.5 animate-pulse">
                             <AlertCircle size={12} />
-                            <span>Đang chiếu bản Demo Demo (Native Player) để hỗ trợ phản hồi tọa độ</span>
+                            <span>Đang chiếu bản Demo (Native Player) để hỗ trợ phản hồi tọa độ</span>
                         </div>
                     )}
                 </div>
@@ -414,8 +490,27 @@ export function ClientPlaybackPage() {
                 {/* Video Player Centerpiece */}
                 <div className="flex-1 flex items-center justify-center relative w-full h-[65vh] rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]">
 
-                    {/* Native HTML5 Video Element wrapper */}
-                    <div className="relative max-w-full max-h-full aspect-video group">
+                    {isEmbedVideo ? (
+                        /* ─── YouTube / Vimeo / legacy Bunny iframe mode ─── */
+                        <div className="relative w-full h-full flex flex-col">
+                            <iframe
+                                ref={iframeRef}
+                                src={getEmbedUrl()}
+                                className="w-full h-full"
+                                style={{ border: "none" }}
+                                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                                title={project.title}
+                            />
+                            {/* Note banner about pin limitation */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 px-4 py-2 text-[10px] text-yellow-400/80 flex items-center gap-2 border-t border-yellow-400/10">
+                                <AlertCircle size={11} />
+                                Chế độ chiếu Bunny Stream: Góp ý tọa độ frame không khả dụng. Dùng ô Góp ý chung bên phải.
+                            </div>
+                        </div>
+                    ) : (
+                        /* ─── Native HTML5 video mode (with pin overlay) ─── */
+                        <div className="relative max-w-full max-h-full aspect-video group">
 
                         <video
                             ref={videoRef}
@@ -510,6 +605,7 @@ export function ClientPlaybackPage() {
                             </>
                         )}
                     </div>
+                    )}
                 </div>
 
                 {/* Custom Playback Controls & Seek timeline */}
@@ -565,11 +661,13 @@ export function ClientPlaybackPage() {
                         <div className="flex items-center gap-1.5 justify-start">
                             <button
                                 onClick={() => {
+                                    const newTime = Math.max(0, currentTime - 10);
                                     if (videoRef.current) {
-                                        const newTime = Math.max(0, videoRef.current.currentTime - 10);
                                         videoRef.current.currentTime = newTime;
-                                        setCurrentTime(newTime);
+                                    } else {
+                                        sendBunnyCommand("seekTo", newTime);
                                     }
+                                    setCurrentTime(newTime);
                                 }}
                                 className="w-8 h-8 rounded-full bg-[#1D1616]/40 border border-[#2E2020]/60 hover:bg-[#2A1F1F]/60 hover:border-[#D84040]/70 hover:text-white text-gray-400 flex items-center justify-center transition-all duration-200 backdrop-blur-sm shadow"
                                 title="Tua lại 10 giây (←)"
@@ -587,11 +685,13 @@ export function ClientPlaybackPage() {
 
                             <button
                                 onClick={() => {
+                                    const newTime = Math.min(duration || 9999, currentTime + 10);
                                     if (videoRef.current) {
-                                        const newTime = Math.min(duration, videoRef.current.currentTime + 10);
                                         videoRef.current.currentTime = newTime;
-                                        setCurrentTime(newTime);
+                                    } else {
+                                        sendBunnyCommand("seekTo", newTime);
                                     }
+                                    setCurrentTime(newTime);
                                 }}
                                 className="w-8 h-8 rounded-full bg-[#1D1616]/40 border border-[#2E2020]/60 hover:bg-[#2A1F1F]/60 hover:border-[#D84040]/70 hover:text-white text-gray-400 flex items-center justify-center transition-all duration-200 backdrop-blur-sm shadow"
                                 title="Tua đi 10 giây (→)"

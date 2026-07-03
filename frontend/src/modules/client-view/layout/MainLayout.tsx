@@ -29,7 +29,7 @@ export function MainLayout() {
                     <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
                 </>
             )}
-            <div className="flex-1 flex flex-col min-h-screen z-10 lg:ml-64 transition-all duration-300">
+            <div className={`flex-1 flex flex-col min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
                 {/* Mobile Header */}
                 {!isPlaybackPage && (
                     <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">

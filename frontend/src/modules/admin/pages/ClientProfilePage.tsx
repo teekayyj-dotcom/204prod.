@@ -59,7 +59,7 @@ export function ClientProfilePage() {
         tax_code: "",
         invoice_address: "",
         poc_list: [],
-        assignee: "Sarah Kim",
+        assignee: "",
         ltv: 0,
         outstanding_balance: 0,
         invoices: [],
@@ -92,6 +92,18 @@ export function ClientProfilePage() {
             .catch(err => console.error("Error fetching crew members:", err));
     }, []);
 
+    // Fetch categories
+    const [categories, setCategories] = useState([]);
+    useEffect(() => {
+        fetchApi("/categories")
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setCategories(data);
+                }
+            })
+            .catch(err => console.error("Error fetching categories:", err));
+    }, []);
+
     // Fetch client details
     useEffect(() => {
         fetchApi(`/projects/clients/${id}`)
@@ -117,7 +129,7 @@ export function ClientProfilePage() {
                     tax_code: parsedCrm?.tax_code || "",
                     invoice_address: parsedCrm?.invoice_address || "",
                     poc_list: parsedCrm?.poc_list || (data.contact ? [{ name: data.contact, phone: data.phone || "", email: data.email || "", role: "Người liên hệ chính" }] : []),
-                    assignee: parsedCrm?.assignee || "Sarah Kim",
+                    assignee: parsedCrm?.assignee || "",
                     ltv: parsedCrm?.ltv || data.total_budget || 0,
                     outstanding_balance: parsedCrm?.outstanding_balance || 0,
                     invoices: parsedCrm?.invoices || [],
@@ -143,7 +155,7 @@ export function ClientProfilePage() {
                     industry: data.industry || "",
                     status: data.status || "Active",
                     since: data.since || "2026",
-                    budget: data.total_budget ? `$${data.total_budget.toLocaleString()}` : "N/A",
+                    budget: data.total_budget ? `${data.total_budget.toLocaleString()} ₫` : "N/A",
                 });
                 setLoading(false);
             })
@@ -156,6 +168,15 @@ export function ClientProfilePage() {
     const watched = watch();
     const statusInfo = statusColors[watched.status] || statusColors["Active"];
     const initials = (watched.name || "?").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+    
+    const industries = categories.filter(c => c.type === "client_industry");
+    const currentIndustry = watched.industry;
+    const hasCurrent = industries.some(ind => ind.name === currentIndustry);
+    const dropdownOptions = [...industries];
+    if (currentIndustry && !hasCurrent) {
+        dropdownOptions.push({ name: currentIndustry, slug: currentIndustry });
+    }
+
     const clientProjects = client?.projects || [];
     const activeProjects = clientProjects.filter(p => p.status !== "Completed");
     const completedProjects = clientProjects.filter(p => p.status === "Completed");
@@ -170,6 +191,7 @@ export function ClientProfilePage() {
                 formData.append("file", avatarFile);
                 formData.append("alt", `${data.name} Logo`);
                 formData.append("caption", `Logo for ${data.name}`);
+                formData.append("folder", "avatar/client");
                 const mediaAsset = await fetchApi("/media/upload", {
                     method: "POST",
                     body: formData,
@@ -591,7 +613,12 @@ export function ClientProfilePage() {
                                         Lĩnh vực kinh doanh
                                     </label>
                                     {isEditing ? (
-                                        <input {...register("industry")} placeholder="Ví dụ: SaaS, E-commerce..." className="px-3 py-2 rounded-lg outline-none" style={inputStyle} />
+                                        <select {...register("industry")} className="px-3 py-2 rounded-lg outline-none cursor-pointer" style={inputStyle}>
+                                            <option value="">Chọn lĩnh vực...</option>
+                                            {dropdownOptions.map((ind) => (
+                                                <option key={ind.slug || ind.name} value={ind.name}>{ind.name}</option>
+                                            ))}
+                                        </select>
                                     ) : (
                                         <p style={{ color: "#EEEEEE", fontSize: "14px" }}>{watched.industry || "—"}</p>
                                     )}
@@ -937,7 +964,7 @@ export function ClientProfilePage() {
                                         )}
                                         <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{prop.title}</p>
                                         <div className="flex justify-between items-center text-xs pt-1">
-                                            <span style={{ color: "#D84040", fontWeight: 600 }}>{prop.budget ? `$${parseFloat(prop.budget).toLocaleString()}` : "TBD"}</span>
+                                            <span style={{ color: "#D84040", fontWeight: 600 }}>{prop.budget ? `${parseFloat(prop.budget).toLocaleString()} ₫` : "TBD"}</span>
                                             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{
                                                 background: prop.status === "Approved" ? "rgba(76,175,80,0.15)" : prop.status === "Rejected" ? "rgba(216,64,64,0.15)" : "rgba(232,168,56,0.15)",
                                                 color: prop.status === "Approved" ? "#4CAF50" : prop.status === "Rejected" ? "#D84040" : "#E8A838"
@@ -966,7 +993,7 @@ export function ClientProfilePage() {
                                     <div className="grid grid-cols-2 gap-2">
                                         <input 
                                             type="number" 
-                                            placeholder="Ngân sách ($)" 
+                                            placeholder="Ngân sách (₫)" 
                                             value={newProposal.budget}
                                             onChange={(e) => setNewProposal(prev => ({ ...prev, budget: e.target.value }))}
                                             className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }} 
@@ -1025,7 +1052,7 @@ export function ClientProfilePage() {
                                             />
                                         ) : (
                                             <p style={{ color: "#4CAF50", fontSize: "20px", fontWeight: 700 }}>
-                                                ${parseFloat(crmData.ltv || 0).toLocaleString()}
+                                                {parseFloat(crmData.ltv || 0).toLocaleString()} ₫
                                             </p>
                                         )}
                                     </div>
@@ -1042,11 +1069,11 @@ export function ClientProfilePage() {
                                     <div>
                                         <p style={{ color: "#888", fontSize: "12px" }}>Công nợ hiện tại</p>
                                         <p style={{ color: "#D84040", fontSize: "20px", fontWeight: 700 }}>
-                                            ${crmData.invoices
+                                            {crmData.invoices
                                                 .filter(inv => inv.status === "Unpaid" || inv.status === "Overdue")
                                                 .reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0)
                                                 .toLocaleString()
-                                            }
+                                            } ₫
                                         </p>
                                     </div>
                                 </div>
@@ -1078,7 +1105,7 @@ export function ClientProfilePage() {
                                             <th className="pb-3 font-semibold">Mã Invoice</th>
                                             <th className="pb-3 font-semibold">Mô tả chi tiết</th>
                                             <th className="pb-3 font-semibold">Ngày xuất bản</th>
-                                            <th className="pb-3 font-semibold">Giá trị ($)</th>
+                                            <th className="pb-3 font-semibold">Giá trị (₫)</th>
                                             <th className="pb-3 font-semibold">Trạng thái</th>
                                             {isEditing && <th className="pb-3 font-semibold text-right">Thao tác</th>}
                                         </tr>
@@ -1089,7 +1116,7 @@ export function ClientProfilePage() {
                                                 <td className="py-3 font-semibold text-[#D84040]">{inv.code}</td>
                                                 <td className="py-3">{inv.description}</td>
                                                 <td className="py-3">{inv.date}</td>
-                                                <td className="py-3 font-semibold">${parseFloat(inv.amount).toLocaleString()}</td>
+                                                <td className="py-3 font-semibold">{parseFloat(inv.amount).toLocaleString()} ₫</td>
                                                 <td className="py-3">
                                                     {isEditing ? (
                                                         <select
@@ -1158,7 +1185,7 @@ export function ClientProfilePage() {
                                                 <td className="py-3 pr-2">
                                                     <input 
                                                         type="number"
-                                                        placeholder="Số tiền ($)" 
+                                                        placeholder="Số tiền (₫)" 
                                                         value={newInvoice.amount}
                                                         onChange={(e) => setNewInvoice(prev => ({ ...prev, amount: e.target.value }))}
                                                         className="px-2 py-1 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }} 

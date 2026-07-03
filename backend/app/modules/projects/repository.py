@@ -10,20 +10,25 @@ def _map_to_detail(p: Project) -> ProjectDetail:
         slug=p.slug,
         client=p.client.name if p.client else p.client_slug,
         client_slug=p.client_slug,
+        client_logo=(p.client.logo_media.thumbnail_url or p.client.logo_media.url) if p.client and p.client.logo_media else None,
         year=p.year,
         format=p.format_category.name if p.format_category else p.format_slug,
         format_slug=p.format_slug,
         featured=p.featured,
-        cover_image=p.cover_media.url if p.cover_media else "",
+        cover_image=(p.cover_media.thumbnail_url or p.cover_media.url) if p.cover_media else "",
         cover_media={
             "url": p.cover_media.url,
+            "thumbnail_url": p.cover_media.thumbnail_url,
             "kind": p.cover_media.kind
         } if p.cover_media else None,
         video_url=p.video_url,
         videoUrl=p.video_url,
+        budget=p.budget or "TBD",
         status=p.status,
         published=p.published,
         locked=p.locked,
+        due_date=p.due_date.isoformat() if p.due_date else None,
+        dueDate=p.due_date.isoformat() if p.due_date else None,
         summary=p.summary or "",
         credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
         gallery=[
@@ -36,7 +41,7 @@ def _map_to_detail(p: Project) -> ProjectDetail:
 
 def list_projects(db: Session) -> list[ProjectDetail]:
     stmt = select(Project).options(
-        joinedload(Project.client),
+        joinedload(Project.client).joinedload(Client.logo_media),
         joinedload(Project.format_category),
         joinedload(Project.cover_media),
         joinedload(Project.credits),
@@ -48,7 +53,7 @@ def list_projects(db: Session) -> list[ProjectDetail]:
 
 def get_project_by_slug(db: Session, slug: str) -> ProjectDetail | None:
     stmt = select(Project).where(Project.slug == slug).options(
-        joinedload(Project.client),
+        joinedload(Project.client).joinedload(Client.logo_media),
         joinedload(Project.format_category),
         joinedload(Project.cover_media),
         joinedload(Project.credits),
@@ -62,7 +67,54 @@ def get_project_by_slug(db: Session, slug: str) -> ProjectDetail | None:
 
 from app.modules.projects.schemas import ClientSummary
 
-def _map_client_to_summary(c: Client) -> ClientSummary:
+def sync_crm_notes_from_db(db: Session, db_client: Client) -> None:
+    import json
+    from app.modules.finance.models import ClientInvoice
+    
+    if not db_client.notes:
+        return
+        
+    try:
+        trimmed = db_client.notes.strip()
+        if not trimmed.startswith("{"):
+            return
+        crm = json.loads(trimmed)
+        crm_invoices = crm.get("invoices", [])
+        if not crm_invoices:
+            return
+            
+        # Get existing client invoices from DB
+        db_invoices = db.query(ClientInvoice).filter(ClientInvoice.client_slug == db_client.slug).all()
+        db_inv_map = {inv.id: inv for inv in db_invoices}
+        
+        status_map_rev = {
+            "paid": "Paid",
+            "pending": "Unpaid",
+            "overdue": "Overdue"
+        }
+        
+        changed = False
+        for crm_inv in crm_invoices:
+            inv_id = crm_inv.get("id") or crm_inv.get("code")
+            if inv_id in db_inv_map:
+                db_inv = db_inv_map[inv_id]
+                expected_crm_status = status_map_rev.get(db_inv.status, "Unpaid")
+                if crm_inv.get("status") != expected_crm_status:
+                    crm_inv["status"] = expected_crm_status
+                    changed = True
+                    
+        if changed:
+            crm["invoices"] = crm_invoices
+            db_client.notes = json.dumps(crm, ensure_ascii=False)
+            db.commit()
+    except Exception as e:
+        print(f"Error syncing CRM notes from DB: {e}")
+
+
+def _map_client_to_summary(c: Client, db: Session = None) -> ClientSummary:
+    if db is not None:
+        sync_crm_notes_from_db(db, c)
+        
     # Compute project count and total budget from client projects list
     project_count = len(c.projects) if c.projects else 0
     total_budget = 0
@@ -100,7 +152,7 @@ def list_clients(db: Session) -> list[ClientSummary]:
         joinedload(Client.projects)
     )
     clients = db.scalars(stmt).unique().all()
-    return [_map_client_to_summary(c) for c in clients]
+    return [_map_client_to_summary(c, db) for c in clients]
 
 
 def get_client_by_slug(db: Session, slug: str) -> Client | None:
@@ -116,7 +168,7 @@ def get_client_detail(db: Session, slug: str) -> dict | None:
     if not c:
         return None
     
-    summary = _map_client_to_summary(c)
+    summary = _map_client_to_summary(c, db)
     res = summary.model_dump()
     
     mapped_projects = []

@@ -340,7 +340,7 @@ export function CategoriesPage() {
                             <div 
                                 key={cat.slug} 
                                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border transition-all relative group ${
-                                    (type === "project_type" || type === "format") && !disabled ? "cursor-pointer hover:border-white/50" : "cursor-default"
+                                    (type === "project_type" || type === "format" || type === "client_industry" || type === "client_tier" || type === "finance_opex" || type === "finance_cogs" || type === "payment_method" || type === "hr_role" || type === "hr_skill") && !disabled ? "cursor-pointer hover:border-white/50" : "cursor-default"
                                 }`}
                                 style={{ 
                                     borderColor: disabled ? "rgba(80,80,80,0.3)" : color,
@@ -348,10 +348,25 @@ export function CategoriesPage() {
                                     opacity: disabled ? 0.55 : 1,
                                 }}
                                 onClick={(e) => {
-                                    if ((type === "project_type" || type === "format") && !disabled) {
-                                        if (e.target.tagName !== "BUTTON" && !e.target.closest("button")) {
-                                            navigate(`/admin/categories/${cat.slug}`);
-                                        }
+                                    if (disabled) return;
+                                    if (e.target.tagName === "BUTTON" || e.target.closest("button")) return;
+
+                                    if (type === "project_type" || type === "format") {
+                                        navigate(`/admin/categories/${cat.slug}`);
+                                    } else if (type === "client_industry") {
+                                        navigate(`/admin/clients?industry=${encodeURIComponent(cat.name)}`);
+                                    } else if (type === "client_tier") {
+                                        navigate(`/admin/clients?tier=${encodeURIComponent(cat.name)}`);
+                                    } else if (type === "finance_opex") {
+                                        navigate(`/admin/finance/expenses?tab=opex&search=${encodeURIComponent(cat.name)}`);
+                                    } else if (type === "finance_cogs") {
+                                        navigate(`/admin/finance/expenses?tab=cogs&search=${encodeURIComponent(cat.name)}`);
+                                    } else if (type === "payment_method") {
+                                        navigate(`/admin/finance/payables?search=${encodeURIComponent(cat.name)}`);
+                                    } else if (type === "hr_role") {
+                                        navigate(`/admin/crew?search=${encodeURIComponent(cat.name)}`);
+                                    } else if (type === "hr_skill") {
+                                        navigate(`/admin/crew?search=${encodeURIComponent(cat.name)}`);
                                     }
                                 }}
                             >
@@ -533,7 +548,6 @@ export function CategoriesPage() {
                 {activeTab === "projects" && (
                     <>
                         {renderSection("Loại hình Dự án (Project Types)", "project_type", <Film size={15} color="#D84040"/>)}
-                        {renderSection("Gói Dịch vụ & Báo giá gốc (Service Rate Cards)", "service_rate_card", <FileText size={15} color="#FF5722"/>)}
                     </>
                 )}
 

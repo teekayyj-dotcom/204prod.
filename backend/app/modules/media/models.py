@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import DateTime, Integer, String, func, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -16,12 +16,25 @@ class MediaAsset(Base):
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
     kind: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     url: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
+    thumbnail_url: Mapped[str | None] = mapped_column(String(500))
     alt: Mapped[str | None] = mapped_column(String(255))
     caption: Mapped[str | None] = mapped_column(String(255))
     width: Mapped[int | None] = mapped_column(Integer)
     height: Mapped[int | None] = mapped_column(Integer)
     mime_type: Mapped[str | None] = mapped_column(String(120))
     file_size: Mapped[int | None] = mapped_column(Integer)
+    bunny_video_id: Mapped[str | None] = mapped_column(String(255))
+    client_slug: Mapped[str | None] = mapped_column(
+        String(120),
+        ForeignKey("clients.slug", ondelete="SET NULL"),
+        nullable=True,
+    )
+    project_slug: Mapped[str | None] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="SET NULL"),
+        nullable=True,
+    )
+    folder: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

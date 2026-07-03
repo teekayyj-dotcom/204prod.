@@ -12,11 +12,7 @@ const inputStyle = {
     fontSize: "14px",
     width: "100%",
 };
-const roleOptions = [
-    "Creative Director", "Lead Developer", "UX Designer",
-    "Motion Designer", "Copywriter", "Photographer",
-    "Brand Strategist", "Project Manager", "Illustrator", "Other",
-];
+// Roles are loaded dynamically from /categories (type=hr_role)
 const skillSuggestions = [
     "Branding", "Figma", "React", "After Effects", "Blender", "Copywriting",
     "SEO", "Photography", "Cinema 4D", "Node.js", "TypeScript", "Art Direction",
@@ -32,7 +28,7 @@ export function AddCrewMemberPage() {
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [avatarFile, setAvatarFile] = useState(null);
     const [selectedRoles, setSelectedRoles] = useState([]);
-    const [availableRolesList, setAvailableRolesList] = useState([]);
+    const [availableRolesList, setAvailableRolesList] = useState<string[]>([]); // from /categories type=hr_role
     const [cropperOpen, setCropperOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState(null);
 
@@ -48,18 +44,15 @@ export function AddCrewMemberPage() {
             .then((data) => setCrewMembers(data))
             .catch((err) => console.error("Error loading crew stats:", err));
 
-        const storedCustom = localStorage.getItem("custom_crew_roles");
-        let custom = [];
-        if (storedCustom) {
-            try { custom = JSON.parse(storedCustom); } catch (e) { console.error(e); }
-        }
-        const storedDeleted = localStorage.getItem("deleted_crew_roles");
-        let deleted = [];
-        if (storedDeleted) {
-            try { deleted = JSON.parse(storedDeleted); } catch (e) { console.error(e); }
-        }
-        const combined = Array.from(new Set([...roleOptions, ...custom])).filter(r => !deleted.includes(r));
-        setAvailableRolesList(combined);
+        // Fetch hr_role categories from API
+        fetchApi('/categories')
+            .then((cats: any[]) => {
+                const roles = (cats || [])
+                    .filter((c: any) => c.type === 'hr_role')
+                    .map((c: any) => c.name as string);
+                setAvailableRolesList(roles);
+            })
+            .catch(err => console.error('Error loading hr_role categories:', err));
     }, []);
 
     const addRole = (role) => {
@@ -97,6 +90,7 @@ export function AddCrewMemberPage() {
                 const formData = new FormData();
                 formData.append("file", avatarFile);
                 formData.append("alt", `${data.name} Avatar`);
+                formData.append("folder", "avatar/crew");
                 const mediaAsset = await fetchApi("/media/upload", {
                     method: "POST",
                     body: formData,

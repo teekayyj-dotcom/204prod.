@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, UserPlus, Loader2, CheckCircle2, Building2, User, Mail, Phone, DollarSign, AlignLeft, Globe, Briefcase, TrendingUp, Info, Camera, X, Crown, Tag } from "lucide-react";
@@ -26,6 +26,16 @@ export function AddClientPage() {
     const [selectedTier, setSelectedTier] = useState("SME");
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [avatarFile, setAvatarFile] = useState(null);
+    const [categories, setCategories] = useState([]);
+    useEffect(() => {
+        fetchApi("/categories")
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setCategories(data);
+                }
+            })
+            .catch(err => console.error("Error fetching categories:", err));
+    }, []);
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
         defaultValues: { status: "Active", since: String(new Date().getFullYear()) },
     });
@@ -46,6 +56,7 @@ export function AddClientPage() {
                 formData.append("file", avatarFile);
                 formData.append("alt", `${data.name} Logo`);
                 formData.append("caption", `Logo for ${data.name}`);
+                formData.append("folder", "avatar/client");
                 const mediaAsset = await fetchApi("/media/upload", {
                     method: "POST",
                     body: formData,
@@ -219,7 +230,7 @@ export function AddClientPage() {
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <DollarSign size={13} color="#D84040"/> Total Budget
                                 </label>
-                                <input {...register("budget")} placeholder="e.g. $50,000" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                <input {...register("budget")} placeholder="e.g. 50,000,000 ₫" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                             </div>
                         </div>
 
@@ -229,7 +240,18 @@ export function AddClientPage() {
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Tag size={13} color="#D84040"/> Lĩnh vực / Ngành hàng (Industry)
                                 </label>
-                                <input {...register("industry")} placeholder="e.g. F&B, Fashion, Tech, Retail..." className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                <select 
+                                    {...register("industry")} 
+                                    className="px-3 py-2.5 rounded-lg outline-none cursor-pointer" 
+                                    style={inputStyle}
+                                    onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
+                                    onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
+                                >
+                                    <option value="">Chọn lĩnh vực...</option>
+                                    {categories.filter(c => c.type === "client_industry").map((ind) => (
+                                        <option key={ind.slug || ind.name} value={ind.name}>{ind.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>

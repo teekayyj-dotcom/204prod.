@@ -126,12 +126,14 @@ interface AddExpensePanelProps {
   onRefresh: () => void;
   talents: any[];
   projects: any[];
+  crew: any[];
 }
 
-function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExpensePanelProps) {
+function AddExpensePanel({ open, onClose, onRefresh, talents, projects, crew }: AddExpensePanelProps) {
   const [group, setGroup] = useState<ExpenseGroup>("cogs");
   const [form, setForm] = useState({
     description: "", category: "", grossAmount: "", project: "", date: "", submitter: "", note: "", payeeId: "",
+    payee: "", bankName: "", bankAccount: "",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -145,6 +147,9 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExp
   const selectedTalent = isOutsource && form.payeeId
     ? talents.find((t) => t.name === form.payeeId) ?? null
     : null;
+  const selectedCrew = !isOutsource && form.submitter
+    ? crew.find((c) => c.name === form.submitter)
+    : null;
 
   const gross = parseFloat(form.grossAmount.replace(/,/g, "")) || 0;
   const tax   = selectedTalent?.tncnConsent ? Math.round(gross * 0.1) : 0;
@@ -157,7 +162,7 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExp
   }
   function resetGroup(k: ExpenseGroup) {
     setGroup(k);
-    setForm((f) => ({ ...f, category: "", payeeId: "", grossAmount: "" }));
+    setForm((f) => ({ ...f, category: "", payeeId: "", grossAmount: "", payee: "", bankName: "", bankAccount: "" }));
   }
 
   async function handleSave() {
@@ -174,9 +179,12 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExp
         submitter: isOutsource ? form.payeeId : form.submitter,
         avatar: isOutsource 
           ? (selectedTalent?.avatar || "FL")
-          : (form.submitter.split(" ").map((n: string) => n[0]).join("").toUpperCase()),
+          : (selectedCrew?.avatar || form.submitter.split(" ").map((n: string) => n[0]).join("").toUpperCase()),
         status: "ok",
-        note: form.note || null
+        note: form.note || null,
+        payee: isOutsource ? undefined : form.payee || undefined,
+        bank_name: isOutsource ? undefined : form.bankName || undefined,
+        bank_account: isOutsource ? undefined : form.bankAccount || undefined,
       };
 
       await fetchApi("/finance/expenses", {
@@ -377,6 +385,35 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExp
             </div>
           )}
 
+          {/* Payee Details (non-outsource) */}
+          {!isOutsource && (
+            <div className="rounded-xl p-4 space-y-4 animate-fadeIn" style={{ background: "rgba(29, 22, 22, 0.3)", border: "1px solid rgba(46, 32, 32, 0.3)" }}>
+              <p style={{ color: "#D84040", fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em" }}>
+                THÔNG TIN THANH TOÁN (TÙY CHỌN)
+              </p>
+              <div>
+                <span style={labelStyle}>Người nhận (Payee)</span>
+                <input placeholder="VD: Lộc Phát Real Estate / Tên nhân viên"
+                  value={form.payee} onChange={(e) => field(e.target.value, "payee")}
+                  style={inputStyle} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span style={labelStyle}>Ngân hàng</span>
+                  <input placeholder="VD: Techcombank, VCB..."
+                    value={form.bankName} onChange={(e) => field(e.target.value, "bankName")}
+                    style={inputStyle} />
+                </div>
+                <div>
+                  <span style={labelStyle}>Số tài khoản</span>
+                  <input placeholder="VD: 1913000..."
+                    value={form.bankAccount} onChange={(e) => field(e.target.value, "bankAccount")}
+                    style={inputStyle} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Date (outsource mode has separate date) */}
           {isOutsource && (
             <div>
@@ -409,8 +446,8 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects }: AddExp
             <select value={form.submitter} onChange={(e) => field(e.target.value, "submitter")}
               style={{ ...inputStyle, appearance: "none" }}>
               <option value="">Chọn nhân viên...</option>
-              {["Alex Johnson","Nguyễn Minh Anh","Trần Quốc Bảo","Lê Thị Cẩm","Phạm Đức Dũng","Hoàng Thị Em","Vũ Văn Phúc"].map((n) => (
-                <option key={n} value={n}>{n}</option>
+              {crew.map((c) => (
+                <option key={c.id || c.name} value={c.name}>{c.name} — {c.role}</option>
               ))}
             </select>
           </div>
@@ -535,10 +572,14 @@ function ExpenseRow({ exp, last }: { exp: Expense; last: boolean }) {
       style={{ borderBottom: last ? "none" : "1px solid #2A1F1F" }}
     >
       <div
-        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold overflow-hidden"
         style={{ background: "#8E1616", color: "#EEEEEE" }}
       >
-        {exp.avatar}
+        {exp.avatar && (exp.avatar.startsWith("http") || exp.avatar.startsWith("/")) ? (
+          <img src={exp.avatar} alt="Payee" className="w-full h-full object-cover" />
+        ) : (
+          exp.avatar
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -710,8 +751,11 @@ interface ExpenseGroupTabProps {
 }
 
 function ExpenseGroupTab({ group, expenses, projects }: ExpenseGroupTabProps) {
-  const [search, setSearch] = useState("");
-  const [project, setProject] = useState("Tất cả");
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialSearch = searchParams.get("search") || "";
+  const [search, setSearch] = useState(initialSearch);
+  const initialProject = searchParams.get("project") || "Tất cả";
+  const [project, setProject] = useState(initialProject);
 
   const filtered = expenses.filter((e) => {
     const matchGroup = e.group === group;
@@ -798,11 +842,14 @@ const TABS: { key: Tab; label: string; icon: React.ElementType; color: string }[
 ];
 
 export function FinanceExpensesPage() {
-  const [tab, setTab]         = useState<Tab>("overview");
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialTab = (searchParams.get("tab") as Tab) || "overview";
+  const [tab, setTab]         = useState<Tab>(initialTab);
   const [panelOpen, setPanelOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [talents, setTalents] = useState<any[]>([]);
+  const [crew, setCrew] = useState<any[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -810,16 +857,18 @@ export function FinanceExpensesPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [expensesData, talentsData, projectsData, revenueData] = await Promise.all([
+      const [expensesData, talentsData, projectsData, revenueData, crewData] = await Promise.all([
         fetchApi<any>("/finance/expenses"),
         fetchApi<any>("/hr/freelancers"),
         fetchApi<any>("/projects"),
-        fetchApi<any>("/finance/revenue")
+        fetchApi<any>("/finance/revenue"),
+        fetchApi<any>("/crew")
       ]);
 
       setExpenses(expensesData || []);
       setTalents((talentsData || []).map(mapDbToFreelancer));
       setProjects(projectsData || []);
+      setCrew(crewData || []);
       if (revenueData && revenueData.monthly_expenses_trend) {
         setMonthlyTrend(revenueData.monthly_expenses_trend);
       }
@@ -920,6 +969,7 @@ export function FinanceExpensesPage() {
         onRefresh={loadData}
         talents={talents}
         projects={projects}
+        crew={crew}
       />
     </>
   );

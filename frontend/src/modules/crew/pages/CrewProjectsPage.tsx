@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+
 type TaskStatus = "todo" | "inprogress" | "review" | "done";
 
 interface KanbanTask {
@@ -43,176 +43,6 @@ interface KanbanColumn {
   tasks: KanbanTask[];
 }
 
-const initialColumnsByProject: Record<string, KanbanColumn[]> = {
-  p1: [
-    {
-      id: "todo",
-      label: "Cần làm",
-      color: "#555",
-      tasks: [
-        { id: "t1", label: "Storyboard Scene 6 — Outdoor", assignee: "Minh", priority: "medium", tag: "Motion" },
-        { id: "t2", label: "Chọn nhạc nền cho đoạn CTA", assignee: "Tú", priority: "low", tag: "Audio" },
-      ],
-    },
-    {
-      id: "inprogress",
-      label: "Đang làm",
-      color: "#D4A843",
-      tasks: [
-        { id: "t3", label: "Dựng Draft 1 — Full timeline", assignee: "Minh", priority: "high", tag: "Editing" },
-        { id: "t4", label: "Color grade Scene 1–3", assignee: "Tú", priority: "medium", tag: "Color" },
-      ],
-    },
-    {
-      id: "review",
-      label: "Chờ duyệt",
-      color: "#8B5CF6",
-      tasks: [
-        { id: "t5", label: "Motion graphic logo intro", assignee: "Hà", priority: "high", tag: "Motion" },
-      ],
-    },
-    {
-      id: "done",
-      label: "Hoàn thành",
-      color: "#10B981",
-      tasks: [
-        { id: "t6", label: "Script & Shot list finalized", assignee: "PM", priority: "low", tag: "Planning" },
-        { id: "t7", label: "Asset collection từ khách", assignee: "PM", priority: "low", tag: "Asset" },
-      ],
-    },
-  ],
-  p2: [
-    {
-      id: "todo",
-      label: "Cần làm",
-      color: "#555",
-      tasks: [
-        { id: "t2_1", label: "Lọc source video các dự án nổi bật trong Q3", assignee: "Minh", priority: "medium", tag: "Asset" },
-        { id: "t2_2", label: "Viết voiceover giới thiệu đội ngũ crew", assignee: "Tú", priority: "medium", tag: "Planning" },
-      ],
-    },
-    {
-      id: "inprogress",
-      label: "Đang làm",
-      color: "#D4A843",
-      tasks: [
-        { id: "t2_3", label: "Chọn beat nhạc tiết tấu nhanh, hiện đại", assignee: "Tú", priority: "high", tag: "Audio" },
-        { id: "t2_4", label: "Dựng intro motion 204PROD", assignee: "Minh", priority: "high", tag: "Motion" },
-      ],
-    },
-    {
-      id: "review",
-      label: "Chờ duyệt",
-      color: "#8B5CF6",
-      tasks: [
-        { id: "t2_5", label: "Color correction toàn bộ reel", assignee: "Hà", priority: "medium", tag: "Color" },
-      ],
-    },
-    {
-      id: "done",
-      label: "Hoàn thành",
-      color: "#10B981",
-      tasks: [
-        { id: "t2_6", label: "Lên ý tưởng concept Agency Reel", assignee: "PM", priority: "low", tag: "Planning" },
-        { id: "t2_7", label: "Duyệt kịch bản phân cảnh chi tiết", assignee: "PM", priority: "low", tag: "Planning" },
-      ],
-    },
-  ],
-};
-
-const mockProjects = [
-  {
-    id: "p1",
-    name: "Brand X — TVC Mùa Hè 2025",
-    client: "Brand X Vietnam",
-    status: "In Progress",
-    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    progress: 60,
-    brief: "Sản xuất TVC 60 giây quảng bá dòng sản phẩm Mùa Hè 2025. Tone & manner: tươi sáng, năng động, phù hợp đối tượng Gen Z 18–25 tuổi. Kết thúc bằng CTA rõ ràng.",
-    timelineFiles: ["Script_v2.pdf", "Shotlist_Final.xlsx", "Storyboard.fig"],
-    moodboard: [
-      { label: "Scene 1", color: "from-orange-900 to-red-900" },
-      { label: "Scene 2", color: "from-blue-900 to-purple-900" },
-      { label: "Scene 3", color: "from-green-900 to-teal-900" },
-      { label: "Scene 4", color: "from-yellow-900 to-orange-900" },
-    ],
-  },
-  {
-    id: "p2",
-    name: "Agency Reel Q3 — 204PROD",
-    client: "Internal",
-    status: "Review",
-    deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-    progress: 80,
-    brief: "Sản xuất Agency Showreel Q3 2025 tổng hợp các dự án nổi bật của 204PROD. Tone & manner: chuyên nghiệp, hiện đại, nhịp điệu nhanh và bắt mắt nhằm thu hút khách hàng mới.",
-    timelineFiles: ["Reel_Concept_v1.pdf", "Selected_Projects_List.xlsx", "Soundtrack_Reference.mp3"],
-    moodboard: [
-      { label: "Intro", color: "from-purple-950 to-pink-900" },
-      { label: "Highlights", color: "from-zinc-900 to-stone-900" },
-      { label: "Behind Scene", color: "from-amber-950 to-orange-900" },
-      { label: "Outro CTA", color: "from-red-950 to-neutral-900" },
-    ],
-  },
-];
-
-const initialFeedbackByProject = {
-  p1: [
-    {
-      id: "f1",
-      timecode: "00:34",
-      from: "Client ABC",
-      comment: "Chỉnh màu nền cảnh này — quá sáng so với brief. Cần desaturate khoảng 20%.",
-      resolved: false,
-      urgent: true,
-    },
-    {
-      id: "f2",
-      timecode: "01:12",
-      from: "PM — Tuấn",
-      comment: "Cut cảnh này ngắn hơn 2 giây. Tempo nên bám sát nhịp nhạc.",
-      resolved: false,
-      urgent: false,
-    },
-    {
-      id: "f3",
-      timecode: "02:05",
-      from: "Client ABC",
-      comment: "Chữ title chạy quá nhanh. Kéo dài animation 0.5s.",
-      resolved: true,
-      urgent: false,
-    },
-  ],
-  p2: [
-    {
-      id: "f2_1",
-      timecode: "00:15",
-      from: "Art Director",
-      comment: "Đoạn intro transition cần nhanh và dứt khoát hơn. Nên dùng glitch effect.",
-      resolved: false,
-      urgent: true,
-    },
-    {
-      id: "f2_2",
-      timecode: "00:55",
-      from: "PM — Tuấn",
-      comment: "Chọn nhạc nền khác ở đoạn cao trào, beat này hơi đều chưa tạo cảm xúc mạnh.",
-      resolved: false,
-      urgent: false,
-    },
-  ],
-};
-
-const initialDeliverablesByProject = {
-  p1: [
-    { name: "draft_v1_4K.mp4", size: "2.4 GB", uploaded: "Hôm qua, 16:20", status: "Under Review" },
-    { name: "thumbnail_variants.zip", size: "84 MB", uploaded: "Hôm qua, 09:00", status: "Approved" },
-  ],
-  p2: [
-    { name: "agency_reel_rough_cut.mp4", size: "1.8 GB", uploaded: "Hôm nay, 08:30", status: "Under Review" },
-  ],
-};
-
-// ─── Gold badge overlay ───────────────────────────────────────────────────────
 function GoldBadge({ visible, message }: { visible: boolean; message?: string }) {
   if (!visible) return null;
   return (
@@ -250,7 +80,6 @@ function GoldBadge({ visible, message }: { visible: boolean; message?: string })
   );
 }
 
-// ─── Countdown helper ─────────────────────────────────────────────────────────
 function Countdown({ deadline }: { deadline: Date }) {
   const diff = deadline.getTime() - Date.now();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -276,8 +105,8 @@ function Countdown({ deadline }: { deadline: Date }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewProjectsPage() {
   const navigate = useNavigate();
-  const [projectsList, setProjectsList] = useState<any[]>(mockProjects);
-  const [selectedProject, setSelectedProject] = useState<any>(mockProjects[0]);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
 
   useEffect(() => {
     fetchApi<any[]>("/projects")
@@ -374,8 +203,8 @@ export function CrewProjectsPage() {
     fetchTasks();
   }, [selectedProject]);
 
-  const [projectFeedback, setProjectFeedback] = useState<Record<string, typeof initialFeedbackByProject.p1>>(initialFeedbackByProject);
-  const [projectDeliverables, setProjectDeliverables] = useState<Record<string, Array<{ name: string; size: string; uploaded: string; status: string }>>>(initialDeliverablesByProject);
+  const [projectFeedback, setProjectFeedback] = useState<Record<string, any[]>>({});
+  const [projectDeliverables, setProjectDeliverables] = useState<Record<string, Array<{ name: string; size: string; uploaded: string; status: string }>>>({});
 
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
@@ -565,25 +394,30 @@ export function CrewProjectsPage() {
       </div>
 
       {/* Project selector */}
-      <div className="flex gap-3 mb-6">
-        {projectsList.map((proj) => (
-          <button
-            key={proj.id}
-            onClick={() => setSelectedProject(proj)}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
-            style={{
-              background: selectedProject.id === proj.id ? "#1D1616" : "#141010",
-              border: `1px solid ${selectedProject.id === proj.id ? "#D84040" : "#2A1F1F"}`,
-            }}
-          >
-            <Clapperboard size={15} style={{ color: selectedProject.id === proj.id ? "#D84040" : "#555" }} />
-            <div className="text-left">
-              <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{proj.name}</p>
-              <p style={{ color: "#666", fontSize: "10px" }}>{proj.client}</p>
-            </div>
-          </button>
-        ))}
-      </div>
+      {projectsList.length > 0 && (
+        <div className="flex gap-3 mb-6">
+          {projectsList.map((proj) => (
+            <button
+              key={proj.id}
+              onClick={() => setSelectedProject(proj)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
+              style={{
+                background: selectedProject?.id === proj.id ? "#1D1616" : "#141010",
+                border: `1px solid ${selectedProject?.id === proj.id ? "#D84040" : "#2A1F1F"}`,
+              }}
+            >
+              <Clapperboard size={15} style={{ color: selectedProject?.id === proj.id ? "#D84040" : "#555" }} />
+              <div className="text-left">
+                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{proj.name}</p>
+                <p style={{ color: "#666", fontSize: "10px" }}>{proj.client}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selectedProject ? (
+        <>
 
       {/* Project Focus Card */}
       <div
@@ -891,9 +725,9 @@ export function CrewProjectsPage() {
                       />
                       {showAssigneeDropdown && (
                         <>
-                          <div 
-                            className="fixed inset-0 z-10" 
-                            onClick={() => setShowAssigneeDropdown(false)} 
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setShowAssigneeDropdown(false)}
                           />
                           <div
                             className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg border border-[#2A1F1F] z-20 space-y-0.5 p-1 shadow-xl"
@@ -927,10 +761,10 @@ export function CrewProjectsPage() {
                             {crewList.filter((c) =>
                               c.name.toLowerCase().includes(searchAssigneeQuery.toLowerCase())
                             ).length === 0 && (
-                              <p className="text-[9px] text-[#555] px-2 py-1.5 italic text-center">
-                                Không tìm thấy thành viên
-                              </p>
-                            )}
+                                <p className="text-[9px] text-[#555] px-2 py-1.5 italic text-center">
+                                  Không tìm thấy thành viên
+                                </p>
+                              )}
                           </div>
                         </>
                       )}
@@ -1249,7 +1083,7 @@ export function CrewProjectsPage() {
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
           <div className="w-full max-w-sm rounded-xl p-5 space-y-4 shadow-2xl border border-[#2A1F1F]" style={{ background: "#141010" }}>
             <h3 className="text-white text-sm font-semibold border-b border-[#2A1F1F] pb-2">Chỉnh sửa công việc</h3>
-            
+
             <div className="space-y-3">
               <div>
                 <label className="block text-[10px] text-gray-500 mb-1">Tên công việc</label>
@@ -1260,7 +1094,7 @@ export function CrewProjectsPage() {
                   className="w-full bg-[#1D1616] border border-[#2A1F1F] rounded px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#D84040]"
                 />
               </div>
-              
+
               <div className="relative">
                 <label className="block text-[10px] text-gray-500 mb-1">Người thực hiện</label>
                 <input
@@ -1359,6 +1193,14 @@ export function CrewProjectsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      </>
+      ) : (
+        <div className="text-center py-20">
+          <p style={{ color: "#666", fontSize: "14px" }}>
+            {projectsList.length === 0 ? "Bạn chưa được phân công dự án nào, hoặc hệ thống đang tải dữ liệu..." : "Vui lòng chọn một dự án để xem chi tiết."}
+          </p>
         </div>
       )}
     </div>

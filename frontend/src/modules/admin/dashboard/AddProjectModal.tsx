@@ -211,7 +211,7 @@ export function AddProjectModal({ onClose, onAdd }: Props) {
             </label>
             <input
               {...register("budget")}
-              placeholder="e.g. $25,000"
+              placeholder="e.g. 25,000,000 ₫"
               className="w-full px-3 py-2.5 rounded-lg outline-none"
               style={{
                 background: "#1D1616",

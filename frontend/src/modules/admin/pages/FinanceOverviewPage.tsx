@@ -7,13 +7,28 @@ import {
   Wallet, TrendingUp, TrendingDown, AlertTriangle, Clock,
   CheckCircle2, ArrowUpRight, ArrowDownRight, Zap,
   DollarSign, Banknote, Target, Briefcase, ChevronRight,
-  Circle, Loader2
+  Circle, Loader2, Edit2, Check, X
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 
 // ─── Data Types ────────────────────────────────────────────────────────────────
 
 interface OverviewData {
+  kpis: {
+    available_cash: number;
+    cash_trend: string;
+    cash_trend_up: boolean;
+    total_ar: number;
+    ar_trend: string;
+    ar_trend_up: boolean;
+    total_ap: number;
+    ap_trend: string;
+    ap_trend_up: boolean;
+    net_cash_flow: number;
+    net_cash_trend: string;
+    net_cash_trend_up: boolean;
+    ar_overdue_count: number;
+  };
   pl_monthly: any[];
   overdue_invoices: any[];
   upcoming_payouts: any[];
@@ -24,9 +39,11 @@ interface OverviewData {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtB(v: number) {
-  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000)     return `${(v / 1_000_000).toFixed(0)}M`;
-  return `${(v / 1_000).toFixed(0)}K`;
+  const absV = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  if (absV >= 1_000_000_000) return `${sign}${(absV / 1_000_000_000).toFixed(2)}B`;
+  if (absV >= 1_000_000)     return `${sign}${(absV / 1_000_000).toFixed(0)}M`;
+  return `${sign}${(absV / 1_000).toFixed(0)}K`;
 }
 function fmtFull(v: number) { return `${fmtB(v)} ₫`; }
 
@@ -93,46 +110,48 @@ function ChartTooltip({ active, payload, label }: any) {
 
 // ─── 1. KPI Strip ─────────────────────────────────────────────────────────────
 
-function KpiStrip() {
+function KpiStrip({ kpis }: { kpis?: OverviewData["kpis"] }) {
+  if (!kpis) return null;
+
   const cards = [
     {
       label: "Tiền mặt khả dụng",
-      value: "2.14B ₫",
+      value: fmtFull(kpis.available_cash),
       sub: "Số dư tài khoản ngân hàng",
       color: "#4ade80",
       icon: Wallet,
-      trend: "+12M so với tuần trước",
-      trendUp: true,
+      trend: kpis.cash_trend,
+      trendUp: kpis.cash_trend_up,
       accent: "#4ade8033",
     },
     {
       label: "Tổng phải thu (AR)",
-      value: "336M ₫",
-      sub: "3 hóa đơn chưa thanh toán",
+      value: fmtFull(kpis.total_ar),
+      sub: `${kpis.ar_overdue_count || 0} hóa đơn quá hạn`,
       color: "#60a5fa",
       icon: TrendingUp,
-      trend: "187M đến hạn trong 14 ngày",
-      trendUp: true,
+      trend: kpis.ar_trend,
+      trendUp: kpis.ar_trend_up,
       accent: "#60a5fa22",
     },
     {
       label: "Tổng phải trả (AP)",
-      value: "420M ₫",
+      value: fmtFull(kpis.total_ap),
       sub: "Lương + outsource + OPEX",
       color: "#fbbf24",
       icon: TrendingDown,
-      trend: "149M đến hạn tuần này",
-      trendUp: false,
+      trend: kpis.ap_trend,
+      trendUp: kpis.ap_trend_up,
       accent: "#fbbf2422",
     },
     {
       label: "Dòng tiền ròng",
-      value: "+1.72B ₫",
+      value: (kpis.net_cash_flow > 0 ? "+" : "") + fmtFull(kpis.net_cash_flow),
       sub: "Khả dụng − Phải trả sắp tới",
       color: "#EEEEEE",
       icon: Zap,
-      trend: "Dòng tiền khỏe mạnh",
-      trendUp: true,
+      trend: kpis.net_cash_trend,
+      trendUp: kpis.net_cash_trend_up,
       accent: "#D8404022",
     },
   ];
@@ -337,9 +356,57 @@ function FinancialAlerts({ overdueList, payouts }: { overdueList: any[], payouts
   );
 }
 
+// ─── EditableTarget Component ─────────────────────────────────────────────────
+
+function EditableTarget({
+  value,
+  unit,
+  onSave,
+}: {
+  value: number;
+  unit: string;
+  onSave: (v: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value));
+
+  function save() {
+    const n = parseFloat(draft.replace(/,/g, ""));
+    if (!isNaN(n) && n > 0) onSave(n);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+          className="w-16 px-1 py-0.5 rounded text-right"
+          style={{ background: "#2A1F1F", color: "#EEEEEE", fontSize: "11px", border: "1px solid #D84040", outline: "none" }}
+        />
+        <button onClick={save}><Check size={12} style={{ color: "#4ade80" }} /></button>
+        <button onClick={() => setEditing(false)}><X size={12} style={{ color: "#f87171" }} /></button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => { setDraft(String(value)); setEditing(true); }}
+      className="flex items-center gap-1 group p-0.5"
+    >
+      <span style={{ color: "#666", fontSize: "12px" }}>{value}{unit}</span>
+      <Edit2 size={12} className="text-white opacity-60 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all" />
+    </button>
+  );
+}
+
 // ─── 4. Goal Progress ─────────────────────────────────────────────────────────
 
-function GoalProgress({ goals }: { goals: any[] }) {
+function GoalProgress({ goals, onUpdateTarget }: { goals: any[], onUpdateTarget: (id: string, target: number) => void }) {
   if (!goals || goals.length === 0) {
     return (
       <GlassCard>
@@ -352,11 +419,10 @@ function GoalProgress({ goals }: { goals: any[] }) {
   return (
     <GlassCard>
       <SectionTitle>Tiến độ Mục tiêu</SectionTitle>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="space-y-5 mt-2">
         {goals.map((g) => {
           const pct     = Math.min(Math.round((g.current / g.target) * 100), 100);
           const over    = g.current > g.target;
-          const good    = g.lowerIsBetter ? g.current <= g.target : over || pct >= 85;
           const barColor = over && !g.lowerIsBetter ? "#4ade80"
             : pct < 70 ? "#f87171"
             : pct < 85 ? "#fbbf24"
@@ -364,39 +430,21 @@ function GoalProgress({ goals }: { goals: any[] }) {
           const overTarget = g.lowerIsBetter && g.current > g.target;
 
           return (
-            <div key={g.label} className="space-y-3">
+            <div key={g.label} className="space-y-2">
               <div className="flex items-center justify-between">
-                <span style={{ color: "#666", fontSize: "11px" }}>{g.label}</span>
-                <span style={{ color: barColor, fontSize: "11px", fontWeight: 700 }}>{pct}%</span>
-              </div>
-
-              {/* Circular progress */}
-              <div className="relative w-16 h-16 mx-auto">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#1A1010" strokeWidth="3" />
-                  <circle
-                    cx="18" cy="18" r="14" fill="none"
-                    stroke={overTarget ? "#f87171" : barColor} strokeWidth="3"
-                    strokeDasharray={`${(Math.min(pct, 100) / 100) * 87.96} 87.96`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span style={{ color: overTarget ? "#f87171" : barColor, fontSize: "11px", fontWeight: 800 }}>
-                    {g.current}{g.unit === "%" ? "%" : ""}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{g.label}</span>
+                  <div className="flex items-center gap-1">
+                    <span style={{ color: "#666", fontSize: "12px" }}>{g.current}{g.unit} /</span>
+                    {g.id ? <EditableTarget value={g.target} unit={g.unit} onSave={(v) => onUpdateTarget(g.id, v)} /> : <span style={{ color: "#666", fontSize: "12px" }}>{g.target}{g.unit}</span>}
+                  </div>
                 </div>
+                <span style={{ color: overTarget ? "#f87171" : barColor, fontSize: "12px", fontWeight: 700 }}>
+                  {pct}%
+                </span>
               </div>
-
-              <div className="text-center">
-                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>
-                  {g.current}{g.unit}
-                </p>
-                <p style={{ color: "#444", fontSize: "10px" }}>/ {g.target}{g.unit}</p>
-              </div>
-
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#1A1010" }}>
-                <div className="h-full rounded-full transition-all"
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "#1A1010" }}>
+                <div className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(pct, 100)}%`, background: overTarget ? "#f87171" : barColor }} />
               </div>
             </div>
@@ -550,6 +598,24 @@ export function FinanceOverviewPage() {
     loadData();
   }, []);
 
+  const handleUpdateOverviewGoal = async (id: string, target: number) => {
+    try {
+      await fetchApi(`/finance/goals/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ target })
+      });
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          goals: prev.goals.map((g: any) => g.id === id ? { ...g, target } : g)
+        };
+      });
+    } catch (err: any) {
+      alert("Lỗi khi cập nhật mục tiêu: " + err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -607,7 +673,7 @@ export function FinanceOverviewPage() {
       </div>
 
       {/* 1 – Cash flow KPI */}
-      <KpiStrip />
+      <KpiStrip kpis={data.kpis} />
 
       {/* 2 – P&L + Goal Progress side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -615,7 +681,7 @@ export function FinanceOverviewPage() {
           <PLSnapshot data={data.pl_monthly} />
         </div>
         <div className="lg:col-span-1">
-          <GoalProgress goals={data.goals} />
+          <GoalProgress goals={data.goals} onUpdateTarget={handleUpdateOverviewGoal} />
         </div>
       </div>
 

@@ -123,10 +123,14 @@ function PayoutRow({ payout, onPay, isPaying }: PayoutRowProps) {
       <div className="flex items-center gap-4 px-5 py-4">
         {/* Avatar */}
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold overflow-hidden"
           style={{ background: "#8E1616", color: "#EEEEEE" }}
         >
-          {payout.avatar}
+          {payout.avatar && (payout.avatar.startsWith("http") || payout.avatar.startsWith("/")) ? (
+            <img src={payout.avatar} alt={payout.payee} className="w-full h-full object-cover" />
+          ) : (
+            payout.avatar || payout.payee.slice(0, 2).toUpperCase()
+          )}
         </div>
 
         {/* Partner + project */}
@@ -332,9 +336,11 @@ function PayoutRow({ payout, onPay, isPaying }: PayoutRowProps) {
 type FilterTab = "all" | PayoutStatus;
 
 export function FinancePayablesPage() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialSearch = searchParams.get("search") || "";
   const [filter, setFilter] = useState<FilterTab>("all");
   const [groupFilter, setGroupFilter] = useState<"all" | "cogs" | "opex">("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -382,7 +388,8 @@ export function FinancePayablesPage() {
     const matchGroup = groupFilter === "all" || p.expenseGroup === groupFilter;
     const matchSearch = p.payee.toLowerCase().includes(search.toLowerCase()) ||
       p.project.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase());
+      p.category.toLowerCase().includes(search.toLowerCase()) ||
+      (p.bankName && p.bankName.toLowerCase().includes(search.toLowerCase()));
     return matchFilter && matchGroup && matchSearch;
   });
 

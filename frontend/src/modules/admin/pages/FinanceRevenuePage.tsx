@@ -604,7 +604,7 @@ export function FinanceRevenuePage() {
   }
 
   const totalRev = (data.breakdowns || []).reduce((s: number, d: any) => s + d.value, 0);
-  const prevRev  = 1_180_000_000;
+  const prevRev  = data.previous_revenue || 0;
   const growth   = prevRev > 0 ? Math.round(((totalRev - prevRev) / prevRev) * 100) : 0;
 
   const pendingList = (data.pending_bills || []).map((bill: any) => ({

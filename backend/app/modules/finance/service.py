@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 from app.modules.finance.models import (
     Expense, Payout, RevenueBreakdown, Receivable,
-    OverdueBill, PendingBill, PipelineDeal, ForecastGoal
+    OverdueBill, PendingBill, PipelineDeal, ForecastGoal, Goal, CashHistory
 )
 from app.modules.finance.schemas import ExpenseCreate
 from app.modules.hr.models import Freelancer
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
 def list_all_expenses(db: Session) -> list[Expense]:
@@ -74,29 +74,26 @@ def create_new_expense(db: Session, payload: ExpenseCreate) -> Expense:
                 net = payload.amount - tax
                 
             payout_status = "pending" if doc_complete else "blocked"
-            # Blocked if payee invoice not paid by client (mock flag)
-            if payload.project and "Vingroup" not in payload.project:
+            # Check client invoice status dynamically from client_invoices table
+            from app.modules.finance.models import ClientInvoice
+            matching_inv = db.query(ClientInvoice).filter(
+                ClientInvoice.project == payload.project,
+                ClientInvoice.status == "paid"
+            ).first()
+            if matching_inv:
+                client_invoice_paid = True
+                payout_status = "pending" if doc_complete else "blocked"
+            else:
                 client_invoice_paid = False
                 payout_status = "blocked"
 
-    # For general opex like office rent, electricity
-    if "thuê văn phòng" in payload.description.lower():
-        payee = "Lộc Phát Real Estate"
-        bank_name = "Techcombank"
-        bank_account = "1913xxxx999"
-    elif "điện" in payload.description.lower() or "nước" in payload.description.lower():
-        payee = "EVN TP.Hồ Chí Minh"
-        bank_name = "BIDV"
-        bank_account = "220xxxx888"
-    elif "adobe" in payload.description.lower() or " Creative Cloud" in payload.description.lower():
-        payee = "Adobe Creative Cloud"
-    elif "midjourney" in payload.description.lower():
-        payee = "Midjourney Inc."
-    elif "lương" in payload.description.lower():
-        payee = "Nhân sự nội bộ (6 người)"
-        bank_name = "VCB (Bảng kê lương)"
-        bank_account = "(6 tài khoản cá nhân)"
-        net = payload.amount
+    # Use explicit payee/bank details from payload if provided
+    if getattr(payload, "payee", None):
+        payee = payload.payee
+    if getattr(payload, "bank_name", None):
+        bank_name = payload.bank_name
+    if getattr(payload, "bank_account", None):
+        bank_account = payload.bank_account
         
     p_id = "p_" + uuid.uuid4().hex[:6]
     db_payout = Payout(
@@ -160,5 +157,123 @@ def get_revenue_stats(db: Session) -> dict:
     }
 
 def seed_finance_data(db: Session) -> None:
-    pass
+    # No mock goals are seeded. All goals and targets must be created directly by the user in the database.
 
+    if db.query(CashHistory).count() == 0:
+        past_date = (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d")
+        db.add(CashHistory(date=past_date, balance=0.0))
+        db.commit()
+
+    if db.query(Receivable).count() == 0:
+        db.add(Receivable(
+            collected=0.0,
+            pending=0.0,
+            overdue=0.0,
+        ))
+        db.commit()
+
+def recalculate_receivables(db: Session) -> None:
+    from app.modules.finance.models import ClientInvoice, Receivable
+    
+    invoices = db.query(ClientInvoice).all()
+    
+    collected_sum = 0.0
+    pending_sum = 0.0
+    overdue_sum = 0.0
+    
+    for inv in invoices:
+        status_val = (inv.status or "").lower()
+        amount_val = float(inv.amount or 0.0)
+        
+        if status_val == "paid":
+            collected_sum += amount_val
+        elif status_val == "overdue":
+            overdue_sum += amount_val
+        else: # pending / unpaid
+            pending_sum += amount_val
+            
+    receivables = db.query(Receivable).first()
+    if not receivables:
+        receivables = Receivable(collected=0.0, pending=0.0, overdue=0.0)
+        db.add(receivables)
+        
+    receivables.collected = collected_sum
+    receivables.pending = pending_sum
+    receivables.overdue = overdue_sum
+    db.commit()
+
+
+
+def calculate_goal_current(db: Session, goal_id: str, default_val: float) -> float:
+    from app.modules.projects.models import Project
+    from app.modules.crew.models import CrewMember
+
+    try:
+        # Load and parse client invoices for revenue segments
+        from app.modules.projects.models import Client
+        import json
+
+        clients = db.query(Client).all()
+        retainer_sum = 0.0
+        media_sum = 0.0
+        total_crm_sum = 0.0
+
+        for c in clients:
+            if c.notes:
+                try:
+                    crm = json.loads(c.notes)
+                    for inv in crm.get("invoices", []):
+                        if inv.get("status") == "Paid":
+                            amount = float(inv.get("amount") or 0.0)
+                            desc = (inv.get("description") or "").lower()
+                            total_crm_sum += amount
+                            if "retainer" in desc:
+                                retainer_sum += amount
+                            elif any(k in desc for k in ["media", "photo", "chụp", "quay", "booking"]):
+                                media_sum += amount
+                except Exception:
+                    pass
+
+        # Common variables
+        receivables = db.query(Receivable).first()
+        collected = (receivables.collected if receivables else 0.0)
+        total_expenses = sum(e.amount for e in db.query(Expense).all())
+        opex_expenses = sum(e.amount for e in db.query(Expense).filter(Expense.group == "opex").all())
+
+        if goal_id == "r1":  # Doanh thu Q3
+            return collected / 1_000_000
+        elif goal_id == "r2":  # Retainer Revenue
+            return retainer_sum / 1_000_000
+        elif goal_id == "r3":  # Media Booking
+            return media_sum / 1_000_000
+        elif goal_id == "p1":  # Lợi nhuận Q3
+            profit_val = collected - total_expenses
+            return profit_val / 1_000_000
+        elif goal_id == "p2":  # Net Profit Margin
+            profit_val = collected - total_expenses
+            p2_val = (profit_val / collected * 100) if collected > 0 else 0.0
+            return round(p2_val, 1)
+        elif goal_id == "c1":  # Chi phí Outsource
+            outsource_expenses = sum(e.amount for e in db.query(Expense).filter(Expense.category == "Thuê ngoài & Talent").all())
+            return outsource_expenses / 1_000_000
+        elif goal_id == "c2":  # OPEX / Doanh thu
+            c2_val = (opex_expenses / collected * 100) if collected > 0 else 0.0
+            return round(c2_val, 1)
+        elif goal_id == "ca1":  # AR Days (Trung bình)
+            overdue_bills = db.query(OverdueBill).all()
+            if overdue_bills:
+                return round(sum(b.days for b in overdue_bills) / len(overdue_bills), 1)
+            return 0.0
+        elif goal_id == "ca2":  # Available Cash Buffer
+            paid_payouts = sum(p.gross for p in db.query(Payout).filter(Payout.status == "paid").all())
+            available_cash = collected - paid_payouts
+            return round(available_cash / 1_000_000_000, 2)
+        elif goal_id == "a1":  # Mục tiêu Admin (Tuyển dụng)
+            crew_count = db.query(CrewMember).count()
+            return float(crew_count)
+        elif goal_id == "a2":  # Chi phí Vận hành (Admin)
+            return opex_expenses / 1_000_000
+    except Exception as e:
+        print(f"Error calculating goal {goal_id} current value: {e}")
+        
+    return default_val

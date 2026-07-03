@@ -19,6 +19,13 @@ class Settings:
     backend_url: str = os.getenv("BACKEND_URL", "http://localhost:8000")
     storage_provider: str = os.getenv("STORAGE_PROVIDER", "local")
 
+    # Cloudflare R2
+    r2_endpoint_url: str = os.getenv("R2_ENDPOINT_URL", "")
+    r2_access_key_id: str = os.getenv("R2_ACCESS_KEY_ID", "")
+    r2_secret_access_key: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
+    r2_bucket_name: str = os.getenv("R2_BUCKET_NAME", "204prod-assets")
+    r2_public_url: str = os.getenv("R2_PUBLIC_URL", "")
+
     # JWT
     jwt_secret: str = os.getenv("JWT_SECRET", "204prod-jwt-secret-key-change-in-production")
     jwt_algorithm: str = "HS256"
@@ -26,6 +33,11 @@ class Settings:
 
     # Google OAuth
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
+
+    # Bunny Stream
+    bunny_stream_library_id: str = os.getenv("BUNNY_STREAM_LIBRARY_ID", "")
+    bunny_stream_api_key: str = os.getenv("BUNNY_STREAM_API_KEY", "")
+    bunny_stream_cdn: str = os.getenv("BUNNY_STREAM_CDN", "")
 
 
 settings = Settings()

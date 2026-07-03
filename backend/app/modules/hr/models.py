@@ -7,7 +7,7 @@ class Freelancer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    avatar = Column(String(50), nullable=False)
+    avatar = Column(String(500), nullable=False)
     role = Column(String(255), nullable=False)
     category = Column(String(100), nullable=False)
     status = Column(String(50), nullable=False, default="available")  # available, busy, blacklist
@@ -36,7 +36,7 @@ class AttendanceLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     employee_name = Column(String(255), nullable=False)
-    avatar = Column(String(50), nullable=False)
+    avatar = Column(String(500), nullable=False)
     action = Column(String(50), nullable=False)  # check-in, check-out
     time = Column(String(50), nullable=False)  # HH:MM
     date = Column(String(50), nullable=False)  # YYYY-MM-DD
@@ -49,7 +49,7 @@ class LeaveRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     employee_name = Column(String(255), nullable=False)
-    avatar = Column(String(50), nullable=False)
+    avatar = Column(String(500), nullable=False)
     type = Column(String(50), nullable=False)  # leave, sick, ot, wfh, business, explain
     status = Column(String(50), nullable=False, default="pending")  # pending, approved, rejected
     date = Column(String(100), nullable=False)  # e.g., "25–27/06/2026"

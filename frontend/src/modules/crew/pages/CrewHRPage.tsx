@@ -32,31 +32,7 @@ import { allProjects } from "../../admin/data/mockData";
 const currentMonth = new Date().getMonth();
 const currentYear = new Date().getFullYear();
 
-function generateAttendance() {
-  const today = new Date();
-  const data: Record<number, { in: string; out: string; hours: number; type: string }> = {};
-  for (let d = 1; d < today.getDate(); d++) {
-    const date = new Date(currentYear, currentMonth, d);
-    const dow = date.getDay();
-    if (dow === 0 || dow === 6) continue; // weekend
-    if (d === 5) {
-      data[d] = { in: "", out: "", hours: 0, type: "leave" };
-    } else if (d === 12) {
-      data[d] = { in: "08:35", out: "17:45", hours: 9.2, type: "wfh" };
-    } else {
-      const late = d % 7 === 0;
-      data[d] = {
-        in: late ? "09:12" : "08:45",
-        out: "18:00",
-        hours: late ? 8.8 : 9.25,
-        type: late ? "late" : "normal",
-      };
-    }
-  }
-  return data;
-}
-
-const attendanceData = generateAttendance();
+// Real attendance data is fetched dynamically
 
 const mockLeaveRequests = [
   { id: "lr1", type: "Nghỉ phép", from: "2025-07-05", to: "2025-07-06", reason: "Việc cá nhân", status: "pending", created: "25 Th6" },
@@ -87,12 +63,27 @@ const statusConfig = {
   rejected: { label: "Từ chối", color: "#D84040", icon: XCircle },
 };
 
+const mapDbToFrontendRequest = (r: any) => {
+  const dates = (r.date || "").split(" → ");
+  const from = dates[0] || "";
+  const to = dates[1] || from;
+  return {
+    id: r.id,
+    type: r.type,
+    from: from,
+    to: to,
+    reason: r.reason,
+    status: r.status,
+    created: r.submitted_at
+  };
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewHRPage() {
   const [activeTab, setActiveTab] = useState<"attendance" | "requests" | "settings">("attendance");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ type: "leave", from: "", to: "", reason: "" });
-  const [requests, setRequests] = useState(mockLeaveRequests);
+  const [requests, setRequests] = useState<any[]>([]);
 
   // Settings tab states
   const [member, setMember] = useState<any>(null);
@@ -113,12 +104,17 @@ export function CrewHRPage() {
   const userObj = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserEmail = userObj.email || "";
 
+  const [attendanceData, setAttendanceData] = useState<Record<number, { in: string; out: string; hours: number; type: string }>>({});
+
   useEffect(() => {
+    // 1. Fetch Crew Info
     fetchApi<any[]>("/crew")
       .then((crewList) => {
         const found = crewList.find((c) => c.email === currentUserEmail);
+        let officialName = "";
         if (found) {
           setMember(found);
+          officialName = found.name || "";
           const memberSkills = found.skills_expertise ? found.skills_expertise.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
           setSkills(memberSkills);
           const memberRoles = found.role ? found.role.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
@@ -129,12 +125,64 @@ export function CrewHRPage() {
           setEditBio(found.bio || "");
         }
         setLoadingMember(false);
+
+        // 2. Fetch Attendance Logs sequentially
+        return fetchApi<any[]>("/hr/attendance-logs")
+          .then((logs) => {
+            const userName = userObj.display_name || userObj.username || "Crew";
+            const myLogs = logs.filter((l) => {
+              const logName = l.employee_name;
+              return logName === officialName || logName === userName || logName === userObj.username;
+            });
+            
+            const grouped: Record<number, any> = {};
+            myLogs.forEach((log) => {
+              const d = new Date(log.date);
+              if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                const day = d.getDate();
+                if (!grouped[day]) grouped[day] = { in: "", out: "", hours: 0, type: "normal" };
+                
+                if (log.action === "check-in") grouped[day].in = log.time;
+                if (log.action === "check-out") grouped[day].out = log.time;
+                
+                if (log.note === "WFH") grouped[day].type = "wfh";
+                if (log.status === "late") grouped[day].type = "late";
+              }
+            });
+
+            // Compute hours
+            Object.keys(grouped).forEach((key) => {
+              const day = parseInt(key);
+              const g = grouped[day];
+              if (g.in && g.out) {
+                const [h1, m1] = g.in.split(":").map(Number);
+                const [h2, m2] = g.out.split(":").map(Number);
+                g.hours = Math.max(0, (h2 * 60 + m2 - (h1 * 60 + m1)) / 60);
+              }
+            });
+            
+            setAttendanceData(grouped);
+          });
+
+        // 3. Fetch Leave Requests sequentially
+        fetchApi<any[]>("/hr/leave-requests")
+          .then((data) => {
+            const userName = userObj.display_name || userObj.username || "Crew";
+            const myRequests = data.filter((r) => {
+              const emp = r.employee_name;
+              return emp === officialName || emp === userName || emp === userObj.username;
+            });
+            setRequests(myRequests.map(mapDbToFrontendRequest));
+          })
+          .catch((err) => {
+            console.error("Error fetching leave requests:", err);
+          });
       })
       .catch((err) => {
-        console.error("Error fetching crew member:", err);
+        console.error("Error loading HR page data:", err);
         setLoadingMember(false);
       });
-  }, [currentUserEmail]);
+  }, [currentUserEmail, userObj.display_name, userObj.username]);
 
   const handleCancel = () => {
     if (member) {
@@ -160,6 +208,7 @@ export function CrewHRPage() {
         const formData = new FormData();
         formData.append("file", avatarFile);
         formData.append("alt", `${editName} Avatar`);
+        formData.append("folder", "avatar/crew");
         const mediaAsset = await fetchApi<any>("/media/upload", {
           method: "POST",
           body: formData,
@@ -223,20 +272,37 @@ export function CrewHRPage() {
 
   const submitRequest = () => {
     if (!form.from || !form.reason) return;
-    setRequests((prev) => [
-      {
-        id: `lr${Date.now()}`,
-        type: leaveTypes.find((t) => t.id === form.type)?.label || form.type,
-        from: form.from,
-        to: form.to || form.from,
-        reason: form.reason,
-        status: "pending",
-        created: "Hôm nay",
-      },
-      ...prev,
-    ]);
-    setForm({ type: "leave", from: "", to: "", reason: "" });
-    setShowForm(false);
+    
+    const officialName = member?.name || userObj.display_name || userObj.username || "Crew";
+    const dateStr = form.to && form.to !== form.from ? `${form.from} → ${form.to}` : form.from;
+    const submittedStr = new Date().toLocaleDateString("vi-VN", { day: "numeric", month: "short" });
+    
+    const avatarUrl = userObj.avatar_url || userObj.avatar || userObj.photo_url || userObj.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(officialName)}&background=8E1616&color=fff`;
+
+    const payload = {
+      employee_name: officialName,
+      avatar: avatarUrl,
+      type: form.type,
+      status: "pending",
+      date: dateStr,
+      reason: form.reason,
+      submitted_at: submittedStr,
+      urgent: false
+    };
+    
+    fetchApi("/hr/leave-requests", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+    .then((newReq: any) => {
+      setRequests((prev) => [mapDbToFrontendRequest(newReq), ...prev]);
+      setForm({ type: "leave", from: "", to: "", reason: "" });
+      setShowForm(false);
+    })
+    .catch((err) => {
+      console.error("Error submitting leave request:", err);
+      alert("Không thể gửi đơn, vui lòng thử lại!");
+    });
   };
 
   return (
@@ -401,8 +467,8 @@ export function CrewHRPage() {
       {activeTab === "requests" && (
         <div className="space-y-4">
           {requests.map((req) => {
-            const sc = statusConfig[req.status as keyof typeof statusConfig];
-            const lt = leaveTypes.find((t) => t.label === req.type);
+            const sc = statusConfig[req.status as keyof typeof statusConfig] || { label: req.status || "Chờ duyệt", color: "#D4A843", icon: AlertCircle };
+            const lt = leaveTypes.find((t) => t.id === req.type || t.label === req.type);
             return (
               <div
                 key={req.id}
@@ -421,7 +487,7 @@ export function CrewHRPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{req.type}</p>
+                    <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{lt ? lt.label : req.type}</p>
                     <span
                       className="flex items-center gap-1 px-2 py-0.5 rounded-full"
                       style={{

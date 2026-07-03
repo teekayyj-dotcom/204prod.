@@ -242,7 +242,7 @@ export function CategoryDetailPage() {
     });
     // Stats
     const totalBudget = categoryProjects.reduce((s, p) => {
-        const rawBudget = typeof p.budget === "string" ? p.budget.replace(/[$,]/g, "") : String(p.budget || "0");
+        const rawBudget = typeof p.budget === "string" ? p.budget.replace(/[$,₫\s]/g, "") : String(p.budget || "0");
         const parsed = parseInt(rawBudget) || 0;
         return s + parsed;
     }, 0);
@@ -373,7 +373,7 @@ export function CategoryDetailPage() {
             { Icon: FolderOpen, label: "Total Projects", value: categoryProjects.length, color: "#EEEEEE" },
             { Icon: Activity, label: "In Progress", value: activeCount, color: "#D84040" },
             { Icon: CheckCircle2, label: "Completed", value: completedCount, color: "#4CAF50" },
-            { Icon: DollarSign, label: "Total Budget", value: `$${(totalBudget / 1000).toFixed(0)}K`, color: accent.primary },
+            { Icon: DollarSign, label: "Total Budget", value: totalBudget >= 1_000_000_000 ? `${(totalBudget / 1_000_000_000).toFixed(1)}B ₫` : totalBudget >= 1_000_000 ? `${(totalBudget / 1_000_000).toFixed(0)}M ₫` : `${totalBudget.toLocaleString()} ₫`, color: accent.primary },
         ].map(({ Icon, label, value, color }, idx) => (<div key={label} className="flex items-center gap-3 px-6 py-4" style={{
                 borderLeft: idx > 0 ? "1px solid #2A1F1F" : "none",
             }}>

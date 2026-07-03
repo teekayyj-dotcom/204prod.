@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Float, func
+from sqlalchemy import Boolean, DateTime, Date, ForeignKey, Integer, String, Text, Float, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -66,6 +66,8 @@ class Project(Base):
     seo_title: Mapped[str | None] = mapped_column(String(255))
     seo_description: Mapped[str | None] = mapped_column(String(500))
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    budget: Mapped[str | None] = mapped_column(String(100), nullable=True, default="TBD")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -187,6 +189,10 @@ class ProjectTask(Base):
     priority: Mapped[str] = mapped_column(String(50), nullable=False, default="medium")
 
     project: Mapped[Project] = relationship()
+
+    @property
+    def project_title(self) -> str:
+        return self.project.title if self.project else self.project_slug
 
 
 class ApprovalRequest(Base):

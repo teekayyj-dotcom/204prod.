@@ -285,6 +285,9 @@ export function AuthPage() {
                 localStorage.setItem("token", response.access_token);
                 localStorage.setItem("role", response.user.role);
                 localStorage.setItem("user", JSON.stringify(response.user));
+                if (response.user.client_slug) {
+                    localStorage.setItem("client_slug", response.user.client_slug);
+                }
                 alert("Đăng nhập thành công!");
                 const role = response.user.role;
                 if (role === "pending") navigate("/pending");
@@ -526,6 +529,9 @@ export function AuthPage() {
                                             localStorage.setItem("token", response.access_token);
                                             localStorage.setItem("role", response.user.role);
                                             localStorage.setItem("user", JSON.stringify(response.user));
+                                            if (response.user.client_slug) {
+                                                localStorage.setItem("client_slug", response.user.client_slug);
+                                            }
                                             alert(`${isLogin ? "Đăng nhập" : "Đăng ký"} bằng tài khoản Google thành công!`);
                                             const role = response.user.role;
                                             if (role === "pending") navigate("/pending");

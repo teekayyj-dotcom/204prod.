@@ -6,7 +6,7 @@ import {
     Grid3X3,
     List,
     Calendar,
-    DollarSign,
+    Coins,
     ArrowUpRight,
     Loader2
 } from "lucide-react";
@@ -222,7 +222,7 @@ export function ClientProjectsPage() {
                                         <span style={{ color: "#666", fontSize: "11px" }}>{project.year}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <DollarSign size={12} color="#D84040" />
+                                        <Coins size={12} color="#D84040" />
                                         <span style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{project.budget}</span>
                                     </div>
                                 </div>

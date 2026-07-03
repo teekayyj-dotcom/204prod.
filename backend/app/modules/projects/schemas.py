@@ -7,6 +7,7 @@ class ProjectSummary(BaseModel):
     slug: str
     client: str
     client_slug: str | None = None
+    client_logo: str | None = None
     year: int
     format: str
     format_slug: str | None = None
@@ -15,11 +16,13 @@ class ProjectSummary(BaseModel):
     status: str
     published: bool = False
     locked: bool = False
-    progress: int = 100
+    progress: int = 0
     budget: str = "TBD"
     cover_media: dict | None = None
     video_url: str | None = None
     videoUrl: str | None = None
+    due_date: str | None = None
+    dueDate: str | None = None
 
 
 class GalleryImageDetail(BaseModel):
@@ -48,8 +51,11 @@ class ProjectCreate(BaseModel):
     seo_title: str | None = None
     seo_description: str | None = None
     video_url: str | None = None
+    due_date: str | None = None
+    dueDate: str | None = None
     credits: list[str] | None = None
     gallery_media_ids: list[str] | None = None
+    budget: str | None = None
 
 
 class ProjectUpdate(BaseModel):
@@ -67,8 +73,11 @@ class ProjectUpdate(BaseModel):
     seo_title: str | None = None
     seo_description: str | None = None
     video_url: str | None = None
+    due_date: str | None = None
+    dueDate: str | None = None
     credits: list[str] | None = None
     gallery_media_ids: list[str] | None = None
+    budget: str | None = None
 
 
 class ClientSummary(BaseModel):
@@ -172,6 +181,7 @@ class ProjectTaskUpdate(BaseModel):
 class ProjectTaskDetail(ProjectTaskBase):
     id: str
     project_slug: str
+    project_title: str | None = None
 
     class Config:
         from_attributes = True

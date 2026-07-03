@@ -173,13 +173,20 @@ export function LandingPage() {
   const videoUrl = currentProject?.video_url || currentProject?.videoUrl || "";
   const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
   const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+  // Legacy Bunny embed URL
+  const bunnyLegacyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
   const embedUrl = ytMatch
     ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`
     : vmMatch
       ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`
-      : null;
+      : bunnyLegacyMatch
+        ? videoUrl.includes("?")
+          ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
+          : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`
+        : null;
 
   const isEmbedVideo = !!embedUrl;
+  // Direct video: .mp4/.mov/.webm (includes new Bunny CDN direct URLs like b-cdn.net)
   const isDirectVideo = !!videoUrl && !embedUrl;
 
   const coverMedia = currentProject?.cover_media || (currentProject?.cover_image ? { url: currentProject.cover_image, kind: "image" } : null);
@@ -195,8 +202,8 @@ export function LandingPage() {
         <iframe
           key={embedUrl}
           src={embedUrl}
-          className="absolute inset-0 w-full h-full opacity-60 pointer-events-none scale-105"
-          style={{ border: "none" }}
+          className="absolute inset-0 w-full h-screen opacity-60 pointer-events-none"
+          style={{ border: "none", width: "100%", height: "100vh", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
           allow="autoplay; fullscreen; picture-in-picture"
           title={currentProject.title}
         />
@@ -208,7 +215,8 @@ export function LandingPage() {
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+          className="absolute inset-0 w-full h-screen object-cover opacity-60 pointer-events-none"
+          style={{ width: "100%", height: "100vh", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
         />
       ) : coverMedia?.url ? (
         coverMedia.kind === "video" ? (
@@ -219,14 +227,16 @@ export function LandingPage() {
             loop
             muted
             playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+            className="absolute inset-0 w-full h-screen object-cover opacity-60 pointer-events-none"
+            style={{ width: "100%", height: "100vh", objectFit: "cover" }}
           />
         ) : (
           <img
             key={coverMedia.url}
             src={coverMedia.url}
             alt={currentProject.title}
-            className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+            className="absolute inset-0 w-full h-screen object-cover opacity-60 pointer-events-none"
+            style={{ width: "100%", height: "100vh", objectFit: "cover" }}
           />
         )
       ) : (

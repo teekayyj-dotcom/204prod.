@@ -22,9 +22,15 @@ export function ClientsPage() {
     const navigate = useNavigate();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
+
+    // Read initial filters from query parameters
+    const searchParams = new URLSearchParams(window.location.search);
+    const initialIndustry = searchParams.get("industry") || "";
+    const initialTier = searchParams.get("tier") || "All";
+
+    const [search, setSearch] = useState(initialIndustry);
     const [filter, setFilter] = useState("All");
-    const [tierFilter, setTierFilter] = useState("All");
+    const [tierFilter, setTierFilter] = useState(initialTier);
 
     useEffect(() => {
         fetchApi('/projects/clients/all')
@@ -49,7 +55,7 @@ export function ClientsPage() {
                         status: c.status || "Active",
                         since: c.since || "2026",
                         projects: c.project_count || 0,
-                        budget: c.total_budget ? `$${c.total_budget.toLocaleString()}` : "N/A",
+                        budget: c.total_budget ? `${c.total_budget.toLocaleString()} ₫` : "N/A",
                         avatar: c.logo_media_url || null
                     };
                 });

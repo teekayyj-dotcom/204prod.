@@ -8,6 +8,7 @@ class UserSummary(BaseModel):
     display_name: str | None = None
     avatar_url: str | None = None
     role: str
+    client_slug: str | None = None  # populated for role=client users
 
 class UserDetail(UserSummary):
     email: str

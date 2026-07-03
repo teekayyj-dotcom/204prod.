@@ -21,7 +21,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           Projects: {payload[0]?.value}
         </p>
         <p style={{ color: "#EEEEEE", fontSize: "12px" }}>
-          Revenue: ${payload[1]?.value?.toLocaleString()}
+          Revenue: {payload[1]?.value?.toLocaleString()} ₫
         </p>
       </div>
     );

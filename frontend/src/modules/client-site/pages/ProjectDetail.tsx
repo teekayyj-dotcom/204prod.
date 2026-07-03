@@ -618,21 +618,35 @@ export function ProjectDetail() {
           style={{ y: bgY, opacity: heroOpacity }}
         >
           {(() => {
-            const videoUrl = project.video || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4";
+            const videoUrl = project.video || null;
+            if (!videoUrl) {
+              return (
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  className="w-full h-full object-cover opacity-60"
+                />
+              );
+            }
             const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
             const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+            const bunnyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
             const embedUrl = ytMatch
               ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`
               : vmMatch
                 ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`
-                : null;
+                : bunnyMatch
+                  ? videoUrl.includes("?")
+                    ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
+                    : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`
+                  : null;
             
             if (embedUrl) {
               return (
                 <iframe
                   src={embedUrl}
-                  className="w-full h-full object-cover scale-105 pointer-events-none opacity-60"
-                  style={{ border: "none" }}
+                  className="w-full h-full object-cover pointer-events-none opacity-60"
+                  style={{ border: "none", transform: "scale(1.35)", transformOrigin: "center" }}
                   allow="autoplay; fullscreen; picture-in-picture"
                   title={project.title}
                 />

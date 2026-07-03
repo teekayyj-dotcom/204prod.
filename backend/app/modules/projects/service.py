@@ -38,6 +38,10 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
     if video_url is not None and not video_url.strip():
         video_url = None
 
+    from datetime import datetime
+    due_date_str = project.dueDate or project.due_date
+    parsed_due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date() if due_date_str else None
+
     db_project = Project(
         slug=slug,
         title=project.title,
@@ -49,10 +53,12 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
         published=project.published,
         locked=project.locked,
         cover_media_id=project.cover_media_id,
+        due_date=parsed_due_date,
         video_url=video_url,
         summary=project.summary,
         seo_title=project.seo_title,
         seo_description=project.seo_description,
+        budget=project.budget or "TBD",
     )
     db.add(db_project)
     
@@ -106,6 +112,12 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
         existing_project.published = project.published
     if project.locked is not None:
         existing_project.locked = project.locked
+        
+    due_date_str = project.dueDate or project.due_date
+    if due_date_str is not None:
+        from datetime import datetime
+        existing_project.due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date() if due_date_str else None
+
     if project.cover_media_id is not None:
         existing_project.cover_media_id = project.cover_media_id
     if project.video_url is not None:
@@ -116,6 +128,9 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
         existing_project.seo_title = project.seo_title
     if project.seo_description is not None:
         existing_project.seo_description = project.seo_description
+    if project.budget is not None:
+        existing_project.budget = project.budget
+        
         
     if project.credits is not None:
         from app.modules.projects.models import ProjectCredit
@@ -186,7 +201,89 @@ def create_client(db: Session, client: ClientCreate) -> Client:
     db.add(db_client)
     db.commit()
     db.refresh(db_client)
+    sync_client_invoices(db, db_client)
     return db_client
+
+
+def sync_client_invoices(db: Session, db_client: Client) -> None:
+    import json
+    from app.modules.finance.models import ClientInvoice
+
+    if not db_client.notes:
+        return
+
+    try:
+        trimmed = db_client.notes.strip()
+        if not trimmed.startswith("{"):
+            return
+        crm = json.loads(trimmed)
+        crm_invoices = crm.get("invoices", [])
+
+        # Get existing client invoices from DB
+        db_invoices = db.query(ClientInvoice).filter(ClientInvoice.client_slug == db_client.slug).all()
+        db_inv_map = {inv.id: inv for inv in db_invoices}
+
+        crm_inv_ids = set()
+
+        for crm_inv in crm_invoices:
+            inv_id = crm_inv.get("id") or crm_inv.get("code")
+            if not inv_id:
+                continue
+            crm_inv_ids.add(inv_id)
+
+            # Map CRM status (Paid -> paid, Unpaid -> pending, Overdue -> overdue)
+            status_map = {
+                "Paid": "paid",
+                "Unpaid": "pending",
+                "Overdue": "overdue"
+            }
+            crm_status = crm_inv.get("status")
+            db_status = status_map.get(crm_status, "pending")
+
+            amount = 0.0
+            try:
+                amount = float(crm_inv.get("amount") or 0.0)
+            except:
+                pass
+
+            due_date = crm_inv.get("date") or ""
+            desc = crm_inv.get("description") or ""
+            code = crm_inv.get("code") or ""
+
+            project_val = desc
+            term_val = f"{code}: {desc}"
+
+            if inv_id in db_inv_map:
+                inv = db_inv_map[inv_id]
+                inv.client_name = db_client.name
+                inv.project = project_val
+                inv.term = term_val
+                inv.amount = amount
+                inv.due_date = due_date
+                inv.status = db_status
+            else:
+                new_inv = ClientInvoice(
+                    id=inv_id,
+                    client_slug=db_client.slug,
+                    client_name=db_client.name,
+                    project=project_val,
+                    term=term_val,
+                    amount=amount,
+                    due_date=due_date,
+                    status=db_status,
+                )
+                db.add(new_inv)
+
+        # Delete invoices that are no longer in CRM notes
+        for inv_id, inv in db_inv_map.items():
+            if inv_id not in crm_inv_ids:
+                db.delete(inv)
+
+        db.commit()
+        from app.modules.finance.service import recalculate_receivables
+        recalculate_receivables(db)
+    except Exception as e:
+        print(f"Error syncing client invoices: {e}")
 
 
 def update_client(db: Session, slug: str, client: ClientUpdate) -> Client | None:
@@ -218,6 +315,7 @@ def update_client(db: Session, slug: str, client: ClientUpdate) -> Client | None
         
     db.commit()
     db.refresh(db_client)
+    sync_client_invoices(db, db_client)
     return db_client
 
 
@@ -286,6 +384,12 @@ def reply_feedback(db: Session, feedback_id: int, reply_content: str, reply_auth
     db.commit()
     db.refresh(db_feedback)
     return db_feedback
+
+
+def get_all_tasks(db: Session):
+    from sqlalchemy.orm import joinedload
+    from app.modules.projects.models import ProjectTask
+    return db.query(ProjectTask).options(joinedload(ProjectTask.project)).all()
 
 
 def get_project_tasks(db: Session, project_slug: str):

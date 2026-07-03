@@ -199,9 +199,9 @@ export function ContactPage() {
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white/90 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] appearance-none"
                 >
                   <option value="" className="bg-zinc-900 text-white">Select budget range</option>
-                  <option value="10k-50k" className="bg-zinc-900 text-white">$10k - $50k</option>
-                  <option value="50k-100k" className="bg-zinc-900 text-white">$50k - $100k</option>
-                  <option value="100k+" className="bg-zinc-900 text-white">$100k+</option>
+                  <option value="10m-50m" className="bg-zinc-900 text-white">10M ₫ - 50M ₫</option>
+                  <option value="50m-100m" className="bg-zinc-900 text-white">50M ₫ - 100M ₫</option>
+                  <option value="100m+" className="bg-zinc-900 text-white">100M ₫+</option>
                 </select>
               </div>
 

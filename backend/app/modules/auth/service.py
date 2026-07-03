@@ -16,10 +16,19 @@ from app.core.security import (
     verify_firebase_token,
 )
 
-def _create_auth_response(user: User) -> AuthResponse:
+def _create_auth_response(user: User, db: Session = None) -> AuthResponse:
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role}
     )
+    
+    # For client role users, find their client_slug
+    client_slug = None
+    if user.role == "client" and db is not None:
+        from app.modules.projects.models import Client
+        client = db.query(Client).filter(Client.email == user.email).first()
+        if client:
+            client_slug = client.slug
+    
     return AuthResponse(
         access_token=access_token,
         user=UserSummary(
@@ -28,7 +37,8 @@ def _create_auth_response(user: User) -> AuthResponse:
             email=user.email,
             display_name=user.display_name,
             avatar_url=user.avatar_url,
-            role=user.role
+            role=user.role,
+            client_slug=client_slug,
         ),
     )
 
@@ -52,7 +62,7 @@ def register_user(db: Session, payload: RegisterRequest) -> AuthResponse:
     db.add(user)
     db.commit()
     db.refresh(user)
-    return _create_auth_response(user)
+    return _create_auth_response(user, db)
 
 def login_user(db: Session, payload: LoginRequest) -> AuthResponse:
     user = db.query(User).filter(User.email == payload.email).first()
@@ -61,7 +71,7 @@ def login_user(db: Session, payload: LoginRequest) -> AuthResponse:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    return _create_auth_response(user)
+    return _create_auth_response(user, db)
 
 def firebase_auth(db: Session, payload: FirebaseAuthRequest) -> AuthResponse:
     decoded_token = verify_firebase_token(payload.id_token)
@@ -162,7 +172,7 @@ def firebase_auth(db: Session, payload: FirebaseAuthRequest) -> AuthResponse:
         db.commit()
         db.refresh(user)
 
-    return _create_auth_response(user)
+    return _create_auth_response(user, db)
 
 def change_password(db: Session, user_id: int, payload: ChangePasswordRequest):
     user = db.query(User).filter(User.id == user_id).first()

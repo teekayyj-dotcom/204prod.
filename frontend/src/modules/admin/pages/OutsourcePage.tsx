@@ -535,7 +535,7 @@ function DetailDrawer({ person, onClose, onDelete }: { person: OutsourcePerson; 
                   ].map((row) => (
                     <div key={row.label} className="flex items-center gap-3">
                       <row.icon size={13} style={{ color: "#8E1616", flexShrink: 0 }} />
-                      <span style={{ color: "#555", fontSize: "11px", minWidth: "90px" }}>{row.label}</span>
+                      <span style={{ color: "#AAAAAA", fontSize: "12px", minWidth: "90px" }}>{row.label}</span>
                       <span style={{
                         color: row.value === "Chưa cập nhật" ? "#444" : "#EEEEEE",
                         fontSize: "12px",
@@ -615,7 +615,7 @@ function TalentCard({ person, onClick }: { person: OutsourcePerson; onClick: () 
         <p style={{ color: isBlacklist ? "#666" : "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>
           {person.name}
         </p>
-        <p style={{ color: "#555", fontSize: "11px" }} className="mt-0.5">{person.role}</p>
+        <p style={{ color: "#BBBBBB", fontSize: "13px" }} className="mt-0.5">{person.role}</p>
         <StarRow count={person.stars} size={11} />
       </div>
 
@@ -637,7 +637,7 @@ function TalentCard({ person, onClick }: { person: OutsourcePerson; onClick: () 
         style={{ borderTop: "1px solid #2A1F1F" }}
       >
         <div>
-          <p style={{ color: "#444", fontSize: "10px" }}>Daily rate</p>
+          <p style={{ color: "#AAAAAA", fontSize: "12px" }}>Daily rate</p>
           <p style={{ color: "#fbbf24", fontSize: "15px", fontWeight: 700 }}>
             {fmtM(person.rateDaily)} ₫
           </p>
@@ -749,7 +749,7 @@ export function OutsourcePage({
               <div>
                 <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>HR</p>
                 <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>Outsource</h1>
-                <p style={{ color: "#555", fontSize: "12px" }}>Talent Pool · {talentPool.length} freelancer</p>
+                <p style={{ color: "#AAAAAA", fontSize: "13px" }}>Talent Pool · {talentPool.length} freelancer</p>
               </div>
             </div>
             <button
@@ -776,7 +776,7 @@ export function OutsourcePage({
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: k.color }} />
                 <div>
                   <p style={{ color: k.color, fontSize: "24px", fontWeight: 800, lineHeight: 1 }}>{k.value}</p>
-                  <p style={{ color: "#555", fontSize: "11px" }}>{k.label}</p>
+                  <p style={{ color: "#BBBBBB", fontSize: "13px" }}>{k.label}</p>
                 </div>
               </div>
             ))}

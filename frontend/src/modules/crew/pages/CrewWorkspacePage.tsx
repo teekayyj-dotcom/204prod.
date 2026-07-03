@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from "react";
+import { fetchApi } from "../../admin/utils/apiClient";
 import {
   Clock,
   CheckSquare,
@@ -15,17 +15,10 @@ import {
   MessageSquareWarning,
   Timer,
   TrendingUp,
-  Star,
 } from "lucide-react";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
-const mockTasks = [
-  { id: 1, label: "Dựng xong Draft 1 — Clip TVC Mùa Hè", project: "Brand X TVC", due: "Hôm nay, 17:00", priority: "high", done: false },
-  { id: 2, label: "Export file 4K theo chuẩn H.264", project: "Brand X TVC", due: "Hôm nay, 18:30", priority: "medium", done: false },
-  { id: 3, label: "Color grade cảnh outdoor — Scene 3", project: "Agency Reel Q3", due: "Hôm nay, 20:00", priority: "medium", done: false },
-  { id: 4, label: "Upload asset moodboard cho PM review", project: "Client ABC Launch", due: "Ngày mai, 09:00", priority: "low", done: true },
-  { id: 5, label: "Sync âm thanh Track 2 với timeline", project: "Agency Reel Q3", due: "Hôm nay, 15:00", priority: "high", done: true },
-];
+
 
 const mockAlerts = [
   {
@@ -50,7 +43,6 @@ const mockStats = [
   { label: "Tasks hoàn thành", value: "12", sub: "tuần này", icon: CheckSquare, color: "#10B981" },
   { label: "Giờ làm việc", value: "38.5h", sub: "tuần này", icon: Timer, color: "#D84040" },
   { label: "Dự án đang chạy", value: "3", sub: "được phân công", icon: TrendingUp, color: "#D4A843" },
-  { label: "Điểm hiệu suất", value: "94", sub: "tháng 6", icon: Star, color: "#8B5CF6" },
 ];
 
 // ─── Check-in timer ───────────────────────────────────────────────────────────
@@ -76,21 +68,58 @@ function useCheckinTimer() {
     };
   }, [isCheckedIn, startTime]);
 
-  const checkIn = () => {
+  const checkIn = async () => {
     const now = Date.now();
     setIsCheckedIn(true);
     setStartTime(now);
     setElapsed(0);
     localStorage.setItem("crew_checkin_active", "true");
     localStorage.setItem("crew_checkin_start", String(now));
+    
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      const avatarUrl = u.avatar_url || u.avatar || u.photo_url || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || u.username || "Crew")}&background=8E1616&color=fff`;
+      await fetchApi("/hr/attendance-logs", {
+        method: "POST",
+        body: JSON.stringify({
+          employee_name: u.display_name || u.username || "Crew",
+          avatar: avatarUrl,
+          action: "check-in",
+          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          date: new Date().toISOString().split("T")[0],
+          status: "on-time",
+          note: "Office"
+        })
+      });
+    } catch (err) {
+      console.error("Failed to check in to API", err);
+    }
   };
 
-  const checkOut = () => {
+  const checkOut = async () => {
     setIsCheckedIn(false);
     setStartTime(null);
     setElapsed(0);
     localStorage.removeItem("crew_checkin_active");
     localStorage.removeItem("crew_checkin_start");
+    
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      const avatarUrl = u.avatar_url || u.avatar || u.photo_url || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || u.username || "Crew")}&background=8E1616&color=fff`;
+      await fetchApi("/hr/attendance-logs", {
+        method: "POST",
+        body: JSON.stringify({
+          employee_name: u.display_name || u.username || "Crew",
+          avatar: avatarUrl,
+          action: "check-out",
+          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          date: new Date().toISOString().split("T")[0],
+          status: "on-time"
+        })
+      });
+    } catch (err) {
+      console.error("Failed to check out to API", err);
+    }
   };
 
   const format = (secs: number) => {
@@ -106,7 +135,16 @@ function useCheckinTimer() {
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewWorkspacePage() {
   const { isCheckedIn, elapsed, checkIn, checkOut, format } = useCheckinTimer();
-  const [tasks, setTasks] = useState(mockTasks);
+  const [tasks, setTasks] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchApi("/projects/tasks/all").then(data => {
+      // Filter tasks assigned to current user or keep all? 
+      // For now we keep all, or filter by getUserName()
+      const myName = getUserName();
+      setTasks(data);
+    }).catch(console.error);
+  }, []);
 
   const getUserName = () => {
     try {
@@ -117,14 +155,23 @@ export function CrewWorkspacePage() {
     }
   };
 
-  const toggleTask = (id: number) => {
+  const toggleTask = (id: string | number) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const newStatus = task.status === "done" ? "todo" : "done";
+
     setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t))
+      prev.map((t) => (t.id === id ? { ...t, status: newStatus } : t))
     );
+
+    fetchApi(`/projects/tasks/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ status: newStatus })
+    }).catch(console.error);
   };
 
-  const pendingTasks = tasks.filter((t) => !t.done);
-  const doneTasks = tasks.filter((t) => t.done);
+  const pendingTasks = tasks.filter((t) => t.status !== "done");
+  const doneTasks = tasks.filter((t) => t.status === "done");
 
   const priorityColor = (p: string) => {
     if (p === "high") return "#D84040";
@@ -171,7 +218,7 @@ export function CrewWorkspacePage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-7">
+      <div className="grid grid-cols-3 gap-4 mb-7">
         {mockStats.map((stat) => (
           <div
             key={stat.label}
@@ -354,38 +401,43 @@ export function CrewWorkspacePage() {
                   onClick={() => toggleTask(task.id)}
                   className="w-full flex items-start gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200"
                   style={{
-                    background: task.done ? "#0A0707" : "#1D1616",
-                    border: `1px solid ${task.done ? "#1D1616" : "#2A1F1F"}`,
-                    opacity: task.done ? 0.55 : 1,
+                    cursor: "pointer",
+                    background: task.status === "done" ? "#0A0707" : "#1D1616",
+                    border: `1px solid ${task.status === "done" ? "#1D1616" : "#2A1F1F"}`,
+                    opacity: task.status === "done" ? 0.55 : 1,
+                    transition: "all 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    if (!task.done) (e.currentTarget as HTMLElement).style.borderColor = "#D84040";
+                    if (task.status !== "done") (e.currentTarget as HTMLElement).style.borderColor = "#D84040";
                   }}
                   onMouseLeave={(e) => {
-                    if (!task.done) (e.currentTarget as HTMLElement).style.borderColor = "#2A1F1F";
+                    if (task.status !== "done") (e.currentTarget as HTMLElement).style.borderColor = "#2A1F1F";
                   }}
                 >
-                  {task.done ? (
-                    <CheckSquare size={17} style={{ color: "#10B981", flexShrink: 0, marginTop: "1px" }} />
+                  {task.status === "done" ? (
+                    <CheckSquare size={20} color="#D84040" />
                   ) : (
-                    <Square size={17} style={{ color: "#555", flexShrink: 0, marginTop: "1px" }} />
+                    <Square size={20} color="#555" />
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1">
                     <p
                       style={{
-                        color: task.done ? "#555" : "#EEEEEE",
-                        fontSize: "13px",
-                        fontWeight: task.done ? 400 : 500,
-                        textDecoration: task.done ? "line-through" : "none",
-                        lineHeight: 1.4,
+                        color: task.status === "done" ? "#555" : "#EEEEEE",
+                        fontSize: "14px",
+                        fontWeight: task.status === "done" ? 400 : 500,
+                        textDecoration: task.status === "done" ? "line-through" : "none",
+                        marginBottom: "4px",
                       }}
                     >
-                      {task.label}
+                      {task.title || task.label}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span style={{ color: "#555", fontSize: "11px" }}>{task.project}</span>
-                      <span style={{ color: "#333", fontSize: "11px" }}>·</span>
-                      <span style={{ color: "#666", fontSize: "11px" }}>{task.due}</span>
+                    <div className="flex items-center gap-3">
+                      <span style={{ color: "#555", fontSize: "11px" }}>
+                        {task.project_title || (task.project && typeof task.project === 'object' ? task.project.title : task.project)}
+                      </span>
+                      {task.deadline && (
+                        <span style={{ color: "#666", fontSize: "11px" }}>{task.deadline}</span>
+                      )}
                     </div>
                   </div>
                   <span

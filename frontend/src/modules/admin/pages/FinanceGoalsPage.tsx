@@ -22,6 +22,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useEffect } from "react";
 import { fetchApi } from "../utils/apiClient";
@@ -41,6 +43,7 @@ interface GoalItem {
   status: GoalStatus;
   note?: string;
   higherIsBetter?: boolean; // false for AR Days, OPEX%, etc.
+  period?: string;
 }
 
 // Data will be loaded via API
@@ -59,6 +62,23 @@ function fmt(value: number, prefix: string | undefined, unit: string) {
 
 function pct(current: number, target: number) {
   return Math.min(Math.round((current / target) * 100), 100);
+}
+
+function calculateStatus(item: any): GoalItem {
+  const higherIsBetter = item.lowerIsBetter !== true;
+  let status: GoalStatus = "on-track";
+  
+  if (item.target > 0) {
+    const ratio = item.current / item.target;
+    if (higherIsBetter) {
+      if (ratio < 0.8) status = "behind";
+      else if (ratio < 1) status = "at-risk";
+    } else {
+      if (ratio > 1.15) status = "behind";
+      else if (ratio > 1) status = "at-risk";
+    }
+  }
+  return { ...item, status, higherIsBetter };
 }
 
 const statusConfig: Record<GoalStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -157,17 +177,82 @@ function EditableTarget({
   return (
     <button
       onClick={() => { setDraft(String(value)); setEditing(true); }}
-      className="flex items-center gap-1 group"
+      className="flex items-center gap-1.5 group p-1"
     >
       <span style={{ color: "#888", fontSize: "13px" }}>{fmt(value, prefix, unit)}</span>
-      <Edit2 size={10} style={{ color: "#444" }} className="group-hover:text-gray-400 transition-colors" />
+      <Edit2 size={14} className="text-white opacity-80 group-hover:opacity-100 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-all" />
     </button>
+  );
+}
+
+// ─── Add Goal Modal ────────────────────────────────────────────────────────────
+function AddGoalModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (payload: any) => void }) {
+  const [category, setCategory] = useState("revenue");
+  const [label, setLabel] = useState("");
+  const [target, setTarget] = useState("");
+  const [unit, setUnit] = useState("M");
+  const [lowerIsBetter, setLowerIsBetter] = useState(false);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-[#1D1616] border border-[#2E2020] rounded-2xl w-[400px] shadow-2xl p-6">
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-white font-bold text-lg">Thêm Mục tiêu mới</h2>
+          <button onClick={onClose}><X size={18} className="text-[#888] hover:text-white" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-[#888] mb-1">Nhóm</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-[#2A1F1F] text-white text-sm border border-[#3E2E2E] rounded-lg px-3 py-2 outline-none">
+              <option value="revenue">Doanh thu</option>
+              <option value="profit">Lợi nhuận</option>
+              <option value="cost">Chi phí</option>
+              <option value="cash">Dòng tiền</option>
+              <option value="admin">Vận hành (Admin)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-[#888] mb-1">Chu kỳ (Cycle)</label>
+            <select value={period} onChange={e => setPeriod(e.target.value)} className="w-full bg-[#2A1F1F] text-white text-sm border border-[#3E2E2E] rounded-lg px-3 py-2 outline-none">
+              <option value="2026-h1">H1 2026 (Jan–Jun)</option>
+              <option value="2026-h2">H2 2026 (Jul–Dec)</option>
+              <option value="2026-q2">Q2 2026</option>
+              <option value="2026-annual">Cả năm 2026</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-[#888] mb-1">Tên Mục tiêu</label>
+            <input value={label} onChange={e => setLabel(e.target.value)} className="w-full bg-[#2A1F1F] text-white text-sm border border-[#3E2E2E] rounded-lg px-3 py-2 outline-none" placeholder="VD: Doanh thu Q4" />
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-xs text-[#888] mb-1">Chỉ tiêu (Target)</label>
+              <input type="number" value={target} onChange={e => setTarget(e.target.value)} className="w-full bg-[#2A1F1F] text-white text-sm border border-[#3E2E2E] rounded-lg px-3 py-2 outline-none" placeholder="0" />
+            </div>
+            <div className="w-24">
+              <label className="block text-xs text-[#888] mb-1">Đơn vị</label>
+              <input value={unit} onChange={e => setUnit(e.target.value)} className="w-full bg-[#2A1F1F] text-white text-sm border border-[#3E2E2E] rounded-lg px-3 py-2 outline-none" placeholder="M, %, ..." />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <input type="checkbox" id="lower" checked={lowerIsBetter} onChange={e => setLowerIsBetter(e.target.checked)} className="rounded bg-[#2A1F1F] border-[#3E2E2E]" />
+            <label htmlFor="lower" className="text-sm text-[#888]">Số càng thấp càng tốt (VD: Chi phí)</label>
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[#888] hover:text-white transition-colors">Hủy</button>
+            <button onClick={() => { onAdd({ category, label, target: parseFloat(target), unit, lowerIsBetter, period }); onClose(); }} className="px-4 py-2 text-sm font-semibold text-white bg-[#D84040] rounded-lg hover:bg-[#ff6b6b] transition-colors">Thêm Mục tiêu</button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
 // ─── Goal Row ─────────────────────────────────────────────────────────────────
 
-function GoalRow({ item, onUpdateTarget }: { item: GoalItem; onUpdateTarget: (id: string, v: number) => void }) {
+function GoalRow({ item, onUpdateTarget, onDelete }: { item: GoalItem; onUpdateTarget: (id: string, v: number) => void; onDelete?: (id: string) => void }) {
   const progress = pct(item.current, item.target);
   const overTarget = item.current > item.target;
   const delta = item.higherIsBetter === false
@@ -193,18 +278,33 @@ function GoalRow({ item, onUpdateTarget }: { item: GoalItem; onUpdateTarget: (id
           )}
         </div>
 
-        {/* Delta pill */}
-        <div
-          className="flex items-center gap-1 px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{
-            background: delta >= 0 ? "#14532d22" : "#7f1d1d22",
-            color: delta >= 0 ? "#4ade80" : "#f87171",
-            fontSize: "11px",
-            fontWeight: 700,
-          }}
-        >
-          {delta >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-          {Math.abs(delta).toFixed(1)}%
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Delta pill */}
+          <div
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+            style={{
+              background: delta >= 0 ? "#14532d22" : "#7f1d1d22",
+              color: delta >= 0 ? "#4ade80" : "#f87171",
+              fontSize: "11px",
+              fontWeight: 700,
+            }}
+          >
+            {delta >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+            {Math.abs(delta).toFixed(1)}%
+          </div>
+          {onDelete && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Bạn có chắc chắn muốn xoá mục tiêu "${item.label}"?`)) {
+                  onDelete(item.id);
+                }
+              }}
+              className="p-1.5 rounded-lg text-[#888] hover:text-[#f87171] hover:bg-[#7f1d1d22] transition-all"
+              title="Xoá mục tiêu"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -255,6 +355,7 @@ function SectionCard({
   accentColor,
   goals,
   onUpdateTarget,
+  onDeleteGoal,
   summary,
 }: {
   title: string;
@@ -263,6 +364,7 @@ function SectionCard({
   accentColor: string;
   goals: GoalItem[];
   onUpdateTarget: (id: string, v: number) => void;
+  onDeleteGoal?: (id: string) => void;
   summary?: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -322,7 +424,7 @@ function SectionCard({
         <>
           <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
             {goals.map((g) => (
-              <GoalRow key={g.id} item={g} onUpdateTarget={onUpdateTarget} />
+              <GoalRow key={g.id} item={g} onUpdateTarget={onUpdateTarget} onDelete={onDeleteGoal} />
             ))}
           </div>
           {summary && (
@@ -343,19 +445,23 @@ export function FinanceGoalsPage() {
   const [profit,  setProfit]  = useState<GoalItem[]>([]);
   const [cost,    setCost]    = useState<GoalItem[]>([]);
   const [cash,    setCash]    = useState<GoalItem[]>([]);
+  const [admin,   setAdmin]   = useState<GoalItem[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState("2026-h1");
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await fetchApi<any>("/finance/goals");
-      setRevenue(res.revenue || []);
-      setProfit(res.profit || []);
-      setCost(res.cost || []);
-      setCash(res.cash || []);
+      setRevenue((res.revenue || []).map(calculateStatus));
+      setProfit((res.profit || []).map(calculateStatus));
+      setCost((res.cost || []).map(calculateStatus));
+      setCash((res.cash || []).map(calculateStatus));
+      setAdmin((res.admin || []).map(calculateStatus));
     } catch (err: any) {
       setError(err.message || "Không thể tải dữ liệu Goals");
     } finally {
@@ -367,17 +473,40 @@ export function FinanceGoalsPage() {
     loadData();
   }, []);
 
-  async function handleUpdateTarget(id: string, v: number, section: "revenue" | "profit" | "cost" | "cash") {
+  async function handleUpdateTarget(id: string, v: number, section: "revenue" | "profit" | "cost" | "cash" | "admin") {
     try {
       await fetchApi(`/finance/goals/${id}`, {
         method: "PUT",
         body: JSON.stringify({ target: v })
       });
       // Local optimistic update
-      const setter = section === "revenue" ? setRevenue : section === "profit" ? setProfit : section === "cost" ? setCost : setCash;
-      setter((prev: GoalItem[]) => prev.map((g) => g.id === id ? { ...g, target: v } : g));
+      const setter = section === "revenue" ? setRevenue : section === "profit" ? setProfit : section === "cost" ? setCost : section === "cash" ? setCash : setAdmin;
+      setter((prev: GoalItem[]) => prev.map((g) => g.id === id ? calculateStatus({ ...g, target: v }) : g));
     } catch (err: any) {
       alert("Lỗi khi cập nhật mục tiêu: " + err.message);
+    }
+  }
+
+  async function handleAddGoal(payload: any) {
+    try {
+      await fetchApi("/finance/goals", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      loadData();
+    } catch (err: any) {
+      alert("Lỗi khi thêm mục tiêu: " + err.message);
+    }
+  }
+
+  async function handleDeleteGoal(id: string) {
+    try {
+      await fetchApi(`/finance/goals/${id}`, {
+        method: "DELETE"
+      });
+      loadData();
+    } catch (err: any) {
+      alert("Lỗi khi xoá mục tiêu: " + err.message);
     }
   }
 
@@ -398,14 +527,34 @@ export function FinanceGoalsPage() {
     );
   }
 
-  const allGoals = [...revenue, ...profit, ...cost, ...cash];
+  const filterByPeriod = (goalsList: GoalItem[]) => {
+    return goalsList.filter((g) => {
+      const gPeriod = g.period || "2026-h1";
+      if (selectedPeriod === "2026-annual") return true;
+      if (selectedPeriod === "2026-h1") {
+        return gPeriod === "2026-h1" || gPeriod === "2026-q2" || gPeriod === "2026-q1";
+      }
+      if (selectedPeriod === "2026-h2") {
+        return gPeriod === "2026-h2" || gPeriod === "2026-q3" || gPeriod === "2026-q4";
+      }
+      return gPeriod === selectedPeriod;
+    });
+  };
+
+  const filteredRevenue = filterByPeriod(revenue);
+  const filteredProfit = filterByPeriod(profit);
+  const filteredCost = filterByPeriod(cost);
+  const filteredCash = filterByPeriod(cash);
+  const filteredAdmin = filterByPeriod(admin);
+
+  const allGoals = [...filteredRevenue, ...filteredProfit, ...filteredCost, ...filteredCash];
   const onTrack  = allGoals.filter((g) => g.status === "on-track").length;
   const atRisk   = allGoals.filter((g) => g.status === "at-risk").length;
   const behind   = allGoals.filter((g) => g.status === "behind").length;
 
   // Revenue total progress
-  const totalRevTarget = revenue.filter((g) => g.prefix === "₫").reduce((s, g) => s + g.target, 0);
-  const totalRevActual = revenue.filter((g) => g.prefix === "₫").reduce((s, g) => s + g.current, 0);
+  const totalRevActual = filteredRevenue.reduce((s, g) => s + g.current, 0);
+  const totalRevTarget = filteredRevenue.reduce((s, g) => s + g.target, 0);
   const revPct = totalRevTarget > 0 ? pct(totalRevActual, totalRevTarget) : 0;
 
   return (
@@ -427,17 +576,31 @@ export function FinanceGoalsPage() {
         <div className="flex items-center gap-2">
           <span style={{ color: "#555", fontSize: "12px" }}>Chu kỳ:</span>
           <select
-            className="px-3 py-1.5 rounded-lg text-sm"
+            className="px-3 py-1.5 rounded-lg text-sm cursor-pointer"
             style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", outline: "none" }}
-            defaultValue="2026-h1"
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
           >
             <option value="2026-h1">H1 2026 (Jan–Jun)</option>
             <option value="2026-h2">H2 2026 (Jul–Dec)</option>
             <option value="2026-q2">Q2 2026</option>
             <option value="2026-annual">Cả năm 2026</option>
           </select>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#D84040] hover:bg-[#ff6b6b] text-white text-sm font-semibold rounded-lg transition-colors shadow-lg shadow-red-900/20"
+          >
+            <Plus size={16} />
+            Thêm mục tiêu
+          </button>
         </div>
       </div>
+
+      <AddGoalModal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)} 
+        onAdd={handleAddGoal} 
+      />
 
       {/* Overview strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -495,16 +658,16 @@ export function FinanceGoalsPage() {
           <div className="flex items-center gap-2">
             <TrendingUp size={15} style={{ color: "#4ade80" }} />
             <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-              Tổng doanh thu H1 2026
+              Tổng doanh thu {selectedPeriod === "2026-h1" ? "H1 2026" : selectedPeriod === "2026-h2" ? "H2 2026" : selectedPeriod === "2026-q2" ? "Q2 2026" : "Cả năm 2026"}
             </span>
           </div>
           <div className="flex items-center gap-3">
             <span style={{ color: "#4ade80", fontSize: "14px", fontWeight: 700 }}>
-              {fmt(totalRevActual, "₫", "₫")}
+              {fmt(totalRevActual, "", "M")}
             </span>
             <span style={{ color: "#444", fontSize: "12px" }}>/</span>
             <span style={{ color: "#666", fontSize: "13px" }}>
-              {fmt(totalRevTarget, "₫", "₫")}
+              {fmt(totalRevTarget, "", "M")}
             </span>
             <span
               className="px-2 py-0.5 rounded-full text-xs font-bold"
@@ -527,9 +690,9 @@ export function FinanceGoalsPage() {
         <div className="flex items-center justify-between mt-2">
           <span style={{ color: "#444", fontSize: "10px" }}>0</span>
           <span style={{ color: "#444", fontSize: "10px" }}>
-            Còn {fmt(totalRevTarget - totalRevActual, "₫", "₫")} để đạt mục tiêu
+            Còn {fmt(totalRevTarget - totalRevActual, "", "M")} để đạt mục tiêu
           </span>
-          <span style={{ color: "#444", fontSize: "10px" }}>{fmt(totalRevTarget, "₫", "₫")}</span>
+          <span style={{ color: "#444", fontSize: "10px" }}>{fmt(totalRevTarget, "", "M")}</span>
         </div>
       </div>
 
@@ -539,22 +702,23 @@ export function FinanceGoalsPage() {
         sub="Revenue Targets — Theo mảng dịch vụ & Tỷ lệ chốt"
         icon={TrendingUp}
         accentColor="#4ade80"
-        goals={revenue}
+        goals={filteredRevenue}
         onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "revenue")}
+        onDeleteGoal={handleDeleteGoal}
         summary={
-          revenue.length > 0 ? (
+          filteredRevenue.length > 0 ? (
           <div className="px-5 py-3 grid grid-cols-3 gap-4">
-            {[
-              { icon: Layers,    label: "Production",    value: fmt(revenue[0].current, "₫", "₫") },
-              { icon: RefreshCcw,label: "Retainer",      value: fmt(revenue[1].current, "₫", "₫") },
-              { icon: Megaphone, label: "Media Booking", value: fmt(revenue[2].current, "₫", "₫") },
-            ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2">
-                <s.icon size={13} style={{ color: "#8E1616" }} />
-                <span style={{ color: "#555", fontSize: "11px" }}>{s.label}:</span>
-                <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{s.value}</span>
-              </div>
-            ))}
+            {filteredRevenue.slice(0, 3).map((r, i) => {
+              const icons = [Layers, RefreshCcw, Megaphone];
+              const Icon = icons[i % icons.length];
+              return (
+                <div key={r.id} className="flex items-center gap-2">
+                  <Icon size={13} style={{ color: "#8E1616" }} />
+                  <span style={{ color: "#555", fontSize: "11px" }}>{r.label}:</span>
+                  <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{fmt(r.current, r.prefix, r.unit)}</span>
+                </div>
+              );
+            })}
           </div>
           ) : <p className="text-[#555] text-xs px-5 py-3">Không có dữ liệu</p>
         }
@@ -566,26 +730,10 @@ export function FinanceGoalsPage() {
         sub="Profit Margins — Gộp & Ròng"
         icon={BarChart2}
         accentColor="#60a5fa"
-        goals={profit}
+        goals={filteredProfit}
         onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "profit")}
-        summary={
-          profit.length > 0 ? (
-          <div className="px-5 py-3 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Percent size={13} style={{ color: "#60a5fa" }} />
-              <span style={{ color: "#555", fontSize: "11px" }}>Gross Margin thực tế:</span>
-              <span style={{ color: "#fbbf24", fontSize: "12px", fontWeight: 700 }}>38%</span>
-              <span style={{ color: "#444", fontSize: "11px" }}>vs mục tiêu 45%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign size={13} style={{ color: "#60a5fa" }} />
-              <span style={{ color: "#555", fontSize: "11px" }}>Net Profit thực tế:</span>
-              <span style={{ color: "#fbbf24", fontSize: "12px", fontWeight: 700 }}>14.2%</span>
-              <span style={{ color: "#444", fontSize: "11px" }}>vs mục tiêu 18%</span>
-            </div>
-          </div>
-          ) : null
-        }
+        onDeleteGoal={handleDeleteGoal}
+        summary={null}
       />
 
       {/* Section 3 – Cost Control */}
@@ -594,20 +742,10 @@ export function FinanceGoalsPage() {
         sub="Cost Control — Production Budget & OPEX"
         icon={Wallet}
         accentColor="#fbbf24"
-        goals={cost}
+        goals={filteredCost}
         onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "cost")}
-        summary={
-          cost.length > 0 ? (
-          <div className="px-5 py-3 flex items-center gap-2">
-            <AlertTriangle size={13} style={{ color: "#fbbf24" }} />
-            <span style={{ color: "#666", fontSize: "11px" }}>
-              OPEX hiện tại chiếm <strong style={{ color: "#fbbf24" }}>23.8%</strong> doanh thu —
-              vượt ngưỡng mục tiêu <strong style={{ color: "#EEEEEE" }}>20%</strong>.
-              Cần rà soát chi phí phần mềm & nhân sự cố định.
-            </span>
-          </div>
-          ) : null
-        }
+        onDeleteGoal={handleDeleteGoal}
+        summary={null}
       />
 
       {/* Section 4 – Cash Flow */}
@@ -616,33 +754,21 @@ export function FinanceGoalsPage() {
         sub="Cash Flow — Kỳ hạn thu hồi công nợ (AR Days)"
         icon={Clock}
         accentColor="#c084fc"
-        goals={cash}
+        goals={filteredCash}
         onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "cash")}
-        summary={
-          cash.length > 0 ? (
-          <div className="px-5 py-3 space-y-2">
-            <p style={{ color: "#666", fontSize: "11px", fontWeight: 600 }}>
-              Khách hàng đang trễ hạn thanh toán:
-            </p>
-            {[
-              { name: "Công ty TNHH Ánh Dương", overdue: "18 ngày", amount: "45M ₫" },
-              { name: "MediaPro Vietnam",        overdue: "31 ngày", amount: "120M ₫" },
-              { name: "StartupX HN",             overdue: "9 ngày",  amount: "22M ₫" },
-            ].map((client) => (
-              <div key={client.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: client.overdue.startsWith("3") ? "#f87171" : "#fbbf24" }} />
-                  <span style={{ color: "#EEEEEE", fontSize: "12px" }}>{client.name}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span style={{ color: "#f87171", fontSize: "11px" }}>Quá hạn {client.overdue}</span>
-                  <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{client.amount}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          ) : null
-        }
+        onDeleteGoal={handleDeleteGoal}
+        summary={null}
+      />
+      
+      {/* Section 5 – Admin */}
+      <SectionCard
+        title="Mục tiêu Admin"
+        sub="Admin & Operations — Vận hành & Nhân sự"
+        icon={Target}
+        accentColor="#f43f5e"
+        goals={filteredAdmin}
+        onUpdateTarget={(id, v) => handleUpdateTarget(id, v, "admin")}
+        onDeleteGoal={handleDeleteGoal}
       />
     </div>
   );

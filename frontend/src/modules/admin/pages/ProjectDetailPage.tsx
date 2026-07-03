@@ -13,6 +13,7 @@ import {
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 import { fetchApi } from "../utils/apiClient";
+import { uploadMediaPipeline } from "../../../utils/imagePipeline";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -33,21 +34,7 @@ const inputStyle = {
 
 // ─── Mock data for admin tabs ──────────────────────────────────────────────────
 
-const MOCK_KANBAN_TASKS = [
-    { id: "t1", col: "todo", title: "Viết kịch bản phỏng vấn CEO", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-07-05", priority: "high", tag: "Planning", createdBy: "Admin" },
-    { id: "t2", col: "todo", title: "Book studio ngày 10/7", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-07-03", priority: "medium", tag: "Planning", createdBy: "Admin" },
-    { id: "t3", col: "todo", title: "Chuẩn bị prop list cho shoot", assignee: "PD", assigneeName: "Phạm Dũng", deadline: "2026-07-08", priority: "low", tag: "Planning", createdBy: "Admin" },
-    { id: "t4", col: "inprogress", title: "Edit teaser 30s v2", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-30", priority: "high", tag: "Editing", createdBy: "Admin" },
-    { id: "t5", col: "inprogress", title: "Color grading episode 1", assignee: "JT", assigneeName: "Jake Torres", deadline: "2026-07-01", priority: "high", tag: "Color", createdBy: "Admin" },
-    { id: "t6", col: "inprogress", title: "Soundmix & mix âm thanh", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-07-02", priority: "medium", tag: "Audio", createdBy: "Admin" },
-    { id: "t7", col: "review", title: "Final cut documentary 12min", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-29", priority: "high", tag: "Editing", createdBy: "Admin" },
-    { id: "t8", col: "review", title: "Motion graphic intro v3", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-28", priority: "medium", tag: "Motion", createdBy: "Admin" },
-    { id: "t9", col: "clientreview", title: "Brand story video — cut 1", assignee: "NK", assigneeName: "Nguyễn Khoa", deadline: "2026-06-27", priority: "high", tag: "Review", createdBy: "Admin" },
-    { id: "t10", col: "clientreview", title: "Photography batch A (20 ảnh)", assignee: "MC", assigneeName: "Maya Chen", deadline: "2026-06-28", priority: "medium", tag: "Asset", createdBy: "Admin" },
-    { id: "t11", col: "done", title: "Location scouting report", assignee: "TL", assigneeName: "Trần Linh", deadline: "2026-06-20", priority: "low", tag: "Planning", createdBy: "Admin" },
-    { id: "t12", col: "done", title: "Kickoff meeting & brief review", assignee: "AY", assigneeName: "Alex (Admin)", deadline: "2026-06-15", priority: "medium", tag: "Planning", createdBy: "Admin" },
-    { id: "t13", col: "done", title: "Storyboard approval", assignee: "SK", assigneeName: "Sarah Kim", deadline: "2026-06-22", priority: "high", tag: "Planning", createdBy: "Admin" },
-];
+const MOCK_KANBAN_TASKS: any[] = [];
 
 const KANBAN_COLUMNS = [
     { id: "todo", label: "To-do", color: "#888" },
@@ -57,29 +44,11 @@ const KANBAN_COLUMNS = [
     { id: "done", label: "Done", color: "#4CAF50" },
 ];
 
-const MOCK_MEDIA = [
-    { id: "m1", name: "brand_story_v2.mp4", type: "video", size: "248 MB", uploaded: "28/06", published: true, comments: 3 },
-    { id: "m2", name: "intro_motion_v3.mp4", type: "video", size: "84 MB", uploaded: "27/06", published: false, comments: 1 },
-    { id: "m3", name: "photo_batch_A_001.jpg", type: "image", size: "12 MB", uploaded: "26/06", published: true, comments: 0 },
-    { id: "m4", name: "photo_batch_A_002.jpg", type: "image", size: "9 MB", uploaded: "26/06", published: false, comments: 2 },
-    { id: "m5", name: "photo_batch_A_003.jpg", type: "image", size: "11 MB", uploaded: "26/06", published: true, comments: 0 },
-    { id: "m6", name: "teaser_30s_v2.mp4", type: "video", size: "34 MB", uploaded: "25/06", published: false, comments: 4 },
-];
+const MOCK_MEDIA: any[] = [];
 
-const MOCK_FEEDBACK = [
-    { id: "f1", user: "Nguyễn Văn An (Client)", file: "brand_story_v2.mp4", timestamp: "00:24", text: "Cần cắt bỏ 3s đầu — logo xuất hiện quá muộn", resolved: false, time: "2 giờ trước" },
-    { id: "f2", user: "Lê Thị Bình (Client)", file: "brand_story_v2.mp4", timestamp: "01:45", text: "Âm thanh hơi to ở đoạn này, cần giảm xuống 20%", resolved: true, time: "5 giờ trước" },
-    { id: "f3", user: "Nguyễn Văn An (Client)", file: "photo_batch_A_002.jpg", timestamp: null, text: "Màu sắc chưa đúng với brand guideline — cần warm hơn", resolved: false, time: "1 ngày trước" },
-    { id: "f4", user: "Lê Thị Bình (Client)", file: "intro_motion_v3.mp4", timestamp: "00:05", text: "Font chữ không khớp với brand identity mới", resolved: false, time: "2 ngày trước" },
-];
+const MOCK_FEEDBACK: any[] = [];
 
-const MOCK_VAULT_DOCS = [
-    { id: "d1", type: "brief", name: "Creative Brief — Confirmed v3.pdf", date: "15/06/2026", size: "2.4 MB" },
-    { id: "d2", type: "contract", name: "Hợp đồng dịch vụ sản xuất.pdf", date: "14/06/2026", size: "1.8 MB" },
-    { id: "d3", type: "quotation", name: "Báo giá dự án — Đã duyệt.pdf", date: "10/06/2026", size: "890 KB" },
-    { id: "d4", type: "invoice", name: "Invoice #001 — Tạm ứng 50%", date: "16/06/2026", size: "340 KB", amount: "25,000,000 ₫", status: "paid" },
-    { id: "d5", type: "invoice", name: "Invoice #002 — Nghiệm thu 50%", date: null, size: null, amount: "25,000,000 ₫", status: "pending" },
-];
+const MOCK_VAULT_DOCS: any[] = [];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -108,16 +77,16 @@ function avatarColor(str: string) {
     return AVATAR_COLORS[hash];
 }
 
-function AvatarBubble({ initials, size = 28, color = "#8E1616" }: { initials: string; size?: number; color?: string }) {
+function AvatarBubble({ initials, imgUrl, size = 28, color = "#8E1616" }: { initials: string; imgUrl?: string; size?: number; color?: string }) {
     return (
         <div style={{
             width: size, height: size, borderRadius: "50%",
             background: color, color: "#EEEEEE",
             fontSize: size * 0.38, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, border: "2px solid #1D1616",
+            flexShrink: 0, border: "2px solid #1D1616", overflow: "hidden"
         }}>
-            {initials}
+            {imgUrl ? <img src={imgUrl} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
         </div>
     );
 }
@@ -766,22 +735,23 @@ function KanbanTab() {
 // ─── Admin Tab: Overview ──────────────────────────────────────────────────────
 
 function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }) {
-    const daysLeft = getDaysLeft(project.dueDate || `${project.year}-12-31`);
+    const isWaiting = !project.dueDate;
+    const daysLeft = project.dueDate ? getDaysLeft(project.dueDate) : null;
     const isLate = daysLeft !== null && daysLeft < 0;
     const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
 
     const projectStages = [
-        { id: "Lên kế hoạch", done: true },
+        { id: "Lên kế hoạch", done: project.progress > 0 },
         { id: "Sản xuất", done: project.progress >= 30 },
         { id: "Hậu kỳ", done: project.progress >= 70 },
         { id: "Bàn giao", done: project.progress >= 95 },
     ];
 
     const stats = [
-        { label: "Tasks hoàn thành", value: "7 / 13", icon: CheckCheck, color: "#4CAF50" },
-        { label: "Thành viên", value: "5 người", icon: User, color: "#6B8FD6" },
-        { label: "Files đã upload", value: "6 files", icon: ImageIcon, color: "#C084FC" },
-        { label: "Phản hồi KH", value: "4 comments", icon: MessageSquare, color: "#E8A838" },
+        { label: "Tasks hoàn thành", value: "0 / 0", icon: CheckCheck, color: "#4CAF50" },
+        { label: "Thành viên", value: "0 người", icon: User, color: "#6B8FD6" },
+        { label: "Files đã upload", value: "0 files", icon: ImageIcon, color: "#C084FC" },
+        { label: "Phản hồi KH", value: "0 comments", icon: MessageSquare, color: "#E8A838" },
     ];
 
     return (
@@ -824,10 +794,10 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                 </div>
                 <div style={{ textAlign: "right" }}>
                     <p style={{ color: "#888", fontSize: "11px", marginBottom: "4px" }}>Deadline</p>
-                    <p style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: isLate ? "#f87171" : "#E8A838", fontVariantNumeric: "tabular-nums" }}>
-                        {daysLeft === null ? "—" : isLate ? `${Math.abs(daysLeft)} ngày trễ` : daysLeft === 0 ? "Hôm nay!" : `${daysLeft} ngày`}
+                    <p style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: isWaiting ? "#888" : isLate ? "#f87171" : "#E8A838", fontVariantNumeric: "tabular-nums" }}>
+                        {isWaiting ? "Chờ" : daysLeft === null ? "—" : isLate ? `${Math.abs(daysLeft)} ngày trễ` : daysLeft === 0 ? "Hôm nay!" : `${daysLeft} ngày`}
                     </p>
-                    {project.dueDate && <p style={{ color: "#555", fontSize: "10px", marginTop: "2px" }}>{new Date(project.dueDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>}
+                    {!isWaiting && project.dueDate && <p style={{ color: "#555", fontSize: "10px", marginTop: "2px" }}>{new Date(project.dueDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>}
                 </div>
             </div>
 
@@ -871,7 +841,7 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
             {/* Linked client */}
             <div style={{ borderRadius: "12px", padding: "14px 18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <AvatarBubble initials={project.client?.slice(0, 2).toUpperCase() || "CL"} size={36} color="#1E3A5F" />
+                    <AvatarBubble initials={project.client?.slice(0, 2).toUpperCase() || "CL"} imgUrl={project.client_logo} size={36} color="#1E3A5F" />
                     <div>
                         <p style={{ color: "#888", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Khách hàng</p>
                         <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{project.client}</p>
@@ -892,38 +862,169 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
 
 // ─── Admin Tab: Financials ─────────────────────────────────────────────────────
 
-function FinancialsTab({ project }: { project: any }) {
-    const contractValue = 50_000_000;
-    const actualCosts = 21_400_000;
+function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: { project: any, expenses: any[], invoices: any[], dbClients: any[], setInvoices?: React.Dispatch<React.SetStateAction<any[]>> }) {
+    const navigate = useNavigate();
+    const [showAddInvoice, setShowAddInvoice] = useState(false);
+    const [submittingInvoice, setSubmittingInvoice] = useState(false);
+    const [newInvoice, setNewInvoice] = useState({
+        term: "",
+        amount: "",
+        dueDate: new Date().toISOString().split('T')[0],
+        status: "pending"
+    });
+
+    const handleSaveInvoice = async () => {
+        if (!newInvoice.term || !newInvoice.amount) return;
+        setSubmittingInvoice(true);
+        try {
+            const payload = {
+                client_slug: project.client_slug || "",
+                client_name: project.client || "",
+                project: project.title,
+                term: newInvoice.term,
+                amount: parseFloat(newInvoice.amount) || 0,
+                due_date: newInvoice.dueDate,
+                status: newInvoice.status,
+                note: ""
+            };
+            const created = await fetchApi("/finance/invoices", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            if (setInvoices) {
+                setInvoices(prev => [created, ...prev]);
+            }
+            setShowAddInvoice(false);
+            setNewInvoice({
+                term: "",
+                amount: "",
+                dueDate: new Date().toISOString().split('T')[0],
+                status: "pending"
+            });
+        } catch (e) {
+            console.error("Failed to save invoice:", e);
+            alert("Không thể lưu hóa đơn, vui lòng thử lại!");
+        } finally {
+            setSubmittingInvoice(false);
+        }
+    };
+
+    const contractValue = project?.budget ? parseInt(String(project.budget).replace(/[^\d]/g, "")) || 0 : 0;
+    
+    // Filter expenses for this project
+    const projExpenses = expenses.filter((e: any) => 
+        e.project && (e.project.toLowerCase() === project?.title?.toLowerCase() || 
+                      e.project.toLowerCase().includes(project?.title?.toLowerCase() + " —") ||
+                      e.project.toLowerCase() === project?.slug?.toLowerCase())
+    );
+    const actualCosts = projExpenses.reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
+
     const profit = contractValue - actualCosts;
-    const margin = (profit / contractValue) * 100;
-    const isDanger = margin < 15;
-    const isWarning = margin >= 15 && margin < 30;
-    const marginColor = isDanger ? "#f87171" : isWarning ? "#E8A838" : "#4CAF50";
+    const margin = contractValue > 0 ? (profit / contractValue) * 100 : 0;
+    const isDanger = margin < 15 && contractValue > 0;
+    const isWarning = margin >= 15 && margin < 30 && contractValue > 0;
+    const marginColor = contractValue === 0 ? "#888" : isDanger ? "#f87171" : isWarning ? "#E8A838" : "#4CAF50";
 
-    const costBreakdown = [
-        { label: "Nhân sự nội bộ", amount: 8_000_000, pct: 37, color: "#6B8FD6" },
-        { label: "Thuê ngoài (Outsource)", amount: 6_500_000, pct: 30, color: "#C084FC" },
-        { label: "Thiết bị & Trường quay", amount: 4_200_000, pct: 20, color: "#E8A838" },
-        { label: "Đi lại & Logistics", amount: 1_800_000, pct: 8, color: "#4CAF50" },
-        { label: "Khác", amount: 900_000, pct: 5, color: "#888" },
-    ];
+    // Build dynamic cost breakdown from expenses
+    const categoryGroups = projExpenses.reduce((groups: any, e: any) => {
+        const cat = e.category || "Khác";
+        groups[cat] = (groups[cat] || 0) + (e.amount || 0);
+        return groups;
+    }, {});
 
-    const invoices = [
-        { name: "Đợt 1 — Tạm ứng 50%", amount: 25_000_000, date: "16/06/2026", status: "paid" },
-        { name: "Đợt 2 — Nghiệm thu 50%", amount: 25_000_000, date: null, status: "pending" },
-    ];
+    const colors = ["#D84040", "#fbbf24", "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#f97316"];
+    const costBreakdown = Object.entries(categoryGroups).map(([label, amount]: [string, any], idx) => {
+        const pct = contractValue > 0 ? Math.round((amount / contractValue) * 100) : 0;
+        return {
+            label,
+            amount,
+            pct,
+            color: colors[idx % colors.length]
+        };
+    }).sort((a, b) => b.amount - a.amount);
+
+    // Filter project invoices (from both client_invoices table and client notes CRM data)
+    const projInvoices = invoices.filter((inv: any) => 
+        inv.project && (inv.project.toLowerCase() === project?.title?.toLowerCase() ||
+                        inv.project.toLowerCase() === project?.slug?.toLowerCase())
+    );
+
+    const currentClient = dbClients.find((c: any) => c.slug === project?.client_slug);
+    let crmInvoices: any[] = [];
+    if (currentClient && currentClient.notes) {
+        try {
+            const parsedNotes = JSON.parse(currentClient.notes);
+            if (parsedNotes && Array.isArray(parsedNotes.invoices)) {
+                crmInvoices = parsedNotes.invoices;
+            }
+        } catch (e) {
+            console.warn("Error parsing client notes in FinancialsTab:", e);
+        }
+    }
+
+    const cleanProjectSlug = project?.slug?.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || "";
+    const cleanProjectTitle = project?.title?.toLowerCase() || "";
+    
+    const matchedCrmInvoices = crmInvoices.filter((inv: any) => {
+        const desc = (inv.description || "").toLowerCase();
+        const code = (inv.code || "").toLowerCase();
+        if (desc.includes(cleanProjectTitle) || code.includes(cleanProjectSlug)) return true;
+        const initials = cleanProjectTitle.split(' ').map(w => w[0]).join('');
+        if (initials && initials.length >= 2 && code.includes(initials)) return true;
+        if (cleanProjectSlug === "l-l" && code.includes("ll")) return true;
+        if (cleanProjectSlug === "l-l" && desc.includes("quay chụp")) return true;
+        return false;
+    });
+
+    const allInvoices = projInvoices.map((inv: any) => ({
+        id: inv.id,
+        name: inv.term || inv.description || "Thanh toán đợt",
+        date: inv.due_date || inv.date || "",
+        amount: parseFloat(inv.amount) || 0,
+        status: (inv.status || "").toLowerCase()
+    }));
+    
+    matchedCrmInvoices.forEach((inv: any) => {
+        if (!allInvoices.some(existing => existing.id === inv.id || existing.name === inv.description)) {
+            allInvoices.push({
+                id: inv.id,
+                name: inv.description || `Hóa đơn ${inv.code}`,
+                date: inv.date || "",
+                amount: parseFloat(inv.amount) || 0,
+                status: (inv.status || "").toLowerCase()
+            });
+        }
+    });
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {/* KPI row */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                 {[
-                    { label: "Tổng giá trị HĐ", value: fmtVND(contractValue), icon: Banknote, color: "#4CAF50", sub: "Hợp đồng đã ký" },
-                    { label: "Chi phí thực tế", value: fmtVND(actualCosts), icon: TrendingDown, color: "#E8A838", sub: `${Math.round((actualCosts / contractValue) * 100)}% giá trị HĐ` },
-                    { label: "Biên lợi nhuận", value: `${margin.toFixed(0)}%`, icon: Target, color: marginColor, sub: fmtVND(profit) + " lợi nhuận ròng" },
+                    { label: "Tổng giá trị HĐ", value: fmtVND(contractValue), icon: Banknote, color: "#4CAF50", sub: "Hợp đồng đã ký (Xem CRM)" },
+                    { label: "Chi phí thực tế", value: fmtVND(actualCosts), icon: TrendingDown, color: "#E8A838", sub: `${contractValue > 0 ? Math.round((actualCosts / contractValue) * 100) : 0}% giá trị HĐ (Xem chi phí)` },
+                    { label: "Biên lợi nhuận", value: `${margin.toFixed(0)}%`, icon: Target, color: marginColor, sub: fmtVND(profit) + " lợi nhuận ròng (Xem tổng quan)" },
                 ].map((kpi, i) => (
-                    <div key={i} style={{ borderRadius: "12px", padding: "16px", background: i === 2 ? `${marginColor}10` : "rgba(29,22,22,0.4)", border: `1px solid ${i === 2 ? marginColor + "33" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)" }}>
+                    <div 
+                        key={i} 
+                        onClick={() => {
+                            if (i === 0) navigate(`/admin/clients/${project.client_slug}`);
+                            if (i === 1) navigate(`/admin/finance/expenses?tab=cogs&project=${encodeURIComponent(project.title)}`);
+                            if (i === 2) navigate(`/admin/finance/overview`);
+                        }}
+                        style={{ 
+                            borderRadius: "12px", 
+                            padding: "16px", 
+                            background: i === 2 ? `${marginColor}10` : "rgba(29,22,22,0.4)", 
+                            border: `1px solid ${i === 2 ? marginColor + "33" : "rgba(46,32,32,0.6)"}`, 
+                            backdropFilter: "blur(8px)",
+                            cursor: "pointer",
+                            transition: "border-color 0.2s"
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = "#D84040"}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = i === 2 ? marginColor + "33" : "rgba(46,32,32,0.6)"}
+                        title="Click để chuyển sang trang Tài chính tương ứng"
+                    >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                             <span style={{ color: "#888", fontSize: "11px" }}>{kpi.label}</span>
                             <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: kpi.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -946,10 +1047,10 @@ function FinancialsTab({ project }: { project: any }) {
             <div style={{ borderRadius: "12px", padding: "18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
                 <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600, marginBottom: "14px" }}>Chi phí thực tế vs Ngân sách</p>
                 <div style={{ height: "20px", borderRadius: "6px", background: "#2A1F1F", overflow: "hidden", position: "relative", marginBottom: "4px" }}>
-                    <div style={{ height: "100%", width: `${(actualCosts / contractValue) * 100}%`, background: "linear-gradient(90deg, #8E1616, #D84040)", borderRadius: "6px", transition: "width 0.6s ease" }} />
+                    <div style={{ height: "100%", width: `${contractValue > 0 ? Math.min((actualCosts / contractValue) * 100, 100) : 0}%`, background: "linear-gradient(90deg, #8E1616, #D84040)", borderRadius: "6px", transition: "width 0.6s ease" }} />
                     <span style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", color: "#EEEEEE", fontSize: "10px", fontWeight: 600 }}>{fmtVND(contractValue)}</span>
                 </div>
-                <p style={{ color: "#D84040", fontSize: "10px", marginBottom: "14px" }}>{fmtVND(actualCosts)} đã chi ({Math.round((actualCosts / contractValue) * 100)}%)</p>
+                <p style={{ color: "#D84040", fontSize: "10px", marginBottom: "14px" }}>{fmtVND(actualCosts)} đã chi ({contractValue > 0 ? Math.round((actualCosts / contractValue) * 100) : 0}%)</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
                     {costBreakdown.map((item, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -961,17 +1062,87 @@ function FinancialsTab({ project }: { project: any }) {
                             <span style={{ color: item.color, fontSize: "11px", fontWeight: 600, minWidth: "65px", textAlign: "right" }}>{fmtVND(item.amount)}</span>
                         </div>
                     ))}
+                    {costBreakdown.length === 0 && (
+                        <p style={{ color: "#666", fontSize: "12px", textAlign: "center" }} className="py-4">Chưa có chi phí thực tế phát sinh cho dự án này.</p>
+                    )}
                 </div>
             </div>
 
             {/* Invoices */}
             <div style={{ borderRadius: "12px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", overflow: "hidden" }}>
-                <div style={{ padding: "14px 18px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Receipt size={13} color="#D84040" />
-                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Hóa đơn thanh toán</p>
+                <div style={{ padding: "14px 18px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Receipt size={13} color="#D84040" />
+                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Hóa đơn thanh toán</p>
+                    </div>
+                    <button 
+                        onClick={() => setShowAddInvoice(!showAddInvoice)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold hover:opacity-80 transition-opacity"
+                        style={{ background: "rgba(216, 64, 64, 0.15)", color: "#D84040", border: "1px solid rgba(216, 64, 64, 0.3)" }}
+                    >
+                        <Plus size={11} /> Thêm hóa đơn
+                    </button>
                 </div>
-                {invoices.map((inv, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: i < invoices.length - 1 ? "1px solid #2A1F1F" : "none" }}>
+
+                {showAddInvoice && (
+                    <div className="px-5 py-4 border-b border-[#2A1F1F] space-y-3" style={{ background: "rgba(20, 15, 15, 0.2)" }}>
+                        <p className="text-[11px] font-semibold uppercase text-white/50">Tạo hóa đơn mới cho dự án này</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input 
+                                placeholder="Tên đợt thanh toán (Mô tả)" 
+                                value={newInvoice.term}
+                                onChange={e => setNewInvoice(p => ({ ...p, term: e.target.value }))}
+                                className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }}
+                            />
+                            <input 
+                                type="number"
+                                placeholder="Số tiền (₫)" 
+                                value={newInvoice.amount}
+                                onChange={e => setNewInvoice(p => ({ ...p, amount: e.target.value }))}
+                                className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input 
+                                type="date"
+                                value={newInvoice.dueDate}
+                                onChange={e => setNewInvoice(p => ({ ...p, dueDate: e.target.value }))}
+                                className="px-2 py-1.5 rounded outline-none text-[#EEEEEE]" style={{ ...inputStyle, fontSize: "12px", colorScheme: "dark" }}
+                            />
+                            <select
+                                value={newInvoice.status}
+                                onChange={e => setNewInvoice(p => ({ ...p, status: e.target.value }))}
+                                className="px-2 py-1.5 rounded outline-none cursor-pointer" style={{ ...inputStyle, fontSize: "12px" }}
+                            >
+                                <option value="pending">Chờ thu (Pending)</option>
+                                <option value="paid">Đã thu (Paid)</option>
+                                <option value="overdue">Quá hạn (Overdue)</option>
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1.5">
+                            <button
+                                onClick={() => {
+                                    setShowAddInvoice(false);
+                                    setNewInvoice({ term: "", amount: "", dueDate: new Date().toISOString().split('T')[0], status: "pending" });
+                                }}
+                                className="px-3 py-1 rounded text-xs font-medium text-white/60 hover:text-white/90"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleSaveInvoice}
+                                disabled={submittingInvoice}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold text-white transition-all disabled:opacity-50"
+                                style={{ background: "#D84040" }}
+                            >
+                                {submittingInvoice ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Lưu hóa đơn
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {allInvoices.map((inv, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", borderBottom: i < allInvoices.length - 1 ? "1px solid #2A1F1F" : "none" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <div style={{ width: "30px", height: "30px", borderRadius: "7px", background: inv.status === "paid" ? "rgba(76,175,80,0.15)" : "rgba(232,168,56,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 {inv.status === "paid" ? <CheckCircle2 size={14} color="#4CAF50" /> : <Clock size={14} color="#E8A838" />}
@@ -989,6 +1160,9 @@ function FinancialsTab({ project }: { project: any }) {
                         </div>
                     </div>
                 ))}
+                {allInvoices.length === 0 && (
+                    <p style={{ color: "#666", fontSize: "12px", textAlign: "center" }} className="py-8">Chưa có hóa đơn thanh toán nào được tạo.</p>
+                )}
             </div>
         </div>
     );
@@ -1070,11 +1244,76 @@ function MediaAdminTab({ project }: { project: any }) {
 // ─── Admin Tab: Vault ──────────────────────────────────────────────────────────
 
 function VaultTab({ project }: { project: any }) {
+    const [docs, setDocs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [uploadingType, setUploadingType] = useState<string | null>(null);
+
     const docTypeConfig = {
         brief: { label: "Creative Brief", icon: FileCheck, color: "#6B8FD6" },
         contract: { label: "Hợp đồng", icon: Shield, color: "#4CAF50" },
         quotation: { label: "Báo giá", icon: DollarSign, color: "#E8A838" },
         invoice: { label: "Hóa đơn", icon: Receipt, color: "#D84040" },
+    };
+
+    const fetchDocs = () => {
+        setLoading(true);
+        fetchApi("/media")
+            .then((data: any[]) => {
+                const filtered = data.filter(d => d.project_slug === project?.slug && ["brief", "contract", "quotation", "invoice"].includes(d.folder));
+                setDocs(filtered);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to fetch project docs:", err);
+                setLoading(false);
+            });
+    };
+
+    useEffect(() => {
+        if (project?.slug) {
+            fetchDocs();
+        }
+    }, [project?.slug]);
+
+    const handleUploadClick = (type: string) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+
+            setUploadingType(type);
+            try {
+                const clientSlug = project?.client_slug || project?.client;
+                await uploadMediaPipeline(
+                    file, 
+                    "projects", 
+                    fetchApi, 
+                    undefined, 
+                    clientSlug, 
+                    project.slug, 
+                    type
+                );
+                fetchDocs();
+            } catch (err) {
+                console.error("Failed to upload document:", err);
+                alert("Upload thất bại: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
+            } finally {
+                setUploadingType(null);
+            }
+        };
+        input.click();
+    };
+
+    const handleDeleteDoc = async (docId: string) => {
+        if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) return;
+        try {
+            await fetchApi(`/media/${docId}`, { method: "DELETE" });
+            fetchDocs();
+        } catch (err) {
+            console.error("Failed to delete document:", err);
+            alert("Xóa thất bại: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
+        }
     };
 
     return (
@@ -1084,59 +1323,76 @@ function VaultTab({ project }: { project: any }) {
                 <span style={{ color: "#6B8FD6", fontSize: "11px" }}>Project Vault — Khu vực lưu trữ nội bộ. Chỉ Admin mới có quyền truy cập.</span>
             </div>
 
-            {(["brief", "contract", "quotation", "invoice"] as const).map(type => {
-                const cfg = docTypeConfig[type];
-                const docs = MOCK_VAULT_DOCS.filter(d => d.type === type);
-                return (
-                    <div key={type} style={{ borderRadius: "12px", overflow: "hidden", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
-                        <div style={{ padding: "12px 16px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                                <div style={{ width: "26px", height: "26px", borderRadius: "6px", background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <cfg.icon size={12} color={cfg.color} />
+            {loading ? (
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px" }}>
+                    <Loader2 className="animate-spin" size={24} color="#6B8FD6" />
+                </div>
+            ) : (
+                (["brief", "contract", "quotation", "invoice"] as const).map(type => {
+                    const cfg = docTypeConfig[type];
+                    const typeDocs = docs.filter(d => d.folder === type);
+                    const isUploading = uploadingType === type;
+
+                    return (
+                        <div key={type} style={{ borderRadius: "12px", overflow: "hidden", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
+                            <div style={{ padding: "12px 16px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                                    <div style={{ width: "26px", height: "26px", borderRadius: "6px", background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <cfg.icon size={12} color={cfg.color} />
+                                    </div>
+                                    <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{cfg.label}</span>
                                 </div>
-                                <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{cfg.label}</span>
+                                <button 
+                                    onClick={() => handleUploadClick(type)}
+                                    disabled={isUploading}
+                                    style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", fontSize: "10px", cursor: isUploading ? "not-allowed" : "pointer" }}
+                                    onMouseEnter={e => { if (!isUploading) { e.currentTarget.style.borderColor = cfg.color; e.currentTarget.style.color = cfg.color; } }}
+                                    onMouseLeave={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; } }}
+                                >
+                                    {isUploading ? <Loader2 className="animate-spin" size={10} /> : <FilePlus size={10} />}
+                                    {isUploading ? "Uploading..." : "Upload"}
+                                </button>
                             </div>
-                            <button style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", fontSize: "10px", cursor: "pointer" }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = cfg.color; e.currentTarget.style.color = cfg.color; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; }}>
-                                <FilePlus size={10} /> Upload
-                            </button>
-                        </div>
-                        {docs.length === 0 ? (
-                            <div style={{ padding: "16px", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
-                        ) : (
-                            docs.map((doc, i) => (
-                                <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: i < docs.length - 1 ? "1px solid #2A1F1F" : "none" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <FileText size={13} color="#555" />
-                                        <div>
-                                            <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }}>{doc.name}</p>
-                                            <p style={{ color: "#555", fontSize: "9px" }}>
-                                                {doc.date ? `${doc.date}${doc.size ? " · " + doc.size : ""}` : "Chưa phát hành"}
-                                                {doc.amount && <span style={{ color: "#D84040", marginLeft: "5px", fontWeight: 600 }}>{doc.amount}</span>}
-                                            </p>
+                            {typeDocs.length === 0 ? (
+                                <div style={{ padding: "16px", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
+                            ) : (
+                                typeDocs.map((doc, i) => (
+                                    <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: i < typeDocs.length - 1 ? "1px solid #2A1F1F" : "none" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <FileText size={13} color="#555" />
+                                            <div>
+                                                <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }}>{doc.caption?.replace("Uploaded: ", "") || doc.url.split("/").pop() || doc.id}</p>
+                                                <p style={{ color: "#555", fontSize: "9px" }}>
+                                                    {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : "Chưa rõ ngày"}
+                                                    {doc.file_size ? ` · ${(doc.file_size / 1024).toFixed(1)} KB` : ""}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                                            <a 
+                                                href={doc.url} 
+                                                target="_blank" 
+                                                rel="noreferrer" 
+                                                style={{ textDecoration: "none", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(46,32,32,0.6)", background: "transparent", color: "#666", fontSize: "9px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
+                                                onMouseEnter={e => e.currentTarget.style.color = "#EEEEEE"}
+                                                onMouseLeave={e => e.currentTarget.style.color = "#666"}
+                                            >
+                                                <Eye size={9} /> Xem / Tải
+                                            </a>
+                                            <button 
+                                                onClick={() => handleDeleteDoc(doc.id)}
+                                                style={{ padding: "4.5px", borderRadius: "6px", border: "1px solid rgba(216,64,64,0.2)", background: "rgba(216,64,64,0.05)", color: "#D84040", cursor: "pointer" }}
+                                            >
+                                                <Trash2 size={9} />
+                                            </button>
                                         </div>
                                     </div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                                        {doc.status && (
-                                            <span style={{ padding: "2px 8px", borderRadius: "20px", fontSize: "9px", fontWeight: 700, background: doc.status === "paid" ? "rgba(76,175,80,0.15)" : "rgba(232,168,56,0.15)", color: doc.status === "paid" ? "#4CAF50" : "#E8A838" }}>
-                                                {doc.status === "paid" ? "Đã thu" : "Chờ thu"}
-                                            </span>
-                                        )}
-                                        {doc.date && (
-                                            <button style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(46,32,32,0.6)", background: "transparent", color: "#666", fontSize: "9px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
-                                                onMouseEnter={e => e.currentTarget.style.color = "#EEEEEE"}
-                                                onMouseLeave={e => e.currentTarget.style.color = "#666"}>
-                                                <Eye size={9} /> Xem
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                );
-            })}
+                                ))
+                            )}
+                        </div>
+                    );
+                })
+            )}
         </div>
     );
 }
@@ -1229,6 +1485,8 @@ export function ProjectDetailPage() {
     const [assignedCrew, setAssignedCrew] = useState([]);
     const [dbCrew, setDbCrew] = useState([]);
     const [galleryImages, setGalleryImages] = useState([]);
+    const [expenses, setExpenses] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<any[]>([]);
 
     // Admin command center tab
     const [adminTab, setAdminTab] = useState<"overview" | "kanban" | "financials" | "media" | "vault">("overview");
@@ -1240,8 +1498,10 @@ export function ProjectDetailPage() {
             fetchApi(`/projects/${id}`),
             fetchApi('/projects/clients/all'),
             fetchApi('/categories'),
-            fetchApi('/crew')
-        ]).then(([projData, clientsData, categoriesData, crewData]) => {
+            fetchApi('/crew'),
+            fetchApi('/finance/expenses').catch(() => []),
+            fetchApi('/finance/invoices').catch(() => [])
+        ]).then(([projData, clientsData, categoriesData, crewData, expensesData, invoicesData]) => {
             setProject(projData);
             setIsFeatured(!!projData.featured);
             setIsPublished(!!projData.published);
@@ -1249,6 +1509,8 @@ export function ProjectDetailPage() {
             setDbClients(clientsData);
             setDbCategories(categoriesData);
             setDbCrew(crewData);
+            setExpenses(expensesData || []);
+            setInvoices(invoicesData || []);
             setGalleryImages(projData.gallery || []);
             reset({
                 title: projData.title,
@@ -1339,11 +1601,7 @@ export function ProjectDetailPage() {
         try {
             let coverMediaId = undefined;
             if (thumbnailFile) {
-                const formData = new FormData();
-                formData.append("file", thumbnailFile);
-                formData.append("alt", data.title || "Project Thumbnail");
-                formData.append("caption", `Thumbnail for ${data.title}`);
-                const mediaAsset = await fetchApi("/media/upload", { method: "POST", body: formData });
+                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi);
                 coverMediaId = mediaAsset.id;
             } else if (thumbnailPreview === null) {
                 coverMediaId = null;
@@ -1351,22 +1609,14 @@ export function ProjectDetailPage() {
 
             let finalVideoUrl = data.videoUrl;
             if (uploadedVideo) {
-                const formData = new FormData();
-                formData.append("file", uploadedVideo);
-                formData.append("alt", `${data.title} Video`);
-                formData.append("caption", `Video for ${data.title}`);
-                const mediaAsset = await fetchApi("/media/upload", { method: "POST", body: formData });
+                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi);
                 finalVideoUrl = mediaAsset.url;
             }
 
             const finalGalleryMediaIds = [];
             for (const img of galleryImages) {
                 if (img.file) {
-                    const formData = new FormData();
-                    formData.append("file", img.file);
-                    formData.append("alt", `${data.title} Behind the Scenes`);
-                    formData.append("caption", `Behind the Scenes for ${data.title}`);
-                    const mediaAsset = await fetchApi("/media/upload", { method: "POST", body: formData });
+                    const mediaAsset = await uploadMediaPipeline(img.file, "projects", fetchApi);
                     finalGalleryMediaIds.push(mediaAsset.id);
                 } else {
                     finalGalleryMediaIds.push(img.id);
@@ -1385,6 +1635,8 @@ export function ProjectDetailPage() {
                 cover_media_id: coverMediaId,
                 summary: data.description || null,
                 video_url: finalVideoUrl,
+                dueDate: data.dueDate || null,
+                budget: data.budget || "TBD",
                 credits: assignedCrew.map(c => `${c.role}: ${c.name}`),
                 gallery_media_ids: finalGalleryMediaIds,
             };
@@ -1394,6 +1646,7 @@ export function ProjectDetailPage() {
             setTimeout(() => {
                 setSaved(false); setIsEditing(false);
                 setThumbnailFile(null); setUploadedVideo(null);
+                setThumbnailPreview(null);
             }, 1400);
         } catch (err) {
             console.error("Failed to update project:", err);
@@ -1630,7 +1883,7 @@ export function ProjectDetailPage() {
                 {/* Tab Content */}
                 {adminTab === "overview" && <OverviewAdminTab project={project} navigate={navigate} />}
                 {adminTab === "kanban" && <KanbanTab />}
-                {adminTab === "financials" && <FinancialsTab project={project} />}
+                {adminTab === "financials" && <FinancialsTab project={project} expenses={expenses} invoices={invoices} dbClients={dbClients} setInvoices={setInvoices} />}
                 {adminTab === "media" && <MediaAdminTab project={project} />}
                 {adminTab === "vault" && <VaultTab project={project} />}
             </div>
@@ -1729,7 +1982,7 @@ export function ProjectDetailPage() {
                                         <Tag size={11} color="#D84040"/> Category
                                     </label>
                                     {isEditing ? (<select {...register("category")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                            {dbCategories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                                            {dbCategories.filter((c: any) => c.type === 'project_type').map((c: any) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                                         </select>) : (<button onClick={() => {
                 const catId = project.format_slug || project.category;
                 if (catId) navigate(`/admin/categories/${catId}`);
@@ -1767,7 +2020,24 @@ export function ProjectDetailPage() {
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                                         <DollarSign size={11} color="#D84040"/> Budget
                                     </label>
-                                    {isEditing ? (<input {...register("budget")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#D84040", fontSize: "15px", fontWeight: 700 }}>{project.budget}</p>)}
+                                    {isEditing ? (
+                                        <input {...register("budget")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <p style={{ color: "#D84040", fontSize: "15px", fontWeight: 700 }}>{project.budget}</p>
+                                            {project.budget !== "TBD" && (
+                                                <button
+                                                    onClick={() => navigate(`/admin/finance/revenue`)}
+                                                    style={{ background: "transparent", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", opacity: 0.6, padding: 0 }}
+                                                    title="Xem doanh thu ở trang Tài chính"
+                                                    onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                                                    onMouseLeave={e => e.currentTarget.style.opacity = "0.6"}
+                                                >
+                                                    <ExternalLink size={13} color="#D84040" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>

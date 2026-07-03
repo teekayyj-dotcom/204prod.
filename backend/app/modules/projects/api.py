@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
 from app.modules.projects.service import get_project, get_projects, create_project, delete_project, update_project
-from app.modules.projects.schemas import ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate, ProjectFeedbackCreate, ProjectTaskCreate, ProjectTaskUpdate, ApprovalRequestCreate
+from app.modules.projects.schemas import ProjectDetail, ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate, ProjectFeedbackCreate, ProjectTaskCreate, ProjectTaskUpdate, ApprovalRequestCreate
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -65,17 +65,20 @@ def get_project_route(slug: str, db: Session = Depends(get_db_session)):
     return get_project(db, slug)
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProjectDetail, status_code=status.HTTP_201_CREATED)
 def create_project_route(req: ProjectCreate, db: Session = Depends(get_db_session)):
-    return create_project(db, req)
+    new_proj = create_project(db, req)
+    from app.modules.projects.repository import get_project_by_slug
+    return get_project_by_slug(db, new_proj.slug)
 
 
-@router.put("/{slug}")
+@router.put("/{slug}", response_model=ProjectDetail)
 def update_project_route(slug: str, req: ProjectUpdate, db: Session = Depends(get_db_session)):
     updated = update_project(db, slug, req)
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    return updated
+    from app.modules.projects.repository import get_project_by_slug
+    return get_project_by_slug(db, updated.slug)
 
 
 @router.delete("/{slug}", status_code=status.HTTP_204_NO_CONTENT)
@@ -123,6 +126,12 @@ def reply_feedback_route(feedback_id: int, reply_content: str = Body(..., embed=
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feedback not found")
     return updated
+
+
+@router.get("/tasks/all")
+def get_all_tasks_route(db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import get_all_tasks
+    return get_all_tasks(db)
 
 
 @router.get("/{slug}/tasks")

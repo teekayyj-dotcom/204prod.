@@ -4,7 +4,7 @@ import {
   Users, UserCheck, UserX, Briefcase, MapPin, Home, Monitor,
   Clock, Calendar, FileText, AlertTriangle, CheckCircle2, XCircle,
   Gift, Star, Cake, Milestone, ClipboardList, RefreshCcw,
-  ChevronRight, Check, X, Bell, TrendingUp, Circle, Loader2
+  ChevronRight, Check, X, Bell, TrendingUp, Circle, Loader2, Search
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 
@@ -184,24 +184,57 @@ interface TodayStatusProps {
 }
 
 function TodayStatus({ team }: TodayStatusProps) {
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialSearch = searchParams.get("search") || "";
+  const [search, setSearch] = useState(initialSearch);
+
+  const filteredTeam = team.filter((m) => {
+    if (!search) return true;
+    return (
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.role.toLowerCase().includes(search.toLowerCase()) ||
+      m.dept.toLowerCase().includes(search.toLowerCase())
+    );
+  });
+
   const groups = [
-    { key: "office",  label: "Tại văn phòng",    members: team.filter((t) => t.status === "office") },
-    { key: "onsite",  label: "Hiện trường / Quay", members: team.filter((t) => t.status === "onsite") },
-    { key: "wfh",     label: "Làm từ xa (WFH)",  members: team.filter((t) => t.status === "wfh") },
-    { key: "absent",  label: "Vắng mặt",         members: team.filter((t) => t.status === "absent") },
+    { key: "office",  label: "Tại văn phòng",    members: filteredTeam.filter((t) => t.status === "office") },
+    { key: "onsite",  label: "Hiện trường / Quay", members: filteredTeam.filter((t) => t.status === "onsite") },
+    { key: "wfh",     label: "Làm từ xa (WFH)",  members: filteredTeam.filter((t) => t.status === "wfh") },
+    { key: "absent",  label: "Vắng mặt",         members: filteredTeam.filter((t) => t.status === "absent") },
   ].filter((g) => g.members.length > 0);
 
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-      <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: "1px solid #2A1F1F" }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 gap-3" style={{ borderBottom: "1px solid #2A1F1F" }}>
         <div>
           <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 700 }}>Trạng thái hôm nay</p>
           <p style={{ color: "#555", fontSize: "11px" }}>{new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span style={{ color: "#4ade80", fontSize: "11px", fontWeight: 600 }}>LIVE</span>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg w-full sm:w-60"
+            style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)" }}
+          >
+            <Search size={12} style={{ color: "#555" }} />
+            <input
+              placeholder="Lọc theo tên, vị trí, ban..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent outline-none text-xs flex-1"
+              style={{ color: "#EEEEEE" }}
+            />
+            {search && (
+              <button onClick={() => setSearch("")} style={{ color: "#555" }} className="hover:text-white">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span style={{ color: "#4ade80", fontSize: "11px", fontWeight: 600 }}>LIVE</span>
+          </div>
         </div>
       </div>
 
@@ -331,7 +364,7 @@ function PendingRequests({ requests, onRefresh }: PendingRequestsProps) {
 
       <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
         {pending.map((req) => {
-          const cfg = reqTypeCfg[req.type];
+          const cfg = reqTypeCfg[req.type] || { label: req.type || "Đơn từ", color: "#888888", icon: Calendar };
           const isLoading = loadingId === req.id;
           return (
             <div
@@ -392,7 +425,7 @@ function PendingRequests({ requests, onRefresh }: PendingRequestsProps) {
 
         {/* Processed */}
         {done.map((req) => {
-          const cfg = reqTypeCfg[req.type];
+          const cfg = reqTypeCfg[req.type] || { label: req.type || "Đơn từ", color: "#888888", icon: Calendar };
           const approved = req.status === "approved";
           return (
             <div key={req.id} className="flex items-center gap-4 px-6 py-3" style={{ opacity: 0.45 }}>

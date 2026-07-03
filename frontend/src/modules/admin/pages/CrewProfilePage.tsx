@@ -13,11 +13,7 @@ const projectStatusColors = {
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838" },
 };
-const roleOptions = [
-    "Creative Director", "Lead Developer", "UX Designer",
-    "Motion Designer", "Copywriter", "Photographer",
-    "Brand Strategist", "Project Manager", "Illustrator", "Other",
-];
+// Roles are loaded dynamically from /categories (type=hr_role)
 const skillSuggestions = [
     "Branding", "Figma", "React", "After Effects", "Blender", "Copywriting",
     "SEO", "Photography", "Cinema 4D", "Node.js", "TypeScript", "Art Direction",
@@ -47,9 +43,8 @@ export function CrewProfilePage() {
     const [roleInput, setRoleInput] = useState("");
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [avatarFile, setAvatarFile] = useState(null);
-    const [customRolesList, setCustomRolesList] = useState([]);
-    const [deletedRolesList, setDeletedRolesList] = useState([]);
     const [selectedRoles, setSelectedRoles] = useState([]);
+    const [hrRoles, setHrRoles] = useState<string[]>([]); // from /categories type=hr_role
     const [cropperOpen, setCropperOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState(null);
 
@@ -65,20 +60,22 @@ export function CrewProfilePage() {
     const watched = watch();
 
     useEffect(() => {
-        const storedCustom = localStorage.getItem("custom_crew_roles");
-        if (storedCustom) {
-            try { setCustomRolesList(JSON.parse(storedCustom)); } catch (e) { console.error(e); }
-        }
-        const storedDeleted = localStorage.getItem("deleted_crew_roles");
-        if (storedDeleted) {
-            try { setDeletedRolesList(JSON.parse(storedDeleted)); } catch (e) { console.error(e); }
-        }
+        // Fetch hr_role categories from API
+        fetchApi('/categories')
+            .then((cats: any[]) => {
+                const roles = (cats || [])
+                    .filter((c: any) => c.type === 'hr_role')
+                    .map((c: any) => c.name as string);
+                setHrRoles(roles);
+            })
+            .catch(err => console.error('Error loading hr_role categories:', err));
     }, []);
 
     const memberRolesList = member?.role ? member.role.split(",").map(r => r.trim()) : [];
+    // availableRoles = hr_role categories + any roles already on the member (in case they have a legacy role)
     const availableRoles = Array.from(
-        new Set([...roleOptions, ...customRolesList, ...memberRolesList].filter(Boolean))
-    ).filter(role => !deletedRolesList.includes(role) || memberRolesList.includes(role));
+        new Set([...hrRoles, ...memberRolesList].filter(Boolean))
+    );
 
     const addRole = (role) => {
         if (role && !selectedRoles.includes(role)) {
@@ -133,6 +130,7 @@ export function CrewProfilePage() {
                 const formData = new FormData();
                 formData.append("file", avatarFile);
                 formData.append("alt", `${data.name} Avatar`);
+                formData.append("folder", "avatar/crew");
                 const mediaAsset = await fetchApi("/media/upload", {
                     method: "POST",
                     body: formData,

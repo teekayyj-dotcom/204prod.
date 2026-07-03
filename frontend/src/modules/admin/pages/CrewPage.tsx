@@ -1,15 +1,12 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, Plus, Briefcase, UserCheck, UserX, Mail, Loader2, X, Trash2, Clock, CheckCircle } from "lucide-react";
+import { Search, Plus, Briefcase, UserCheck, UserX, Mail, Loader2, X, Clock, CheckCircle } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 import { OutsourcePage } from "./OutsourcePage";
 
-const defaultRoles = [
-    "Creative Director", "Lead Developer", "UX Designer",
-    "Motion Designer", "Copywriter", "Photographer",
-    "Brand Strategist", "Project Manager", "Illustrator", "Other"
-];
+// System-level account roles (non-deletable, not from categories)
+const SYSTEM_ROLES = ["Admin", "Crew", "Client"];
 
 export function CrewPage() {
     const navigate = useNavigate();
@@ -22,6 +19,7 @@ export function CrewPage() {
     const [freelancers, setFreelancers] = useState([]);
     const [outsourceQuickFilter, setOutsourceQuickFilter] = useState<"available" | "busy" | "blacklist" | "doc-issues" | null>(null);
     const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+    const [hrRoles, setHrRoles] = useState<string[]>([]); // fetched from /categories (type=hr_role)
 
     useEffect(() => {
         const tab = searchParams.get("tab");
@@ -30,6 +28,9 @@ export function CrewPage() {
         else if (tab === "on-leave") setFilter("On Leave");
         else if (tab === "pending") setFilter("Pending");
         else setFilter("All");
+
+        const q = searchParams.get("search");
+        if (q) setSearch(q);
     }, [searchParams]);
 
     const handleFilterChange = (f: string) => {
@@ -48,9 +49,6 @@ export function CrewPage() {
     
     // Roles management state
     const [isRolesModalOpen, setIsRolesModalOpen] = useState(false);
-    const [customRoles, setCustomRoles] = useState([]);
-    const [deletedRoles, setDeletedRoles] = useState([]);
-    const [newRoleInput, setNewRoleInput] = useState("");
     const [roleSearch, setRoleSearch] = useState("");
 
     const fetchCrewMembers = () => {
@@ -85,95 +83,24 @@ export function CrewPage() {
     useEffect(() => {
         fetchCrewMembers();
         fetchPendingUsers();
-        
-        // Load custom and deleted roles lists from localStorage
-        const storedCustom = localStorage.getItem("custom_crew_roles");
-        if (storedCustom) {
-            try { setCustomRoles(JSON.parse(storedCustom)); } catch (e) { console.error(e); }
-        }
-        
-        const storedDeleted = localStorage.getItem("deleted_crew_roles");
-        if (storedDeleted) {
-            try { setDeletedRoles(JSON.parse(storedDeleted)); } catch (e) { console.error(e); }
-        }
+
+        // Fetch hr_role categories from the API (same source as CategoriesPage)
+        fetchApi('/categories')
+            .then((cats: any[]) => {
+                const roles = (cats || [])
+                    .filter((c: any) => c.type === 'hr_role')
+                    .map((c: any) => c.name as string);
+                setHrRoles(roles);
+            })
+            .catch(err => console.error('Error loading hr_role categories:', err));
     }, []);
 
-    const saveCustomRoles = (newRolesList) => {
-        setCustomRoles(newRolesList);
-        localStorage.setItem("custom_crew_roles", JSON.stringify(newRolesList));
-    };
+    // All roles for the filter dropdown = hr_role categories from DB
+    const filterRoles = hrRoles;
 
-    const saveDeletedRoles = (newDeletedList) => {
-        setDeletedRoles(newDeletedList);
-        localStorage.setItem("deleted_crew_roles", JSON.stringify(newDeletedList));
-    };
 
-    // Calculate dynamic list of roles (defaults + custom + active DB roles, minus deleted defaults)
-    const dbRoles = crewMembers.flatMap(m => m.role ? m.role.split(',').map(r => r.trim()) : []).filter(Boolean);
-    const combinedRoles = Array.from(new Set([...defaultRoles, ...customRoles, ...dbRoles]))
-        .filter(role => !deletedRoles.includes(role));
 
-    const handleAddRole = () => {
-        const trimmed = newRoleInput.trim();
-        if (!trimmed) return;
-        if (combinedRoles.includes(trimmed)) {
-            alert("Role already exists.");
-            return;
-        }
-        if (deletedRoles.includes(trimmed)) {
-            saveDeletedRoles(deletedRoles.filter(r => r !== trimmed));
-        } else {
-            saveCustomRoles([...customRoles, trimmed]);
-        }
-        setNewRoleInput("");
-    };
 
-    const handleDeleteRole = async (roleToDelete) => {
-        const membersToUpdate = crewMembers.filter(m => {
-            const roles = m.role ? m.role.split(',').map(r => r.trim()) : [];
-            return roles.includes(roleToDelete);
-        });
-        const count = membersToUpdate.length;
-
-        if (count > 0) {
-            const confirmAssign = window.confirm(
-                `There are ${count} crew member(s) currently assigned to the "${roleToDelete}" role. \n\nDeleting this role will remove it from their assigned roles. Do you want to proceed?`
-            );
-            if (!confirmAssign) return;
-
-            setLoading(true);
-            for (const member of membersToUpdate) {
-                try {
-                    const remainingRoles = member.role.split(',').map(r => r.trim()).filter(r => r !== roleToDelete);
-                    const updatedRoleStr = remainingRoles.length > 0 ? remainingRoles.join(', ') : "Other";
-                    const payload = {
-                        name: member.name,
-                        email: member.email,
-                        phone: member.phone || "",
-                        role: updatedRoleStr,
-                        avatar: member.avatar,
-                        bio: member.bio || "",
-                        skills_expertise: member.skills_expertise || "",
-                        assigned_projects: member.assigned_projects || 0,
-                        status: member.status || "Active",
-                        created_at: member.created_at
-                    };
-                    await fetchApi(`/crew/${member.id}`, {
-                        method: "PUT",
-                        body: JSON.stringify(payload)
-                    });
-                } catch (e) {
-                    console.error("Error updating member role:", e);
-                }
-            }
-            fetchCrewMembers();
-        }
-
-        if (defaultRoles.includes(roleToDelete)) {
-            saveDeletedRoles([...deletedRoles, roleToDelete]);
-        }
-        saveCustomRoles(customRoles.filter(r => r !== roleToDelete));
-    };
 
     const handleApproveUser = async (user: any, newRole: string) => {
         if (!newRole) return;
@@ -234,8 +161,8 @@ export function CrewPage() {
         const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
             (m.role && m.role.toLowerCase().includes(search.toLowerCase()));
         const matchStatus = filter === "All" || m.status === filter;
-        const matchRole = selectedRoleFilter === "All Roles" || 
-            (m.role && m.role.split(',').map(r => r.trim()).includes(selectedRoleFilter));
+        const matchRole = selectedRoleFilter === "All Roles" ||
+            (m.role && m.role.split(',').map(r => r.trim()).some(r => r.toLowerCase() === selectedRoleFilter.toLowerCase()));
         return matchSearch && matchStatus && matchRole;
     });
 
@@ -330,7 +257,7 @@ export function CrewPage() {
                                 <stat.icon size={22} color={stat.color}/>
                             </div>
                             <div>
-                                <p style={{ color: "#888", fontSize: "12px" }}>{stat.label}</p>
+                                <p style={{ color: "#BBBBBB", fontSize: "13px" }}>{stat.label}</p>
                                 <p style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>{stat.value}</p>
                             </div>
                         </div>
@@ -358,7 +285,7 @@ export function CrewPage() {
                                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: k.color }} />
                             </div>
                             <div>
-                                <p style={{ color: "#888", fontSize: "12px" }}>{k.label}</p>
+                                <p style={{ color: "#BBBBBB", fontSize: "13px" }}>{k.label}</p>
                                 <p style={{ color: k.color, fontSize: "24px", fontWeight: 700 }}>{k.value}</p>
                             </div>
                         </div>
@@ -379,7 +306,7 @@ export function CrewPage() {
                                 className="px-4 py-1.5 rounded-lg transition-all text-xs sm:text-sm" 
                                 style={{
                                     background: filter === f ? "#D84040" : "#241C1C",
-                                    color: filter === f ? "#fff" : "#888",
+                                    color: filter === f ? "#fff" : "#CCCCCC",
                                     border: `1px solid ${filter === f ? "#D84040" : "#2E2020"}`,
                                     fontWeight: filter === f ? 600 : 400,
                                 }}
@@ -402,7 +329,7 @@ export function CrewPage() {
                             }}
                         >
                             <option value="All Roles">All Roles</option>
-                            {combinedRoles.map((role) => (
+                            {filterRoles.map((role) => (
                                 <option key={role} value={role}>{role}</option>
                             ))}
                         </select>
@@ -490,7 +417,7 @@ export function CrewPage() {
                                     {/* Skills */}
                                     <div className="flex flex-wrap gap-1.5 mb-4">
                                         {member.skills.map((skill) => (
-                                            <span key={skill} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "11px", border: "1px solid #3A2A2A" }}>
+                                            <span key={skill} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#BBBBBB", fontSize: "12px", border: "1px solid #3A2A2A" }}>
                                                 {skill}
                                             </span>
                                         ))}
@@ -499,7 +426,7 @@ export function CrewPage() {
                                     <div className="flex items-center justify-between pt-3" style={{ borderTop: "1px solid #2A1F1F" }}>
                                         <div className="flex items-center gap-1.5">
                                             <Briefcase size={13} color="#8E1616"/>
-                                            <span style={{ color: "#888", fontSize: "12px" }}>
+                                            <span style={{ color: "#BBBBBB", fontSize: "13px" }}>
                                                 {member.projects} project{member.projects !== 1 ? "s" : ""}
                                             </span>
                                         </div>
@@ -534,58 +461,74 @@ export function CrewPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}>
                     <div className="w-full max-w-md rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
-                            <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>Manage Roles</h3>
+                            <div>
+                                <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>Manage Roles</h3>
+                                <p style={{ color: "#555", fontSize: "11px", marginTop: "2px" }}>Vị trí chuyên môn được quản lý tại Categories</p>
+                            </div>
                             <button onClick={() => setIsRolesModalOpen(false)} style={{ color: "#888" }} className="hover:opacity-70">
                                 <X size={18}/>
                             </button>
                         </div>
-                        <div className="p-5 space-y-4">
-                            {/* Create New Role Input */}
-                            <div className="flex gap-2">
-                                <input 
-                                    value={newRoleInput} 
-                                    onChange={(e) => setNewRoleInput(e.target.value)} 
-                                    placeholder="Enter new role name..." 
-                                    className="flex-1 px-3 py-2 rounded-lg outline-none" 
-                                    style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "13px" }} 
-                                    onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
-                                    onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
-                                    onKeyDown={(e) => e.key === "Enter" && handleAddRole()}
-                                />
-                                <button onClick={handleAddRole} className="px-4 py-2 rounded-lg" style={{ background: "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-                                    Add
-                                </button>
-                            </div>
+                        <div className="p-5 space-y-5">
 
-                            {/* Search roles list */}
-                            <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid #3A2A2A" }}>
-                                <Search size={13} color="#666"/>
-                                <input value={roleSearch} onChange={(e) => setRoleSearch(e.target.value)} placeholder="Search roles list..." className="w-full outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "12px" }}/>
-                            </div>
-
-                            {/* Roles List */}
-                            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
-                                {combinedRoles
-                                    .filter(role => role.toLowerCase().includes(roleSearch.toLowerCase()))
-                                    .map(role => {
-                                        const count = crewMembers.filter(m => m.role && m.role.split(',').map(r => r.trim()).includes(role)).length;
-                                        return (
-                                            <div key={role} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                                                <div>
-                                                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{role}</p>
-                                                    <p style={{ color: "#666", fontSize: "11px" }}>{count} member{count !== 1 ? "s" : ""}</p>
-                                                </div>
-                                                <button onClick={() => handleDeleteRole(role)} style={{ color: "#666" }} className="hover:text-red-500 hover:opacity-100 transition-colors p-1" title="Delete Role">
-                                                    <Trash2 size={14}/>
-                                                </button>
+                            {/* System Roles — fixed, non-editable */}
+                            <div>
+                                <p style={{ color: "#555", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", marginBottom: "8px" }}>VAI TRÒ HỆ THỐNG</p>
+                                <div className="space-y-1.5">
+                                    {SYSTEM_ROLES.map(role => (
+                                        <div key={role} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)" }}>
+                                            <div>
+                                                <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{role}</p>
+                                                <p style={{ color: "#555", fontSize: "11px" }}>Vai trò hệ thống · không thể xoá</p>
                                             </div>
-                                        );
-                                    })}
+                                            <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: "rgba(142,22,22,0.15)", color: "#D84040", border: "1px solid rgba(216,64,64,0.2)" }}>System</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Specialist Roles — from hr_role categories */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p style={{ color: "#555", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em" }}>VỊ TRÍ CHUYÊN MÔN ({hrRoles.length})</p>
+                                    <button
+                                        onClick={() => { setIsRolesModalOpen(false); navigate("/admin/categories?tab=hr"); }}
+                                        className="flex items-center gap-1 text-xs hover:opacity-80 transition-opacity"
+                                        style={{ color: "#D84040" }}
+                                    >
+                                        <Briefcase size={11}/> Quản lý tại Categories
+                                    </button>
+                                </div>
+
+                                {/* Search */}
+                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid #3A2A2A" }}>
+                                    <Search size={12} color="#666"/>
+                                    <input value={roleSearch} onChange={(e) => setRoleSearch(e.target.value)} placeholder="Tìm vị trí..." className="w-full outline-none bg-transparent" style={{ color: "#EEEEEE", fontSize: "12px" }}/>
+                                </div>
+
+                                <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                                    {hrRoles
+                                        .filter(role => role.toLowerCase().includes(roleSearch.toLowerCase()))
+                                        .map(role => {
+                                            const count = crewMembers.filter(m => m.role && m.role.split(',').map(r => r.trim()).some(r => r.toLowerCase() === role.toLowerCase())).length;
+                                            return (
+                                                <div key={role} className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)" }}>
+                                                    <div>
+                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{role}</p>
+                                                        <p style={{ color: "#666", fontSize: "11px" }}>{count} thành viên</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    {hrRoles.filter(r => r.toLowerCase().includes(roleSearch.toLowerCase())).length === 0 && (
+                                        <p style={{ color: "#555", fontSize: "12px", textAlign: "center", padding: "16px 0", fontStyle: "italic" }}>Chưa có vị trí nào. Thêm tại Categories → HR.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="px-5 py-3 flex justify-end" style={{ borderTop: "1px solid #2A1F1F", background: "#1D1616" }}>
-                            <button onClick={() => setIsRolesModalOpen(false)} className="px-4 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px" }}>
-                                Close
+                            <button onClick={() => setIsRolesModalOpen(false)} className="px-4 py-2 rounded-lg" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", color: "#EEEEEE", fontSize: "13px" }}>
+                                Đóng
                             </button>
                         </div>
                     </div>

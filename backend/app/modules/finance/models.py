@@ -14,7 +14,7 @@ class Expense(Base):
     budget = Column(Float, nullable=True)
     project = Column(String(255), nullable=True)
     submitter = Column(String(255), nullable=False)
-    avatar = Column(String(50), nullable=False)
+    avatar = Column(String(500), nullable=False)
     status = Column(String(50), nullable=False, default="ok")  # ok, warning, over
     note = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -24,7 +24,7 @@ class Payout(Base):
 
     id = Column(String(50), primary_key=True, index=True)
     payee = Column(String(255), nullable=False)
-    avatar = Column(String(50), nullable=False)
+    avatar = Column(String(500), nullable=False)
     category = Column(String(100), nullable=False)
     project = Column(String(255), nullable=False)
     gross = Column(Float, nullable=False, default=0.0)
@@ -97,3 +97,38 @@ class ForecastGoal(Base):
     low = Column(Float, nullable=False)
     mid = Column(Float, nullable=False)
     high = Column(Float, nullable=False)
+
+class Goal(Base):
+    __tablename__ = "goals"
+
+    id = Column(String(50), primary_key=True, index=True)
+    category = Column(String(50), nullable=False)
+    label = Column(String(255), nullable=False)
+    current = Column(Float, nullable=False, default=0.0)
+    target = Column(Float, nullable=False, default=0.0)
+    unit = Column(String(50), nullable=False)
+    lowerIsBetter = Column(Boolean, default=False)
+    period = Column(String(50), nullable=True, default="2026-h1")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class CashHistory(Base):
+    __tablename__ = "cash_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(String(50), nullable=False)
+    balance = Column(Float, nullable=False)
+
+class ClientInvoice(Base):
+    __tablename__ = "client_invoices"
+
+    id = Column(String(50), primary_key=True, index=True)  # e.g. 204-INV-098
+    client_slug = Column(String(120), nullable=False, index=True)  # FK to clients.slug
+    client_name = Column(String(255), nullable=False)       # denormalized for easy display
+    project = Column(String(255), nullable=False)
+    term = Column(String(255), nullable=False)               # e.g. "Tạm ứng 50% đợt 1"
+    amount = Column(Float, nullable=False, default=0.0)
+    due_date = Column(String(50), nullable=False)
+    status = Column(String(50), nullable=False, default="pending")  # pending | paid | overdue
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    paid_at = Column(DateTime, nullable=True)

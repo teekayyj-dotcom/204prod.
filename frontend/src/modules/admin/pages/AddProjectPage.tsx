@@ -105,30 +105,18 @@ export function AddProjectPage() {
         try {
             let coverMediaId = selectedThumbnailAssetId;
 
+            const { uploadMediaPipeline } = await import("../../../utils/imagePipeline");
+
             // Upload thumbnail if selected
             if (thumbnailFile) {
-                const formData = new FormData();
-                formData.append("file", thumbnailFile);
-                formData.append("alt", data.title || "Project Thumbnail");
-                formData.append("caption", `Thumbnail for ${data.title}`);
-                const mediaAsset = await fetchApi("/media/upload", {
-                    method: "POST",
-                    body: formData,
-                });
+                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi);
                 coverMediaId = mediaAsset.id;
             }
 
             // Upload video if selected
             let finalVideoUrl = videoUrl;
             if (uploadedVideo) {
-                const formData = new FormData();
-                formData.append("file", uploadedVideo);
-                formData.append("alt", `${data.title} Video`);
-                formData.append("caption", `Video for ${data.title}`);
-                const mediaAsset = await fetchApi("/media/upload", {
-                    method: "POST",
-                    body: formData,
-                });
+                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi);
                 finalVideoUrl = mediaAsset.url;
             }
 
@@ -143,6 +131,8 @@ export function AddProjectPage() {
                 cover_media_id: coverMediaId,
                 summary: data.description || null,
                 video_url: finalVideoUrl || null,
+                dueDate: data.dueDate || null,
+                budget: data.budget || "TBD",
             };
             await fetchApi("/projects", {
                 method: "POST",
@@ -252,7 +242,7 @@ export function AddProjectPage() {
                                 <FieldLabel icon={Tag} text="Category *"/>
                                 <select {...register("category", { required: "Category is required" })} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.category ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.category ? "#D84040" : "#3A2A2A")}>
                                     <option value="">Select category</option>
-                                    {dbCategories.map((cat) => <option key={cat.slug} value={cat.slug}>{cat.name}</option>)}
+                                    {dbCategories.filter((cat: any) => cat.type === 'project_type').map((cat: any) => <option key={cat.slug} value={cat.slug}>{cat.name}</option>)}
                                 </select>
                                 {errors.category && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.category.message}</p>}
                             </div>
@@ -290,7 +280,7 @@ export function AddProjectPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <FieldLabel icon={DollarSign} text="Budget"/>
-                                <input {...register("budget")} placeholder="e.g. $25,000" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                <input {...register("budget")} placeholder="e.g. 25,000,000 ₫" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                             </div>
                             <div>
                                 <FieldLabel icon={Tag} text="Tags"/>

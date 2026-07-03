@@ -92,9 +92,83 @@ def update_request_status(req_id: int, payload: LeaveRequestUpdate, db: Session 
 def list_shifts(db: Session = Depends(get_db_session)):
     return get_all_shifts(db)
 
+@router.post("/shifts", response_model=ShiftResponse)
+def create_shift(payload: ShiftCreate, db: Session = Depends(get_db_session)):
+    from app.modules.hr.models import Shift
+    db_shift = Shift(
+        name=payload.name,
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        break_time=payload.break_time,
+        days=payload.days
+    )
+    db.add(db_shift)
+    db.commit()
+    db.refresh(db_shift)
+    return db_shift
+
+@router.put("/shifts/{shift_id}", response_model=ShiftResponse)
+def update_shift(shift_id: int, payload: ShiftCreate, db: Session = Depends(get_db_session)):
+    from app.modules.hr.models import Shift
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found")
+    db_shift.name = payload.name
+    db_shift.start_time = payload.start_time
+    db_shift.end_time = payload.end_time
+    db_shift.break_time = payload.break_time
+    db_shift.days = payload.days
+    db.commit()
+    db.refresh(db_shift)
+    return db_shift
+
+@router.delete("/shifts/{shift_id}")
+def delete_shift(shift_id: int, db: Session = Depends(get_db_session)):
+    from app.modules.hr.models import Shift
+    db_shift = db.query(Shift).filter(Shift.id == shift_id).first()
+    if not db_shift:
+        raise HTTPException(status_code=404, detail="Shift not found")
+    db.delete(db_shift)
+    db.commit()
+    return {"message": "Shift deleted successfully"}
+
 @router.get("/holidays", response_model=list[HolidayResponse])
 def list_holidays(db: Session = Depends(get_db_session)):
     return get_all_holidays(db)
+
+@router.post("/holidays", response_model=HolidayResponse)
+def create_holiday(payload: HolidayCreate, db: Session = Depends(get_db_session)):
+    from app.modules.hr.models import Holiday
+    db_holiday = Holiday(
+        date=payload.date,
+        name=payload.name
+    )
+    db.add(db_holiday)
+    db.commit()
+    db.refresh(db_holiday)
+    return db_holiday
+
+@router.put("/holidays/{holiday_id}", response_model=HolidayResponse)
+def update_holiday(holiday_id: int, payload: HolidayCreate, db: Session = Depends(get_db_session)):
+    from app.modules.hr.models import Holiday
+    db_holiday = db.query(Holiday).filter(Holiday.id == holiday_id).first()
+    if not db_holiday:
+        raise HTTPException(status_code=404, detail="Holiday not found")
+    db_holiday.date = payload.date
+    db_holiday.name = payload.name
+    db.commit()
+    db.refresh(db_holiday)
+    return db_holiday
+
+@router.delete("/holidays/{holiday_id}")
+def delete_holiday(holiday_id: int, db: Session = Depends(get_db_session)):
+    from app.modules.hr.models import Holiday
+    db_holiday = db.query(Holiday).filter(Holiday.id == holiday_id).first()
+    if not db_holiday:
+        raise HTTPException(status_code=404, detail="Holiday not found")
+    db.delete(db_holiday)
+    db.commit()
+    return {"message": "Holiday deleted successfully"}
 
 # Timesheet
 @router.get("/timesheet", response_model=list[TimesheetData])
@@ -114,14 +188,29 @@ def get_hr_overview(db: Session = Depends(get_db_session)):
     
     # 2. Get today's attendance logs
     from datetime import datetime
+    from app.modules.users.models import User
+    
     today_str = datetime.now().strftime("%Y-%m-%d")
     attendance = db.query(AttendanceLog).filter(AttendanceLog.date == today_str).all()
     
+    # Build user name/display_name to crew name normalization map
+    from app.modules.users.models import User
+    users = db.query(User).all()
+    user_to_crew = {}
+    for u in users:
+        if u.email:
+            crew_member = next((c for c in crew if c.email == u.email), None)
+            if crew_member:
+                user_to_crew[u.username] = crew_member.name
+                if u.display_name:
+                    user_to_crew[u.display_name] = crew_member.name
+
     # Create checkin lookup
     checkin_lookup = {}
     for log in attendance:
         if log.action == "check-in":
-            checkin_lookup[log.employee_name] = {
+            emp_name = user_to_crew.get(log.employee_name, log.employee_name)
+            checkin_lookup[emp_name] = {
                 "time": log.time,
                 "status": log.status
             }

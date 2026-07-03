@@ -13,6 +13,9 @@ class ExpenseBase(BaseModel):
     avatar: str
     status: str = "ok"
     note: str | None = None
+    payee: str | None = None
+    bank_name: str | None = None
+    bank_account: str | None = None
 
 class ExpenseCreate(ExpenseBase):
     pass
@@ -113,6 +116,33 @@ class ForecastGoalResponse(BaseModel):
     low: float
     mid: float
     high: float
+
+    class Config:
+        from_attributes = True
+
+
+class ClientInvoiceCreate(BaseModel):
+    client_slug: str
+    client_name: str
+    project: str
+    term: str
+    amount: float
+    due_date: str
+    status: str = "pending"
+    note: str | None = None
+
+class ClientInvoiceResponse(BaseModel):
+    id: str
+    client_slug: str
+    client_name: str
+    project: str
+    term: str
+    amount: float
+    due_date: str
+    status: str
+    note: str | None = None
+    created_at: datetime
+    paid_at: datetime | None = None
 
     class Config:
         from_attributes = True

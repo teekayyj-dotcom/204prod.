@@ -759,13 +759,24 @@ function RequestsTab({ requests, onRefresh }: RequestsTabProps) {
 interface SettingsTabProps {
   shifts: any[];
   holidays: any[];
+  onRefresh: () => void;
 }
 
-function SettingsTab({ shifts, holidays }: SettingsTabProps) {
+function SettingsTab({ shifts, holidays, onRefresh }: SettingsTabProps) {
   const [gps, setGps] = useState(true);
   const [qr, setQr] = useState(true);
   const [face, setFace] = useState(false);
   const [ip, setIp] = useState(false);
+
+  // Modals state
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [holidayModalOpen, setHolidayModalOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<any>(null);
+  const [selectedHoliday, setSelectedHoliday] = useState<any>(null);
+
+  // Form states
+  const [shiftForm, setShiftForm] = useState({ name: "", start_time: "", end_time: "", break_time: "", days: "" });
+  const [holidayForm, setHolidayForm] = useState({ name: "", date: "" });
 
   function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
     return (
@@ -782,6 +793,116 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
     );
   }
 
+  // Shift logic
+  function openAddShift() {
+    setSelectedShift(null);
+    setShiftForm({ name: "", start_time: "", end_time: "", break_time: "", days: "" });
+    setShiftModalOpen(true);
+  }
+
+  function openEditShift(shift: any) {
+    setSelectedShift(shift);
+    setShiftForm({
+      name: shift.name,
+      start_time: shift.start || shift.start_time,
+      end_time: shift.end || shift.end_time,
+      break_time: shift.break || shift.break_time,
+      days: shift.days
+    });
+    setShiftModalOpen(true);
+  }
+
+  async function handleSaveShift() {
+    try {
+      if (selectedShift) {
+        await fetchApi(`/hr/shifts/${selectedShift.id}`, {
+          method: "PUT",
+          body: JSON.stringify(shiftForm)
+        });
+      } else {
+        await fetchApi("/hr/shifts", {
+          method: "POST",
+          body: JSON.stringify(shiftForm)
+        });
+      }
+      setShiftModalOpen(false);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleDeleteShift(id: number) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa ca làm việc này?")) return;
+    try {
+      await fetchApi(`/hr/shifts/${id}`, { method: "DELETE" });
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Holiday logic
+  function openAddHoliday() {
+    setSelectedHoliday(null);
+    setHolidayForm({ name: "", date: "" });
+    setHolidayModalOpen(true);
+  }
+
+  function openEditHoliday(holiday: any) {
+    setSelectedHoliday(holiday);
+    setHolidayForm({ name: holiday.name, date: holiday.date });
+    setHolidayModalOpen(true);
+  }
+
+  async function handleSaveHoliday() {
+    try {
+      if (selectedHoliday) {
+        await fetchApi(`/hr/holidays/${selectedHoliday.id}`, {
+          method: "PUT",
+          body: JSON.stringify(holidayForm)
+        });
+      } else {
+        await fetchApi("/hr/holidays", {
+          method: "POST",
+          body: JSON.stringify(holidayForm)
+        });
+      }
+      setHolidayModalOpen(false);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleDeleteHoliday(id: number) {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa ngày lễ này?")) return;
+    try {
+      await fetchApi(`/hr/holidays/${id}`, { method: "DELETE" });
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  const inputStyle = {
+    background: "#141010",
+    border: "1px solid #2A1F1F",
+    color: "#EEEEEE",
+    fontSize: "13px",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    width: "100%",
+    outline: "none",
+    marginTop: "4px",
+  } as React.CSSProperties;
+
+  const labelStyle = {
+    color: "#888",
+    fontSize: "11px",
+    fontWeight: 600,
+  } as React.CSSProperties;
+
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Shifts */}
@@ -789,6 +910,7 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
         <div className="flex items-center justify-between mb-3">
           <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Ca làm việc</h3>
           <button
+            onClick={openAddShift}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
             style={{ background: "#D84040", color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}
           >
@@ -817,9 +939,18 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
                   {shift.start || shift.start_time} – {shift.end || shift.end_time} · Nghỉ trưa {shift.break || shift.break_time} · {shift.days}
                 </p>
               </div>
-              <button style={{ color: "#555", fontSize: "12px" }}>Sửa</button>
+              <button
+                onClick={() => openEditShift(shift)}
+                className="px-2.5 py-1 rounded text-xs transition-colors"
+                style={{ border: "1px solid #2A1F1F", background: "#1D1616", color: "#888" }}
+              >
+                Sửa
+              </button>
             </div>
           ))}
+          {shifts.length === 0 && (
+            <div className="px-5 py-8 text-center text-[#555] text-xs">Chưa có ca làm việc</div>
+          )}
         </div>
       </section>
 
@@ -828,6 +959,7 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
         <div className="flex items-center justify-between mb-3">
           <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Ngày nghỉ lễ</h3>
           <button
+            onClick={openAddHoliday}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
             style={{ background: "#2A1F1F", color: "#EEEEEE", fontSize: "12px", fontWeight: 600, border: "1px solid #3A2A2A" }}
           >
@@ -840,7 +972,7 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
         >
           {holidays.map((h, i) => (
             <div
-              key={h.date}
+              key={h.id || h.date}
               className="flex items-center justify-between px-5 py-3.5"
               style={{ borderBottom: i < holidays.length - 1 ? "1px solid #2A1F1F" : undefined }}
             >
@@ -848,9 +980,20 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
                 <Coffee size={14} style={{ color: "#c084fc" }} />
                 <span style={{ color: "#EEEEEE", fontSize: "13px" }}>{h.name}</span>
               </div>
-              <span style={{ color: "#666", fontSize: "12px" }}>{h.date}</span>
+              <div className="flex items-center gap-3">
+                <span style={{ color: "#666", fontSize: "12px" }}>{h.date}</span>
+                <button
+                  onClick={() => openEditHoliday(h)}
+                  className="px-2 py-0.5 rounded border border-[#2A1F1F] bg-[#1D1616] text-[#666] text-[10px]"
+                >
+                  Sửa
+                </button>
+              </div>
             </div>
           ))}
+          {holidays.length === 0 && (
+            <div className="px-5 py-8 text-center text-[#555] text-xs">Chưa có ngày nghỉ lễ</div>
+          )}
         </div>
       </section>
 
@@ -889,6 +1032,126 @@ function SettingsTab({ shifts, holidays }: SettingsTabProps) {
           ))}
         </div>
       </section>
+
+      {/* Shift Modal */}
+      {shiftModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative rounded-xl p-6 w-full max-w-md border border-[#2A1F1F] space-y-4 shadow-2xl" style={{ background: "#141010" }}>
+            <div>
+              <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>{selectedShift ? "Sửa ca làm việc" : "Thêm ca làm việc"}</h3>
+              <p style={{ color: "#555", fontSize: "11px" }}>Nhập cấu hình ca làm việc cho nhân viên</p>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <span style={labelStyle}>Tên ca làm việc *</span>
+                <input placeholder="VD: Ca Hành Chính" value={shiftForm.name} onChange={(e) => setShiftForm({ ...shiftForm, name: e.target.value })} style={inputStyle} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span style={labelStyle}>Giờ bắt đầu *</span>
+                  <input type="time" value={shiftForm.start_time} onChange={(e) => setShiftForm({ ...shiftForm, start_time: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <span style={labelStyle}>Giờ kết thúc *</span>
+                  <input type="time" value={shiftForm.end_time} onChange={(e) => setShiftForm({ ...shiftForm, end_time: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span style={labelStyle}>Nghỉ trưa *</span>
+                  <input placeholder="VD: 12:00–13:00" value={shiftForm.break_time} onChange={(e) => setShiftForm({ ...shiftForm, break_time: e.target.value })} style={inputStyle} />
+                </div>
+                <div>
+                  <span style={labelStyle}>Ngày làm việc *</span>
+                  <input placeholder="VD: T2–T6" value={shiftForm.days} onChange={(e) => setShiftForm({ ...shiftForm, days: e.target.value })} style={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              {selectedShift && (
+                <button
+                  onClick={() => {
+                    handleDeleteShift(selectedShift.id);
+                    setShiftModalOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-bold bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors"
+                >
+                  Xóa
+                </button>
+              )}
+              <button
+                onClick={() => setShiftModalOpen(false)}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
+                style={{ background: "#2A1F1F", color: "#888" }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveShift}
+                disabled={!shiftForm.name || !shiftForm.start_time || !shiftForm.end_time}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white"
+                style={{ background: "#D84040" }}
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Holiday Modal */}
+      {holidayModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative rounded-xl p-6 w-full max-w-md border border-[#2A1F1F] space-y-4 shadow-2xl" style={{ background: "#141010" }}>
+            <div>
+              <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>{selectedHoliday ? "Sửa ngày nghỉ lễ" : "Thêm ngày nghỉ lễ"}</h3>
+              <p style={{ color: "#555", fontSize: "11px" }}>Nhập ngày nghỉ lễ chung</p>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <span style={labelStyle}>Tên ngày lễ *</span>
+                <input placeholder="VD: Quốc khánh" value={holidayForm.name} onChange={(e) => setHolidayForm({ ...holidayForm, name: e.target.value })} style={inputStyle} />
+              </div>
+              <div>
+                <span style={labelStyle}>Ngày nghỉ lễ (DD/MM/YYYY) *</span>
+                <input placeholder="VD: 02/09/2026" value={holidayForm.date} onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })} style={inputStyle} />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              {selectedHoliday && (
+                <button
+                  onClick={() => {
+                    handleDeleteHoliday(selectedHoliday.id);
+                    setHolidayModalOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-bold bg-red-900/30 text-red-400 hover:bg-red-900/50 transition-colors"
+                >
+                  Xóa
+                </button>
+              )}
+              <button
+                onClick={() => setHolidayModalOpen(false)}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
+                style={{ background: "#2A1F1F", color: "#888" }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSaveHoliday}
+                disabled={!holidayForm.name || !holidayForm.date}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all text-white"
+                style={{ background: "#D84040" }}
+              >
+                Lưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -993,7 +1256,7 @@ export function AttendancePage() {
       {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
       {tab === "timesheet" && <TimesheetTab />}
       {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}
-      {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} />}
+      {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} onRefresh={loadData} />}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     ArrowLeft,
     Calendar,
-    DollarSign,
+    Coins,
     Tag,
     User,
     Clock,
@@ -450,7 +450,7 @@ export function ClientProjectDetailPage() {
                     <div className="rounded-xl p-4 space-y-3 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Thông tin thanh toán</p>
                         {[
-                            { icon: DollarSign, label: "Ngân sách", value: project.budget, color: "#D84040" },
+                            { icon: Coins, label: "Ngân sách", value: project.budget, color: "#D84040" },
                             { icon: Calendar, label: "Hạn cuối", value: `${project.year}-12-31`, color: "#EEEEEE" },
                             { icon: Activity, label: "Tiến độ", value: `${project.progress}%`, color: project.progress === 100 ? "#4CAF50" : "#D84040" },
                         ].map(({ icon: Icon, label, value, color }) => (
