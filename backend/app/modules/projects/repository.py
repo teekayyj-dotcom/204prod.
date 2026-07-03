@@ -32,7 +32,15 @@ def _map_to_detail(p: Project) -> ProjectDetail:
         summary=p.summary or "",
         credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
         gallery=[
-            {"id": g.media_asset_id, "url": g.media_asset.url}
+            {
+                "id": g.media_asset_id,
+                "url": g.media_asset.url,
+                "name": g.media_asset.alt or g.media_asset.id,
+                "size": f"{round(g.media_asset.file_size / (1024 * 1024), 2)} MB" if g.media_asset.file_size else "0.0 MB",
+                "type": g.media_asset.kind,
+                "uploaded": g.media_asset.created_at.strftime("%Y-%m-%d") if g.media_asset.created_at else "",
+                "published": g.published,
+            }
             for g in p.gallery_images
             if g.media_asset
         ] if getattr(p, "gallery_images", None) else []

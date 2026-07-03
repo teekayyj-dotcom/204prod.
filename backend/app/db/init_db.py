@@ -17,3 +17,13 @@ def init_db() -> None:
             except Exception as e:
                 print(f"Error adding budget column to projects: {e}")
 
+    # Auto-add published column to project_gallery_images table if missing
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("SELECT published FROM project_gallery_images LIMIT 1"))
+        except Exception:
+            try:
+                conn.execute(text("ALTER TABLE project_gallery_images ADD COLUMN published BOOLEAN DEFAULT TRUE"))
+            except Exception as e:
+                print(f"Error adding published column to project_gallery_images: {e}")
+

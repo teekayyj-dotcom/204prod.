@@ -107,34 +107,44 @@ export function CrewProjectsPage() {
   const navigate = useNavigate();
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const fetchProjects = async () => {
+    try {
+      const data = await fetchApi<any[]>("/projects");
+      if (data && data.length > 0) {
+        const mapped = data.map((p: any) => ({
+          id: p.slug,
+          name: p.title,
+          client: p.client_slug || "Client",
+          status: p.status === "draft" ? "Planning" : p.status === "published" ? "Completed" : "In Progress",
+          deadline: new Date(p.created_at || Date.now() + 5 * 24 * 60 * 60 * 1000),
+          progress: p.status === "published" ? 100 : p.status === "draft" ? 15 : 65,
+          brief: p.summary || "Chưa có brief cho dự án này.",
+          timelineFiles: ["Script_v2.pdf", "Shotlist_Final.xlsx", "Storyboard.fig"],
+          moodboard: [
+            { label: "Scene 1", color: "from-orange-900 to-red-900" },
+            { label: "Scene 2", color: "from-blue-900 to-purple-900" },
+            { label: "Scene 3", color: "from-green-900 to-teal-900" },
+            { label: "Scene 4", color: "from-yellow-900 to-orange-900" },
+          ],
+          gallery: p.gallery || [],
+        }));
+        setProjectsList(mapped);
+        
+        setSelectedProject((prev: any) => {
+          if (!prev) return mapped[0];
+          const updated = mapped.find(p => p.id === prev.id);
+          return updated || mapped[0];
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching projects:", err);
+    }
+  };
 
   useEffect(() => {
-    fetchApi<any[]>("/projects")
-      .then((data) => {
-        if (data && data.length > 0) {
-          const mapped = data.map((p: any) => ({
-            id: p.slug,
-            name: p.title,
-            client: p.client_slug || "Client",
-            status: p.status === "draft" ? "Planning" : p.status === "published" ? "Completed" : "In Progress",
-            deadline: new Date(p.created_at || Date.now() + 5 * 24 * 60 * 60 * 1000),
-            progress: p.status === "published" ? 100 : p.status === "draft" ? 15 : 65,
-            brief: p.summary || "Chưa có brief cho dự án này.",
-            timelineFiles: ["Script_v2.pdf", "Shotlist_Final.xlsx", "Storyboard.fig"],
-            moodboard: [
-              { label: "Scene 1", color: "from-orange-900 to-red-900" },
-              { label: "Scene 2", color: "from-blue-900 to-purple-900" },
-              { label: "Scene 3", color: "from-green-900 to-teal-900" },
-              { label: "Scene 4", color: "from-yellow-900 to-orange-900" },
-            ],
-          }));
-          setProjectsList(mapped);
-          setSelectedProject(mapped[0]);
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching projects:", err);
-      });
+    fetchProjects();
   }, []);
 
   const [columns, setColumns] = useState<KanbanColumn[]>([
@@ -199,16 +209,79 @@ export function CrewProjectsPage() {
       .catch(err => console.error("Error fetching tasks:", err));
   };
 
+  const fetchFeedback = async () => {
+    if (!selectedProject) return;
+    try {
+      const feedbackData = await fetchApi<any[]>(`/projects/${selectedProject.id}/feedback`);
+      setProjectFeedback(prev => ({
+        ...prev,
+        [selectedProject.id]: feedbackData || []
+      }));
+    } catch (err) {
+      console.error("Error fetching feedback:", err);
+    }
+  };
+
+  const resolveFeedback = async (id: number, currentResolved: boolean) => {
+    try {
+      const nextStatus = currentResolved ? "Open" : "Resolved";
+      await fetchApi(`/projects/feedback/${id}/status?status_val=${nextStatus}`, {
+        method: "PUT"
+      });
+      fetchFeedback();
+    } catch (err) {
+      console.error("Error updating feedback status:", err);
+    }
+  };
+
+  const handleFileUpload = () => {
+    if (!selectedProject || isUploading) return;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*,video/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("project_slug", selectedProject.id);
+        formData.append("folder", "project/gallery");
+        
+        const token = localStorage.getItem("token");
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          headers,
+          body: formData
+        });
+        if (!response.ok) throw new Error("Upload failed");
+        
+        await fetchProjects();
+      } catch (err) {
+        console.error("Failed to upload deliverable:", err);
+        alert("Upload file thất bại. Vui lòng thử lại!");
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    input.click();
+  };
+
   useEffect(() => {
     fetchTasks();
+    fetchFeedback();
   }, [selectedProject]);
 
   const [projectFeedback, setProjectFeedback] = useState<Record<string, any[]>>({});
-  const [projectDeliverables, setProjectDeliverables] = useState<Record<string, Array<{ name: string; size: string; uploaded: string; status: string }>>>({});
 
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
-  const deliverables = selectedProject ? (projectDeliverables[selectedProject.id] || []) : [];
+  const deliverables = selectedProject ? (selectedProject.gallery || []) : [];
 
   const [showBadge, setShowBadge] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
@@ -912,21 +985,23 @@ export function CrewProjectsPage() {
               <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Bàn giao — Deliverables</h3>
             </div>
             <div
+              onClick={handleFileUpload}
               className="rounded-xl flex flex-col items-center justify-center py-8 cursor-pointer transition-all"
               style={{ border: "2px dashed #2A1F1F" }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A1F1F")}
             >
               <Upload size={24} style={{ color: "#333", marginBottom: "8px" }} />
-              <p style={{ color: "#555", fontSize: "13px" }}>Upload file kết quả</p>
+              <p style={{ color: "#555", fontSize: "13px" }}>{isUploading ? "Đang upload..." : "Upload file kết quả"}</p>
               <p style={{ color: "#333", fontSize: "11px", marginTop: "4px" }}>
                 Video Draft, Hình ảnh, File xuất
               </p>
               <button
                 className="mt-4 px-5 py-2 rounded-lg flex items-center gap-1.5"
                 style={{ background: "#D84040", color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}
+                disabled={isUploading}
               >
-                <Plus size={13} /> Chọn file
+                {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Chọn file
               </button>
             </div>
 
@@ -934,13 +1009,13 @@ export function CrewProjectsPage() {
             <div className="mt-3 space-y-2">
               {deliverables.map((file) => (
                 <div
-                  key={file.name}
+                  key={file.id}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl"
                   style={{ background: "#1D1616", border: "1px solid #2A1F1F" }}
                 >
                   <Film size={15} style={{ color: "#D84040", flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
-                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{file.name}</p>
+                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
                     <p style={{ color: "#555", fontSize: "10px" }}>
                       {file.size} · {file.uploaded}
                     </p>
@@ -948,19 +1023,22 @@ export function CrewProjectsPage() {
                   <span
                     className="px-2 py-0.5 rounded-full"
                     style={{
-                      background: file.status === "Approved" ? "rgba(16,185,129,0.1)" : "rgba(212,168,67,0.1)",
-                      border: `1px solid ${file.status === "Approved" ? "rgba(16,185,129,0.3)" : "rgba(212,168,67,0.3)"}`,
-                      color: file.status === "Approved" ? "#10B981" : "#D4A843",
+                      background: file.published ? "rgba(16,185,129,0.1)" : "rgba(216,64,64,0.1)",
+                      border: `1px solid ${file.published ? "rgba(16,185,129,0.3)" : "rgba(216,64,64,0.3)"}`,
+                      color: file.published ? "#10B981" : "#D84040",
                       fontSize: "9px",
                       fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
                     }}
                   >
-                    {file.status}
+                    {file.published ? "Published" : "Draft"}
                   </span>
                 </div>
               ))}
+              {deliverables.length === 0 && (
+                <p style={{ color: "#444", fontSize: "11px", textAlign: "center" }} className="py-4">Chưa có tài liệu bàn giao nào được tải lên.</p>
+              )}
             </div>
           </div>
         </div>
@@ -985,7 +1063,7 @@ export function CrewProjectsPage() {
                   className="w-5 h-5 rounded-full flex items-center justify-center"
                   style={{ background: "#D84040", color: "#fff", fontSize: "10px", fontWeight: 700 }}
                 >
-                  {feedback.filter((f) => !f.resolved).length}
+                  {feedback.filter((f) => f.status !== "Resolved").length}
                 </span>
               </div>
               {feedbackOpen ? <ChevronDown size={14} style={{ color: "#555" }} /> : <ChevronRight size={14} style={{ color: "#555" }} />}
@@ -997,68 +1075,76 @@ export function CrewProjectsPage() {
                   Phản hồi từ client được tự động đồng bộ từ Client Site
                 </p>
                 <div className="space-y-3">
-                  {feedback.map((fb) => (
-                    <div
-                      key={fb.id}
-                      className="rounded-xl p-3.5"
-                      style={{
-                        background: fb.resolved ? "#0A0707" : "#1D1616",
-                        border: `1px solid ${fb.urgent && !fb.resolved ? "rgba(216,64,64,0.4)" : "#2A1F1F"}`,
-                        opacity: fb.resolved ? 0.5 : 1,
-                      }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Pin size={10} style={{ color: fb.urgent ? "#D84040" : "#8B5CF6", flexShrink: 0 }} />
-                        <span
-                          style={{
-                            background: "#0A0707",
-                            color: "#D4A843",
-                            fontSize: "10px",
-                            fontWeight: 700,
-                            padding: "1px 6px",
-                            borderRadius: "4px",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          {fb.timecode}
-                        </span>
-                        <span style={{ color: "#555", fontSize: "10px" }}>{fb.from}</span>
-                        {fb.urgent && !fb.resolved && (
-                          <AlertCircle size={10} style={{ color: "#D84040", marginLeft: "auto" }} />
+                  {feedback.map((fb: any) => {
+                    const isResolved = fb.status === "Resolved";
+                    const timecodeStr = fb.timecode >= 0 ? `${Math.floor(fb.timecode / 60)}:${String(Math.floor(fb.timecode % 60)).padStart(2, "0")}` : "General";
+                    const displayFrom = fb.user_id === "Admin" ? "Admin" : "Khách hàng";
+                    
+                    return (
+                      <div
+                        key={fb.id}
+                        className="rounded-xl p-3.5"
+                        style={{
+                          background: isResolved ? "#0A0707" : "#1D1616",
+                          border: `1px solid ${!isResolved ? "rgba(139,92,246,0.2)" : "#2A1F1F"}`,
+                          opacity: isResolved ? 0.5 : 1,
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Pin size={10} style={{ color: "#8B5CF6", flexShrink: 0 }} />
+                          <span
+                            style={{
+                              background: "#0A0707",
+                              color: "#D4A843",
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              padding: "1px 6px",
+                              borderRadius: "4px",
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {timecodeStr}
+                          </span>
+                          <span style={{ color: "#555", fontSize: "10px" }}>{displayFrom}</span>
+                          {isResolved && (
+                            <CheckCircle2 size={10} style={{ color: "#10B981", marginLeft: "auto" }} />
+                          )}
+                        </div>
+                        <p style={{ color: isResolved ? "#444" : "#EEEEEE", fontSize: "11px", lineHeight: 1.6 }}>
+                          {fb.content}
+                        </p>
+                        
+                        {/* Reply content if present */}
+                        {fb.reply_content && (
+                          <div className="mt-2.5 p-2 rounded bg-black/40 border-l border-red-500/50">
+                            <p style={{ fontSize: "9px", color: "#666", fontWeight: 600 }}>{fb.reply_author || "Admin"}:</p>
+                            <p style={{ fontSize: "10px", color: "#ccc" }}>{fb.reply_content}</p>
+                          </div>
                         )}
-                        {fb.resolved && (
-                          <CheckCircle2 size={10} style={{ color: "#10B981", marginLeft: "auto" }} />
+                        
+                        {!isResolved && (
+                          <button
+                            onClick={() => resolveFeedback(fb.id, false)}
+                            className="mt-2.5 w-full py-1.5 rounded-lg flex items-center justify-center gap-1"
+                            style={{
+                              background: "rgba(16,185,129,0.08)",
+                              border: "1px solid rgba(16,185,129,0.2)",
+                              color: "#10B981",
+                              fontSize: "10px",
+                              fontWeight: 600,
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,185,129,0.15)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(16,185,129,0.08)")}
+                          >
+                            <CheckCircle2 size={11} /> Đánh dấu đã xử lý
+                          </button>
                         )}
                       </div>
-                      <p style={{ color: fb.resolved ? "#444" : "#EEEEEE", fontSize: "11px", lineHeight: 1.6 }}>
-                        {fb.comment}
-                      </p>
-                      {!fb.resolved && (
-                        <button
-                          onClick={() =>
-                            setProjectFeedback((prev) => ({
-                              ...prev,
-                              [selectedProject.id]: (prev[selectedProject.id] || []).map((f) =>
-                                f.id === fb.id ? { ...f, resolved: true } : f
-                              ),
-                            }))
-                          }
-                          className="mt-2.5 w-full py-1.5 rounded-lg flex items-center justify-center gap-1"
-                          style={{
-                            background: "rgba(16,185,129,0.08)",
-                            border: "1px solid rgba(16,185,129,0.2)",
-                            color: "#10B981",
-                            fontSize: "10px",
-                            fontWeight: 600,
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,185,129,0.15)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(16,185,129,0.08)")}
-                        >
-                          <CheckCircle2 size={11} /> Đánh dấu đã xử lý
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
+                  {feedback.length === 0 && (
+                    <p style={{ color: "#444", fontSize: "11px", textAlign: "center" }} className="py-4">Chưa có phản hồi nào.</p>
+                  )}
                 </div>
               </div>
             )}

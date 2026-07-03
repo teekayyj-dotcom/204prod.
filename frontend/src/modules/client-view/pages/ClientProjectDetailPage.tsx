@@ -94,7 +94,23 @@ export function ClientProjectDetailPage() {
                 
                 // Initialize dynamic client deliverables
                 const filesList: DemoDeliverable[] = [];
-                if (data.video_url) {
+                if (data.gallery && Array.isArray(data.gallery)) {
+                    data.gallery.forEach((g: any) => {
+                        if (g.published) {
+                            filesList.push({
+                                id: g.id,
+                                title: g.name || "Tài liệu bàn giao",
+                                type: g.type === "video" ? "video" : g.type === "image" ? "concept" : "storyboard",
+                                url: g.url,
+                                coverUrl: g.type === "image" ? g.url : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
+                                status: "Pending Review"
+                            });
+                        }
+                    });
+                }
+                
+                // Fallback to video_url if no gallery items are uploaded yet
+                if (filesList.length === 0 && data.video_url) {
                     filesList.push({
                         id: "deliv-video-main",
                         title: "Bản dựng Video TVC - Demo 1 (Draft)",
@@ -104,14 +120,6 @@ export function ClientProjectDetailPage() {
                         status: "Pending Review"
                     });
                 }
-                filesList.push({
-                    id: "deliv-concept-sb",
-                    title: "Storyboard & Bảng phân cảnh chi tiết (Đã chốt)",
-                    type: "storyboard",
-                    url: "#",
-                    coverUrl: "https://images.unsplash.com/photo-1542204172-e7052809a862?auto=format&fit=crop&w=600&q=80",
-                    status: "Approved"
-                });
                 setDeliverables(filesList);
 
                 if (data.client_slug) {
@@ -322,7 +330,13 @@ export function ClientProjectDetailPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <h3 className="text-xs uppercase tracking-wider text-gray-400 font-bold">Khu vực Media & Demos</h3>
                             <button
-                                onClick={() => navigate(`/client/projects/${project.slug}/playback`)}
+                                onClick={() => {
+                                    const firstVideo = deliverables.find(d => d.type === "video");
+                                    const path = firstVideo 
+                                        ? `/client/projects/${project.slug}/playback?video=${encodeURIComponent(firstVideo.url)}`
+                                        : `/client/projects/${project.slug}/playback`;
+                                    navigate(path);
+                                }}
                                 className="px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 text-xs font-bold bg-[#D84040] hover:bg-[#c03030] text-white transition-all shadow-md shadow-[#D84040]/10 self-start sm:self-auto"
                             >
                                 <Play size={12} fill="white" />
@@ -351,7 +365,7 @@ export function ClientProjectDetailPage() {
                                                 className="w-full h-full cursor-pointer relative"
                                                 onClick={() => {
                                                     if (demo.type === "video") {
-                                                        navigate(`/client/projects/${project.slug}/playback`);
+                                                        navigate(`/client/projects/${project.slug}/playback?video=${encodeURIComponent(demo.url)}`);
                                                     } else {
                                                         window.open(demo.url, "_blank");
                                                     }

@@ -194,4 +194,26 @@ def reject_task_request_route(req_id: str, db: Session = Depends(get_db_session)
     return {"message": "Request rejected successfully"}
 
 
+@router.put("/gallery/{media_asset_id}/publish")
+def toggle_gallery_image_publish(media_asset_id: str, published: bool, db: Session = Depends(get_db_session)):
+    from app.modules.projects.models import ProjectGalleryImage
+    img = db.query(ProjectGalleryImage).filter(ProjectGalleryImage.media_asset_id == media_asset_id).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Gallery image not found")
+    img.published = published
+    db.commit()
+    return {"status": "ok", "media_asset_id": media_asset_id, "published": published}
+
+
+@router.delete("/gallery/{media_asset_id}")
+def delete_gallery_image(media_asset_id: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.models import ProjectGalleryImage
+    img = db.query(ProjectGalleryImage).filter(ProjectGalleryImage.media_asset_id == media_asset_id).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Gallery image not found")
+    db.delete(img)
+    db.commit()
+    return {"status": "ok", "deleted_id": media_asset_id}
+
+
 

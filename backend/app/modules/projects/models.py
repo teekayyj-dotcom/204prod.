@@ -135,6 +135,7 @@ class ProjectGalleryImage(Base):
     alt: Mapped[str | None] = mapped_column(String(255))
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     project: Mapped[Project] = relationship(back_populates="gallery_images")
     media_asset: Mapped["MediaAsset"] = relationship(back_populates="gallery_images")

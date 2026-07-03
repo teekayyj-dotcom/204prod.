@@ -428,28 +428,33 @@ export function ClientPlaybackPage() {
     // Direct sample video fallback
     const defaultSampleVideo = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
+    // Read selected video from query parameters if present
+    const searchParams = new URLSearchParams(location.search);
+    const videoUrlParam = searchParams.get("video");
+    const videoToPlay = videoUrlParam || project.video_url;
+
     // Detect YouTube / Vimeo embed (these need an iframe)
-    const ytMatch = project.video_url?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-    const vmMatch = project.video_url?.match(/vimeo\.com\/(\d+)/);
+    const ytMatch = videoToPlay?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+    const vmMatch = videoToPlay?.match(/vimeo\.com\/(\d+)/);
     // Legacy Bunny embed URL (old records before backend fix)
-    const bunnyLegacy = !!project.video_url && /iframe\.mediadelivery\.net\/embed\//.test(project.video_url);
+    const bunnyLegacy = !!videoToPlay && /iframe\.mediadelivery\.net\/embed\//.test(videoToPlay);
 
     const isEmbedVideo = !!(ytMatch || vmMatch || bunnyLegacy);
 
     const getEmbedUrl = () => {
         if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&controls=1`;
         if (vmMatch) return `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=0&controls=1`;
-        if (bunnyLegacy && project.video_url) {
-            return project.video_url.includes("?")
-                ? `${project.video_url}&autoplay=false&loop=false&muted=false`
-                : `${project.video_url}?autoplay=false&loop=false&muted=false`;
+        if (bunnyLegacy && videoToPlay) {
+            return videoToPlay.includes("?")
+                ? `${videoToPlay}&autoplay=false&loop=false&muted=false`
+                : `${videoToPlay}?autoplay=false&loop=false&muted=false`;
         }
         return "";
     };
 
     // Direct playable video (.mp4/.mov/.webm) — Bunny CDN or self-hosted
-    const isDirectVideo = !isEmbedVideo && !!project.video_url;
-    const finalVideoSource = isDirectVideo ? project.video_url! : defaultSampleVideo;
+    const isDirectVideo = !isEmbedVideo && !!videoToPlay;
+    const finalVideoSource = isDirectVideo ? videoToPlay : defaultSampleVideo;
 
     // Filter feedback that is active (showing within 1.5s window of current time)
     const activePins = feedbacks.filter(f => Math.abs(f.timecode - currentTime) < 1.5);

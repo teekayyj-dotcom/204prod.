@@ -1170,13 +1170,129 @@ function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: 
 
 // ─── Admin Tab: Media ──────────────────────────────────────────────────────────
 
-function MediaAdminTab({ project }: { project: any }) {
-    const [media, setMedia] = useState(MOCK_MEDIA);
-    const [feedback, setFeedback] = useState(MOCK_FEEDBACK);
+function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { project: any, feedbacks: any[], setFeedbacks: React.Dispatch<React.SetStateAction<any[]>>, setProject: React.Dispatch<React.SetStateAction<any>> }) {
+    const media = project?.gallery || [];
     const [mediaView, setMediaView] = useState<"grid" | "feedback">("grid");
+    const [isUploading, setIsUploading] = useState(false);
+    const [replyText, setReplyText] = useState<Record<number, string>>({});
 
-    const togglePublish = (id: string) => setMedia(prev => prev.map(m => m.id === id ? { ...m, published: !m.published } : m));
-    const resolveFeedback = (id: string) => setFeedback(prev => prev.map(f => f.id === id ? { ...f, resolved: !f.resolved } : f));
+    const formattedFeedbacks = feedbacks.map(fb => ({
+        id: fb.id,
+        user: fb.user_id === "Admin" ? "Admin" : "Đối tác (Client)",
+        text: fb.content,
+        file: "Video Review",
+        timestamp: fb.timecode >= 0 ? `${Math.floor(fb.timecode / 60)}:${String(Math.floor(fb.timecode % 60)).padStart(2, "0")}` : "General",
+        time: new Date(fb.created_at).toLocaleDateString("vi-VN") + " " + new Date(fb.created_at).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }),
+        resolved: fb.status === "Resolved",
+        reply_content: fb.reply_content,
+        reply_author: fb.reply_author
+    }));
+
+    const togglePublish = async (mediaAssetId: string, currentPublished: boolean) => {
+        try {
+            const nextPublished = !currentPublished;
+            await fetchApi(`/projects/gallery/${mediaAssetId}/publish?published=${nextPublished}`, {
+                method: "PUT"
+            });
+            setProject((prev: any) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    gallery: (prev.gallery || []).map((g: any) => 
+                        g.id === mediaAssetId ? { ...g, published: nextPublished } : g
+                    )
+                };
+            });
+        } catch (e) {
+            console.error("Failed to toggle publish status:", e);
+        }
+    };
+
+    const handleDeleteMedia = async (mediaAssetId: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa file này khỏi dự án?")) return;
+        try {
+            await fetchApi(`/projects/gallery/${mediaAssetId}`, {
+                method: "DELETE"
+            });
+            setProject((prev: any) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    gallery: (prev.gallery || []).filter((g: any) => g.id !== mediaAssetId)
+                };
+            });
+        } catch (e) {
+            console.error("Failed to delete media asset:", e);
+        }
+    };
+
+    const resolveFeedback = async (id: number, currentStatus: boolean) => {
+        try {
+            const nextStatus = currentStatus ? "Open" : "Resolved";
+            await fetchApi(`/projects/feedback/${id}/status?status_val=${nextStatus}`, {
+                method: "PUT"
+            });
+            setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, status: nextStatus } : f));
+        } catch (e) {
+            console.error("Failed to update feedback status:", e);
+        }
+    };
+
+    const handleSendReply = async (id: number) => {
+        const text = replyText[id]?.trim();
+        if (!text) return;
+        try {
+            await fetchApi<any>(`/projects/feedback/${id}/reply`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    reply_content: text,
+                    reply_author: "Admin"
+                })
+            });
+            setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, reply_content: text, reply_author: "Admin" } : f));
+            setReplyText(prev => ({ ...prev, [id]: "" }));
+        } catch (e) {
+            console.error("Failed to reply to feedback:", e);
+        }
+    };
+
+    const handleFileUpload = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*,video/*";
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+            setIsUploading(true);
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("project_slug", project.slug);
+                formData.append("folder", "project/gallery");
+                
+                const token = localStorage.getItem("token");
+                const headers: Record<string, string> = {};
+                if (token) {
+                    headers["Authorization"] = `Bearer ${token}`;
+                }
+                const response = await fetch("/api/media/upload", {
+                    method: "POST",
+                    headers,
+                    body: formData
+                });
+                if (!response.ok) throw new Error("Upload failed");
+                
+                const updatedProj = await fetchApi<any>(`/projects/${project.slug}`);
+                setProject(updatedProj);
+            } catch (err) {
+                console.error("Failed to upload project media:", err);
+                alert("Upload file thất bại. Vui lòng thử lại!");
+            } finally {
+                setIsUploading(false);
+            }
+        };
+        input.click();
+    };
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -1184,7 +1300,7 @@ function MediaAdminTab({ project }: { project: any }) {
             <div style={{ display: "flex", gap: "4px", background: "rgba(29,22,22,0.4)", borderRadius: "10px", padding: "4px", border: "1px solid rgba(46,32,32,0.5)" }}>
                 {[
                     { id: "grid", label: "📁 Thư viện Media" },
-                    { id: "feedback", label: `💬 Phản hồi KH (${feedback.filter(f => !f.resolved).length} chưa xử lý)` },
+                    { id: "feedback", label: `💬 Phản hồi KH (${formattedFeedbacks.filter(f => !f.resolved).length} chưa xử lý)` },
                 ].map(tab => (
                     <button key={tab.id} onClick={() => setMediaView(tab.id as any)} style={{ flex: 1, padding: "7px 10px", borderRadius: "7px", border: "none", cursor: "pointer", background: mediaView === tab.id ? "#D84040" : "transparent", color: mediaView === tab.id ? "#fff" : "#666", fontSize: "12px", fontWeight: mediaView === tab.id ? 600 : 400, transition: "all 0.15s" }}>
                         {tab.label}
@@ -1195,32 +1311,51 @@ function MediaAdminTab({ project }: { project: any }) {
             {mediaView === "grid" ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
                     {media.map(file => (
-                        <div key={file.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: `1px solid ${file.published ? "rgba(76,175,80,0.3)" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)" }}>
+                        <div key={file.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: `1px solid ${file.published ? "rgba(76,175,80,0.3)" : "rgba(46,32,32,0.6)"}`, backdropFilter: "blur(8px)", position: "relative" }}>
+                            <button 
+                                onClick={() => handleDeleteMedia(file.id)}
+                                style={{ position: "absolute", top: "5px", right: "5px", padding: "4px", background: "rgba(0,0,0,0.6)", borderRadius: "50%", border: "none", cursor: "pointer", color: "#f87171", zIndex: 10 }}
+                                title="Xóa khỏi dự án"
+                            >
+                                <Trash2 size={11} />
+                            </button>
                             <div style={{ height: "80px", background: file.type === "video" ? "rgba(216,64,64,0.08)" : "rgba(107,143,214,0.08)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)" }}>
                                 {file.type === "video" ? <PlayCircle size={26} color="#D84040" style={{ opacity: 0.6 }} /> : <ImageIcon size={26} color="#6B8FD6" style={{ opacity: 0.6 }} />}
                             </div>
                             <div style={{ padding: "8px 10px" }}>
-                                <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</p>
-                                <p style={{ color: "#555", fontSize: "9px", marginBottom: "8px" }}>{file.size} · {file.uploaded}{file.comments > 0 && <span style={{ color: "#E8A838", marginLeft: "4px" }}>· {file.comments} cmts</span>}</p>
-                                <button onClick={() => togglePublish(file.id)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
+                                <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                                <p style={{ color: "#555", fontSize: "9px", marginBottom: "8px" }}>{file.size} · {file.uploaded}</p>
+                                <button onClick={() => togglePublish(file.id, file.published)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
                                     {file.published ? <><Unlock size={9} /> Published</> : <><Lock size={9} /> Publish to Client</>}
                                 </button>
                             </div>
                         </div>
                     ))}
-                    <div style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "130px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
+                    <div 
+                        onClick={handleFileUpload}
+                        style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "130px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.background = "rgba(216,64,64,0.05)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.background = "transparent"; }}>
-                        <Upload size={18} color="#555" />
-                        <span style={{ color: "#555", fontSize: "10px" }}>Upload file</span>
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.background = "transparent"; }}
+                    >
+                        {isUploading ? (
+                            <>
+                                <Loader2 size={18} color="#D84040" className="animate-spin" />
+                                <span style={{ color: "#D84040", fontSize: "10px" }}>Đang upload...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Upload size={18} color="#555" />
+                                <span style={{ color: "#555", fontSize: "10px" }}>Upload file</span>
+                            </>
+                        )}
                     </div>
                 </div>
             ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {feedback.map(fb => (
+                    {formattedFeedbacks.map(fb => (
                         <div key={fb.id} style={{ borderRadius: "10px", padding: "12px 14px", background: fb.resolved ? "rgba(29,22,22,0.3)" : "rgba(232,168,56,0.06)", border: `1px solid ${fb.resolved ? "rgba(46,32,32,0.4)" : "rgba(232,168,56,0.25)"}`, backdropFilter: "blur(8px)", opacity: fb.resolved ? 0.6 : 1, transition: "all 0.2s" }}>
                             <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                                <AvatarBubble initials="KH" size={28} color="#1E3A5F" />
+                                <AvatarBubble initials={fb.user === "Admin" ? "AD" : "KH"} size={28} color={fb.user === "Admin" ? "#8E1616" : "#1E3A5F"} />
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px", flexWrap: "wrap" }}>
                                         <span style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 600 }}>{fb.user}</span>
@@ -1228,13 +1363,44 @@ function MediaAdminTab({ project }: { project: any }) {
                                         <span style={{ color: "#555", fontSize: "9px" }}>{fb.time}</span>
                                     </div>
                                     <p style={{ color: fb.resolved ? "#555" : "#EEEEEE", fontSize: "11px", lineHeight: 1.5 }}>{fb.text}</p>
+                                    
+                                    {/* Existing reply display */}
+                                    {fb.reply_content && (
+                                        <div style={{ marginTop: "10px", padding: "8px 10px", borderRadius: "6px", background: "rgba(0,0,0,0.2)", borderLeft: "2px solid #D84040" }}>
+                                            <p style={{ fontSize: "9px", color: "#888", fontWeight: 600, marginBottom: "2px" }}>{fb.reply_author || "Admin"} phản hồi:</p>
+                                            <p style={{ fontSize: "10.5px", color: "#ddd" }}>{fb.reply_content}</p>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Inline reply form */}
+                                    {!fb.reply_content && !fb.resolved && (
+                                        <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                                            <input 
+                                                placeholder="Viết phản hồi..." 
+                                                value={replyText[fb.id] || ""}
+                                                onChange={e => setReplyText(p => ({ ...p, [fb.id]: e.target.value }))}
+                                                className="px-2 py-1 rounded outline-none flex-1 text-xs"
+                                                style={{ background: "#241C1C", border: "1px solid #3E2F2F", color: "#EEEEEE" }}
+                                            />
+                                            <button 
+                                                onClick={() => handleSendReply(fb.id)}
+                                                className="px-3 py-1 rounded text-[10px] font-bold text-white transition-opacity hover:opacity-85"
+                                                style={{ background: "#D84040" }}
+                                            >
+                                                Gửi
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                                <button onClick={() => resolveFeedback(fb.id)} style={{ flexShrink: 0, padding: "4px 8px", borderRadius: "6px", border: "none", background: fb.resolved ? "rgba(76,175,80,0.15)" : "rgba(29,22,22,0.6)", color: fb.resolved ? "#4CAF50" : "#666", fontSize: "9px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}>
+                                <button onClick={() => resolveFeedback(fb.id, fb.resolved)} style={{ flexShrink: 0, padding: "4px 8px", borderRadius: "6px", border: "none", background: fb.resolved ? "rgba(76,175,80,0.15)" : "rgba(29,22,22,0.6)", color: fb.resolved ? "#4CAF50" : "#666", fontSize: "9px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}>
                                     <CheckCheck size={9} /> {fb.resolved ? "Xong" : "Đánh dấu"}
                                 </button>
                             </div>
                         </div>
                     ))}
+                    {formattedFeedbacks.length === 0 && (
+                        <p style={{ color: "#666", fontSize: "12px", textAlign: "center" }} className="py-8">Chưa có phản hồi nào từ khách hàng.</p>
+                    )}
                 </div>
             )}
         </div>
@@ -1490,6 +1656,7 @@ export function ProjectDetailPage() {
 
     // Admin command center tab
     const [adminTab, setAdminTab] = useState<"overview" | "kanban" | "financials" | "media" | "vault">("overview");
+    const [feedbacks, setFeedbacks] = useState<any[]>([]);
 
     const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm({});
 
@@ -1500,8 +1667,9 @@ export function ProjectDetailPage() {
             fetchApi('/categories'),
             fetchApi('/crew'),
             fetchApi('/finance/expenses').catch(() => []),
-            fetchApi('/finance/invoices').catch(() => [])
-        ]).then(([projData, clientsData, categoriesData, crewData, expensesData, invoicesData]) => {
+            fetchApi('/finance/invoices').catch(() => []),
+            fetchApi(`/projects/${id}/feedback`).catch(() => [])
+        ]).then(([projData, clientsData, categoriesData, crewData, expensesData, invoicesData, feedbackData]) => {
             setProject(projData);
             setIsFeatured(!!projData.featured);
             setIsPublished(!!projData.published);
@@ -1511,6 +1679,7 @@ export function ProjectDetailPage() {
             setDbCrew(crewData);
             setExpenses(expensesData || []);
             setInvoices(invoicesData || []);
+            setFeedbacks(feedbackData || []);
             setGalleryImages(projData.gallery || []);
             reset({
                 title: projData.title,
@@ -1884,7 +2053,7 @@ export function ProjectDetailPage() {
                 {adminTab === "overview" && <OverviewAdminTab project={project} navigate={navigate} />}
                 {adminTab === "kanban" && <KanbanTab />}
                 {adminTab === "financials" && <FinancialsTab project={project} expenses={expenses} invoices={invoices} dbClients={dbClients} setInvoices={setInvoices} />}
-                {adminTab === "media" && <MediaAdminTab project={project} />}
+                {adminTab === "media" && <MediaAdminTab project={project} feedbacks={feedbacks} setFeedbacks={setFeedbacks} setProject={setProject} />}
                 {adminTab === "vault" && <VaultTab project={project} />}
             </div>
 
