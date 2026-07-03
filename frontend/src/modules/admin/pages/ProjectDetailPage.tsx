@@ -1312,9 +1312,14 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                             >
                                 <Trash2 size={11} />
                             </button>
-                            <div style={{ height: "80px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden" }}>
+                            <div style={{ height: "80px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden", position: "relative" }}>
                                 {file.type === "video" ? (
-                                    <PlayCircle size={26} color="#D84040" style={{ opacity: 0.6 }} />
+                                    <>
+                                        <video src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
+                                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.2)" }}>
+                                            <PlayCircle size={24} color="#D84040" style={{ opacity: 0.8 }} />
+                                        </div>
+                                    </>
                                 ) : file.type === "image" ? (
                                     <img src={file.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt={file.name} />
                                 ) : (

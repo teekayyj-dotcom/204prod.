@@ -1010,7 +1010,9 @@ export function CrewProjectsPage() {
                 >
                   <Film size={15} style={{ color: "#D84040", flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
-                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                    <a href={file.url} target="_blank" rel="noreferrer" className="hover:underline">
+                      <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                    </a>
                     <p style={{ color: "#555", fontSize: "10px" }}>
                       {file.size} · {file.uploaded}
                     </p>
