@@ -21,8 +21,10 @@ import {
   FolderOpen,
   Plus,
   MonitorPlay,
+  Loader2,
 } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
+import { uploadMediaPipeline } from "../../../utils/imagePipeline";
 
 
 type TaskStatus = "todo" | "inprogress" | "review" | "done";
@@ -244,22 +246,15 @@ export function CrewProjectsPage() {
       if (!file) return;
       setIsUploading(true);
       try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("project_slug", selectedProject.id);
-        formData.append("folder", "project/gallery");
-        
-        const token = localStorage.getItem("token");
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-        const response = await fetch("/api/media/upload", {
-          method: "POST",
-          headers,
-          body: formData
-        });
-        if (!response.ok) throw new Error("Upload failed");
+        await uploadMediaPipeline(
+          file,
+          "projects",
+          fetchApi,
+          undefined,
+          null,
+          selectedProject.id,
+          "project/gallery"
+        );
         
         await fetchProjects();
       } catch (err) {

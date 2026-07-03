@@ -1265,22 +1265,15 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
             if (!file) return;
             setIsUploading(true);
             try {
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("project_slug", project.slug);
-                formData.append("folder", "project/gallery");
-                
-                const token = localStorage.getItem("token");
-                const headers: Record<string, string> = {};
-                if (token) {
-                    headers["Authorization"] = `Bearer ${token}`;
-                }
-                const response = await fetch("/api/media/upload", {
-                    method: "POST",
-                    headers,
-                    body: formData
-                });
-                if (!response.ok) throw new Error("Upload failed");
+                await uploadMediaPipeline(
+                    file,
+                    "projects",
+                    fetchApi,
+                    undefined,
+                    null,
+                    project.slug,
+                    "project/gallery"
+                );
                 
                 const updatedProj = await fetchApi<any>(`/projects/${project.slug}`);
                 setProject(updatedProj);
