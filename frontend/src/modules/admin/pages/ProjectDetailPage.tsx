@@ -1910,7 +1910,7 @@ export function ProjectDetailPage() {
 
             let finalVideoUrl = data.videoUrl;
             if (uploadedVideo) {
-                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, project.slug, "demo (admin dashboard)");
+                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, project.slug, "final video");
                 finalVideoUrl = mediaAsset.url;
             }
 

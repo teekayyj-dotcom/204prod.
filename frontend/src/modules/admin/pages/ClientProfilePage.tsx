@@ -136,10 +136,7 @@ export function ClientProfilePage() {
                     proposals: parsedCrm?.proposals || [],
                     activity_logs: parsedCrm?.activity_logs || [],
                     appointments: parsedCrm?.appointments || [],
-                    documents: parsedCrm?.documents || [
-                        { id: "doc-1", name: "Hợp đồng nguyên tắc (Master Agreement)", type: "Master Agreement", url: "#" },
-                        { id: "doc-2", name: "Thỏa thuận bảo mật thông tin (NDA)", type: "NDA", url: "#" }
-                    ],
+                    documents: parsedCrm?.documents || [],
                     raw_notes: parsedCrm?.raw_notes || (!data.notes?.trim().startsWith("{") ? data.notes : "") || "",
                     tier: parsedCrm?.tier || "SME",
                 };
@@ -301,17 +298,14 @@ export function ClientProfilePage() {
             tax_code: parsedCrm?.tax_code || "",
             invoice_address: parsedCrm?.invoice_address || "",
             poc_list: parsedCrm?.poc_list || (client?.contact ? [{ name: client.contact, phone: client.phone || "", email: client.email || "", role: "Người liên hệ chính" }] : []),
-            assignee: parsedCrm?.assignee || "Sarah Kim",
+            assignee: parsedCrm?.assignee || "",
             ltv: parsedCrm?.ltv || client?.total_budget || 0,
             outstanding_balance: parsedCrm?.outstanding_balance || 0,
             invoices: parsedCrm?.invoices || [],
             proposals: parsedCrm?.proposals || [],
             activity_logs: parsedCrm?.activity_logs || [],
             appointments: parsedCrm?.appointments || [],
-            documents: parsedCrm?.documents || [
-                { id: "doc-1", name: "Hợp đồng nguyên tắc (Master Agreement)", type: "Master Agreement", url: "#" },
-                { id: "doc-2", name: "Thỏa thuận bảo mật thông tin (NDA)", type: "NDA", url: "#" }
-            ],
+            documents: parsedCrm?.documents || [],
             raw_notes: parsedCrm?.raw_notes || (!client?.notes?.trim().startsWith("{") ? client.notes : "") || "",
             tier: parsedCrm?.tier || "SME",
         });
@@ -762,11 +756,11 @@ export function ClientProfilePage() {
                                 ) : (
                                     <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.6)", border: "1px solid #2A1F1F" }}>
                                         <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ background: "#8E1616", color: "#fff", fontSize: "11px", fontWeight: 700 }}>
-                                            {crmData.assignee?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() || "AM"}
+                                            {crmData.assignee ? crmData.assignee.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() : "?"}
                                         </div>
                                         <div>
-                                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{crmData.assignee || "Chưa phân công"}</p>
-                                            <p style={{ color: "#666", fontSize: "11px" }}>Account Manager</p>
+                                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{crmData.assignee || "Chưa có nhân viên chăm sóc"}</p>
+                                            {crmData.assignee && <p style={{ color: "#666", fontSize: "11px" }}>Account Manager</p>}
                                         </div>
                                     </div>
                                 )}

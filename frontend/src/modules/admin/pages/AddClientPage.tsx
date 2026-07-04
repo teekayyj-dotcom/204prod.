@@ -75,17 +75,14 @@ export function AddClientPage() {
                         role: "Người liên hệ chính"
                     }
                 ],
-                assignee: "Sarah Kim",
+                assignee: "",
                 ltv: parseInt(data.budget ? data.budget.replace(/[$,]/g, "") : "0") || 0,
                 outstanding_balance: 0,
                 invoices: [],
                 proposals: [],
                 activity_logs: [],
                 appointments: [],
-                documents: [
-                    { id: "doc-1", name: "Hợp đồng nguyên tắc (Master Agreement)", type: "Master Agreement", url: "#" },
-                    { id: "doc-2", name: "Thỏa thuận bảo mật thông tin (NDA)", type: "NDA", url: "#" }
-                ],
+                documents: [],
                 raw_notes: data.notes || "",
                 tier: selectedTier,
             };

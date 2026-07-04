@@ -165,16 +165,36 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
               try {
                 const userObj = JSON.parse(localStorage.getItem("user") || "{}");
                 const avatar = userObj.avatar_url || userObj.avatar || userObj.photo_url || userObj.photoURL;
-                if (avatar) {
-                  return <img src={avatar} alt="User Avatar" className="w-full h-full object-cover" />;
-                }
                 const name = userObj.display_name || userObj.username || "Crew";
-                return name
+                const initials = name
                   .split(" ")
                   .map((n: string) => n[0])
                   .join("")
                   .substring(0, 2)
                   .toUpperCase();
+
+                if (avatar && avatar !== "null" && avatar !== "undefined") {
+                  return (
+                    <>
+                      <img 
+                        src={avatar} 
+                        alt="User Avatar" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                          if (fallback) {
+                            (fallback as HTMLElement).style.display = 'flex';
+                          }
+                        }}
+                      />
+                      <div className="w-full h-full items-center justify-center hidden" style={{ display: 'none' }}>
+                        {initials}
+                      </div>
+                    </>
+                  );
+                }
+                return initials;
               } catch {
                 return "CR";
               }

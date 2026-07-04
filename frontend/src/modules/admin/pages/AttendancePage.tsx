@@ -42,6 +42,7 @@ interface CheckInLog {
   avatar: string;
   action: "check-in" | "check-out";
   time: string;
+  date: string;
   status: LogStatus;
   note?: string;
 }
@@ -52,6 +53,7 @@ const mapDbToLog = (m: any): CheckInLog => ({
   avatar: m.avatar,
   action: m.action,
   time: m.time,
+  date: m.date,
   status: m.status,
   note: m.note
 });
@@ -176,7 +178,9 @@ function OverviewTab({ liveLog, stats }: OverviewTabProps) {
     return () => clearInterval(id);
   }, []);
 
-  const visibleLogs = liveLog.slice(0, 5 + (tick % 4));
+  const visibleLogs = liveLog
+    .filter(log => log.date === new Date().toISOString().split("T")[0])
+    .slice(0, 5 + (tick % 4));
 
   const workingCount = stats?.workingCount || 0;
   const wfhCount = stats?.wfhCount || 0;

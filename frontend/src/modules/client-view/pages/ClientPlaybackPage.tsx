@@ -46,6 +46,27 @@ export function ClientPlaybackPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const isAdmin = location.pathname.startsWith("/admin");
+    
+    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+    const [currentUserName, setCurrentUserName] = useState<string>(() => {
+        if (isAdmin) return "Admin";
+        return userObj.display_name || userObj.username || "Guest";
+    });
+
+    useEffect(() => {
+        // Automatically try to fetch the latest real name from database for crew members
+        if (!isAdmin && userObj.email) {
+            fetchApi<any[]>("/crew").then(members => {
+                const me = members.find(m => m.email === userObj.email);
+                if (me && me.name) {
+                    setCurrentUserName(me.name);
+                    // Also update localStorage so it's fresh for next time
+                    userObj.display_name = me.name;
+                    localStorage.setItem("user", JSON.stringify(userObj));
+                }
+            }).catch(() => {});
+        }
+    }, [isAdmin, userObj.email]);
 
     const [project, setProject] = useState<ProjectData | null>(null);
     const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -59,6 +80,7 @@ export function ClientPlaybackPage() {
     const containerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const sidebarInputRef = useRef<HTMLInputElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -192,13 +214,13 @@ export function ClientPlaybackPage() {
                 togglePlay();
             } else if (e.key === "ArrowLeft") {
                 e.preventDefault();
-                const newTime = Math.max(0, currentTime - 10);
+                const newTime = Math.max(0, currentTime - 3);
                 if (videoRef.current) { videoRef.current.currentTime = newTime; }
                 else { sendBunnyCommand("seekTo", newTime); }
                 setCurrentTime(newTime);
             } else if (e.key === "ArrowRight") {
                 e.preventDefault();
-                const newTime = Math.min(duration || 9999, currentTime + 10);
+                const newTime = Math.min(duration || 9999, currentTime + 3);
                 if (videoRef.current) { videoRef.current.currentTime = newTime; }
                 else { sendBunnyCommand("seekTo", newTime); }
                 setCurrentTime(newTime);
@@ -210,6 +232,16 @@ export function ClientPlaybackPage() {
             window.removeEventListener("keydown", handleKeyDown);
         };
     }, [duration, currentTime, isPlaying]);
+
+    // Auto-focus the sidebar comment input when the video is paused
+    useEffect(() => {
+        if (!isPlaying && !isFeedbackMode) {
+            // Use a slight delay to allow the DOM to render if necessary
+            setTimeout(() => {
+                sidebarInputRef.current?.focus();
+            }, 50);
+        }
+    }, [isPlaying, isFeedbackMode]);
 
     // Loop to update playhead time at millisecond precision during playback
     useEffect(() => {
@@ -347,7 +379,7 @@ export function ClientPlaybackPage() {
                 position_y: parseFloat(tempPin.y.toFixed(3)),
                 content: commentText.trim(),
                 video_url: videoToPlay,
-                user_id: isAdmin ? "Admin" : "Alex Johnson",
+                user_id: currentUserName,
                 status: "Open"
             };
 
@@ -377,7 +409,8 @@ export function ClientPlaybackPage() {
                 position_x: -1,
                 position_y: -1,
                 content: sidebarComment.trim(),
-                user_id: isAdmin ? "Admin" : "Alex Johnson",
+                video_url: videoToPlay,
+                user_id: currentUserName,
                 status: "Open"
             };
 
@@ -404,7 +437,7 @@ export function ClientPlaybackPage() {
                 },
                 body: JSON.stringify({
                     reply_content: replyText.trim(),
-                    reply_author: isAdmin ? "Admin" : "Alex Johnson"
+                    reply_author: currentUserName
                 })
             });
             setFeedbacks(prev => prev.map(f => f.id === fbId ? updated : f));
@@ -502,8 +535,8 @@ export function ClientPlaybackPage() {
     const isDirectVideo = !isEmbedVideo && !!videoToPlay;
     const finalVideoSource = isDirectVideo ? videoToPlay : defaultSampleVideo;
 
-    // Filter feedback that is active (showing within 1.5s window of current time)
-    const activePins = feedbacks.filter(f => Math.abs(f.timecode - currentTime) < 1.5);
+    // Determine which pins should be currently visible (within a 0.5s window: 0.25s before and after)
+    const activePins = feedbacks.filter(f => Math.abs(f.timecode - currentTime) <= 0.25);
 
     return (
         <div className="flex h-screen bg-[#0A0707] text-[#EEEEEE] overflow-hidden">
@@ -708,7 +741,7 @@ export function ClientPlaybackPage() {
                         <div className="flex items-center gap-1.5 justify-start">
                             <button
                                 onClick={() => {
-                                    const newTime = Math.max(0, currentTime - 10);
+                                    const newTime = Math.max(0, currentTime - 3);
                                     if (videoRef.current) {
                                         videoRef.current.currentTime = newTime;
                                     } else {
@@ -717,7 +750,7 @@ export function ClientPlaybackPage() {
                                     setCurrentTime(newTime);
                                 }}
                                 className="w-8 h-8 rounded-full bg-[#1D1616]/40 border border-[#2E2020]/60 hover:bg-[#2A1F1F]/60 hover:border-[#D84040]/70 hover:text-white text-gray-400 flex items-center justify-center transition-all duration-200 backdrop-blur-sm shadow"
-                                title="Tua lại 10 giây (←)"
+                                title="Tua lại 3 giây (←)"
                             >
                                 <Rewind size={12} />
                             </button>
@@ -732,7 +765,7 @@ export function ClientPlaybackPage() {
 
                             <button
                                 onClick={() => {
-                                    const newTime = Math.min(duration || 9999, currentTime + 10);
+                                    const newTime = Math.min(duration || 9999, currentTime + 3);
                                     if (videoRef.current) {
                                         videoRef.current.currentTime = newTime;
                                     } else {
@@ -741,7 +774,7 @@ export function ClientPlaybackPage() {
                                     setCurrentTime(newTime);
                                 }}
                                 className="w-8 h-8 rounded-full bg-[#1D1616]/40 border border-[#2E2020]/60 hover:bg-[#2A1F1F]/60 hover:border-[#D84040]/70 hover:text-white text-gray-400 flex items-center justify-center transition-all duration-200 backdrop-blur-sm shadow"
-                                title="Tua đi 10 giây (→)"
+                                title="Tua đi 3 giây (→)"
                             >
                                 <FastForward size={12} />
                             </button>
@@ -964,10 +997,11 @@ export function ClientPlaybackPage() {
                     <form onSubmit={handleSidebarCommentSubmit} className="space-y-2.5">
                         <div className="flex items-center justify-between text-[11px] text-gray-500">
                             <span>Góp ý nhanh tại {formatTimecode(currentTime)}</span>
-                            <span className="font-semibold text-gray-400">{isAdmin ? "Admin" : "Alex Johnson"}</span>
+                            <span className="font-semibold text-gray-400">{currentUserName}</span>
                         </div>
                         <div className="flex gap-2">
                             <input
+                                ref={sidebarInputRef}
                                 type="text"
                                 value={sidebarComment}
                                 onChange={(e) => setSidebarComment(e.target.value)}

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Clapperboard,
   Clock,
@@ -107,6 +107,7 @@ function Countdown({ deadline }: { deadline: Date }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewProjectsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [uploadingFiles, setUploadingFiles] = useState<{ id: string, name: string, progress: number, type: string, previewUrl: string }[]>([]);
@@ -138,6 +139,11 @@ export function CrewProjectsPage() {
         setProjectsList(mapped);
         
         setSelectedProject((prev: any) => {
+          const defaultSlug = searchParams.get("project");
+          if (defaultSlug) {
+            const found = mapped.find((p: any) => p.id === defaultSlug);
+            if (found) return found;
+          }
           if (!prev) return mapped[0];
           const updated = mapped.find((p: any) => p.id === prev.id);
           return updated || mapped[0];
@@ -294,6 +300,10 @@ export function CrewProjectsPage() {
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
   const deliverables = selectedProject ? (selectedProject.gallery || []).filter((f: any) => f.folder === "deliverables" || f.folder === "demo (admin dashboard)") : [];
+  const lastDemo = [...deliverables].reverse().find((f: any) => f.type === 'video');
+  const playbackUrl = lastDemo 
+    ? `/crew-dashboard/projects/${selectedProject?.id}/playback?video=${encodeURIComponent(lastDemo.url)}` 
+    : `/crew-dashboard/projects/${selectedProject?.id}/playback`;
 
   const [showBadge, setShowBadge] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
@@ -573,11 +583,14 @@ export function CrewProjectsPage() {
         </div>
         <div className="flex justify-end">
           <button
-            onClick={() => navigate(playbackUrl)}
-            className="px-4 py-2 rounded-lg flex items-center gap-2 border text-xs font-bold transition-all cursor-pointer"
+            onClick={() => {
+              if (lastDemo) navigate(playbackUrl);
+              else alert("Chưa có bản demo video nào được upload vào thư mục deliverables.");
+            }}
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 border text-xs font-bold transition-all ${lastDemo ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
             style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", borderColor: "#D84040", color: "#D84040" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#D84040"; e.currentTarget.style.color = "#EEEEEE"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(29, 22, 22, 0.4)"; e.currentTarget.style.color = "#D84040"; }}
+            onMouseEnter={(e) => { if (lastDemo) { e.currentTarget.style.background = "#D84040"; e.currentTarget.style.color = "#EEEEEE"; } }}
+            onMouseLeave={(e) => { if (lastDemo) { e.currentTarget.style.background = "rgba(29, 22, 22, 0.4)"; e.currentTarget.style.color = "#D84040"; } }}
           >
             <MonitorPlay size={14} />
             Mở phòng chiếu & Phản hồi (Cinema Review)

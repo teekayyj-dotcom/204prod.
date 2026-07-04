@@ -35,6 +35,7 @@ class GalleryImageDetail(BaseModel):
     type: str | None = None
     uploaded: str | None = None
     published: bool = False
+    folder: str | None = None
 
 
 class ProjectDetail(ProjectSummary):

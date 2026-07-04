@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchApi } from "../../admin/utils/apiClient";
+import { useNavigate } from "react-router-dom";
 import {
   Clock,
   CheckSquare,
@@ -106,6 +107,7 @@ function useCheckinTimer() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewWorkspacePage() {
+  const navigate = useNavigate();
   const { isCheckedIn, elapsed, checkIn, checkOut, format } = useCheckinTimer();
   const [tasks, setTasks] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -140,10 +142,10 @@ export function CrewWorkspacePage() {
       })));
     }).catch(console.error);
 
-    fetchApi("/crew/members").then(data => {
+    fetchApi("/crew").then(data => {
       const me = data.find((m: any) => m.name === getUserName() || m.email === JSON.parse(localStorage.getItem("user") || "{}").email);
       if (me) {
-        setActiveProjectsCount(me.projects_count || 0);
+        setActiveProjectsCount(me.assigned_projects || 0);
       }
     }).catch(console.error);
     
@@ -168,6 +170,21 @@ export function CrewWorkspacePage() {
 
   const pendingTasks = tasks.filter((t) => t.status !== "done");
   const doneTasks = tasks.filter((t) => t.status === "done");
+
+  const nowTime = new Date();
+  const todayStart = new Date(nowTime.getFullYear(), nowTime.getMonth(), nowTime.getDate()).getTime();
+  const todayEnd = new Date(nowTime.getFullYear(), nowTime.getMonth(), nowTime.getDate(), 23, 59, 59, 999).getTime();
+
+  const todayTasks = tasks.filter((t) => {
+    if (!t.deadline) return false;
+    const dl = new Date(t.deadline).getTime();
+    if (t.status !== "done") return dl <= todayEnd;
+    return dl >= todayStart && dl <= todayEnd;
+  });
+
+  const pendingTodayTasks = todayTasks.filter((t) => t.status !== "done");
+  const doneTodayTasks = todayTasks.filter((t) => t.status === "done");
+  const todayProgressPercent = todayTasks.length > 0 ? Math.round((doneTodayTasks.length / todayTasks.length) * 100) : 0;
 
   const priorityColor = (p: string) => {
     if (p === "high") return "#D84040";
@@ -363,7 +380,7 @@ export function CrewWorkspacePage() {
                   Việc cần làm hôm nay
                 </h2>
                 <p style={{ color: "#555", fontSize: "12px", marginTop: "2px" }}>
-                  {pendingTasks.length} việc còn lại · {doneTasks.length} hoàn thành
+                  {pendingTodayTasks.length} việc còn lại · {doneTodayTasks.length} hoàn thành
                 </p>
               </div>
               <div
@@ -386,24 +403,22 @@ export function CrewWorkspacePage() {
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
-                    width: `${(doneTasks.length / tasks.length) * 100}%`,
+                    width: `${todayProgressPercent}%`,
                     background: "linear-gradient(90deg, #8E1616, #D84040)",
                   }}
                 />
               </div>
               <p style={{ color: "#555", fontSize: "11px", marginTop: "4px", textAlign: "right" }}>
-                {Math.round((doneTasks.length / tasks.length) * 100)}% hoàn thành
+                {todayProgressPercent}% hoàn thành
               </p>
             </div>
 
             <div className="space-y-2">
-              {tasks.map((task) => (
-                <button
+              {todayTasks.map((task) => (
+                <div
                   key={task.id}
-                  onClick={() => toggleTask(task.id)}
                   className="w-full flex items-start gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200"
                   style={{
-                    cursor: "pointer",
                     background: task.status === "done" ? "#0A0707" : "#1D1616",
                     border: `1px solid ${task.status === "done" ? "#1D1616" : "#2A1F1F"}`,
                     opacity: task.status === "done" ? 0.55 : 1,
@@ -416,13 +431,22 @@ export function CrewWorkspacePage() {
                     if (task.status !== "done") (e.currentTarget as HTMLElement).style.borderColor = "#2A1F1F";
                   }}
                 >
-                  {task.status === "done" ? (
-                    <CheckSquare size={20} color="#D84040" />
-                  ) : (
-                    <Square size={20} color="#555" />
-                  )}
-                  <div className="flex-1">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+                    className="flex-shrink-0 cursor-pointer hover:opacity-80 mt-0.5"
+                  >
+                    {task.status === "done" ? (
+                      <CheckSquare size={20} color="#D84040" />
+                    ) : (
+                      <Square size={20} color="#555" />
+                    )}
+                  </button>
+                  <div 
+                    className="flex-1 cursor-pointer group" 
+                    onClick={() => navigate(`/crew-dashboard/projects?project=${task.project_slug || ''}`)}
+                  >
                     <p
+                      className="group-hover:text-[#D84040] transition-colors"
                       style={{
                         color: task.status === "done" ? "#555" : "#EEEEEE",
                         fontSize: "14px",
@@ -438,7 +462,7 @@ export function CrewWorkspacePage() {
                         {task.project_title || (task.project && typeof task.project === 'object' ? task.project.title : task.project)}
                       </span>
                       {task.deadline && (
-                        <span style={{ color: "#666", fontSize: "11px" }}>{task.deadline}</span>
+                        <span style={{ color: "#666", fontSize: "11px" }}>{new Date(task.deadline).toLocaleDateString('vi-VN')}</span>
                       )}
                     </div>
                   </div>
@@ -447,8 +471,13 @@ export function CrewWorkspacePage() {
                     style={{ background: priorityColor(task.priority) }}
                     title={task.priority}
                   />
-                </button>
+                </div>
               ))}
+              {todayTasks.length === 0 && (
+                <div className="text-center py-6">
+                  <p style={{ color: "#666", fontSize: "13px" }}>Không có việc nào đến hạn hôm nay. Tuyệt vời!</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

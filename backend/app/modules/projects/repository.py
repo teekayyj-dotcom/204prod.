@@ -42,6 +42,7 @@ def _map_to_detail(p: Project) -> ProjectDetail:
                 "type": g.media_asset.kind,
                 "uploaded": g.media_asset.created_at.strftime("%Y-%m-%d") if g.media_asset.created_at else "",
                 "published": g.published,
+                "folder": g.media_asset.folder,
             }
             for g in p.gallery_images
             if g.media_asset

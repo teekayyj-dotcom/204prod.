@@ -1,8 +1,14 @@
 from sqlalchemy.orm import Session
 from app.modules.crew.models import CrewMember
 
+from app.modules.projects.models import ProjectCredit
+
 def get_crew_members(db: Session):
-    return db.query(CrewMember).all() 
+    members = db.query(CrewMember).all()
+    for m in members:
+        count = db.query(ProjectCredit).filter(ProjectCredit.name == m.name).count()
+        m.assigned_projects = count
+    return members
 
 def get_crew_member_by_id(db: Session, id: int):
     return db.query(CrewMember).filter(CrewMember.id == id).first()

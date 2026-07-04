@@ -410,13 +410,22 @@ export function MediaLibraryPage() {
                                 <div className="relative h-36 overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                     {asset.type === "video" ? (
                                         <div className="w-full h-full pointer-events-none relative overflow-hidden">
-                                            <iframe
-                                                src={asset.url}
-                                                loading="lazy"
-                                                style={{ border: "none", height: "100%", width: "100%" }}
-                                                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
-                                                className="pointer-events-none"
-                                            />
+                                            {asset.url?.includes("iframe.mediadelivery.net") ? (
+                                                <iframe
+                                                    src={asset.url}
+                                                    loading="lazy"
+                                                    style={{ border: "none", height: "100%", width: "100%" }}
+                                                    allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
+                                                    className="pointer-events-none"
+                                                />
+                                            ) : (
+                                                <video
+                                                    src={asset.url}
+                                                    muted
+                                                    playsInline
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            )}
                                             <div className="absolute inset-0 z-10" />
                                         </div>
                                     ) : asset.type === "image" ? (
@@ -562,13 +571,22 @@ export function MediaLibraryPage() {
                             <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
                         ) : previewAsset.type === "video" ? (
                             <div className="w-full h-full min-w-[60vw] min-h-[60vh] relative bg-black rounded-lg overflow-hidden shadow-2xl">
-                                <iframe
-                                    src={previewAsset.image}
-                                    loading="lazy"
-                                    style={{ border: "none", height: "100%", width: "100%", position: "absolute", top: 0, left: 0 }}
-                                    allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
-                                    allowFullScreen={true}
-                                />
+                                {previewAsset.image?.includes("iframe.mediadelivery.net") ? (
+                                    <iframe
+                                        src={previewAsset.image}
+                                        loading="lazy"
+                                        style={{ border: "none", height: "100%", width: "100%", position: "absolute", top: 0, left: 0 }}
+                                        allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
+                                        allowFullScreen={true}
+                                    />
+                                ) : (
+                                    <video
+                                        src={previewAsset.image}
+                                        controls
+                                        autoPlay
+                                        className="w-full h-full absolute inset-0 object-contain"
+                                    />
+                                )}
                             </div>
                         ) : (
                             <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl" style={{ background: "rgba(36, 28, 28, 0.9)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>

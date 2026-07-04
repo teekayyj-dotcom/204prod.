@@ -101,6 +101,7 @@ export function CrewHRPage() {
   const currentUserEmail = userObj.email || "";
 
   const [attendanceData, setAttendanceData] = useState<Record<number, { in: string; out: string; hours: number; type: string }>>({});
+  const [realProjects, setRealProjects] = useState<any[]>([]);
 
   useEffect(() => {
     // 1. Fetch Crew Info
@@ -178,6 +179,11 @@ export function CrewHRPage() {
         console.error("Error loading HR page data:", err);
         setLoadingMember(false);
       });
+
+    // Fetch Real Projects
+    fetchApi<any[]>("/projects")
+      .then((data) => setRealProjects(data))
+      .catch((err) => console.error("Error fetching projects:", err));
   }, [currentUserEmail, userObj.display_name, userObj.username]);
 
   const handleCancel = () => {
@@ -424,7 +430,7 @@ export function CrewHRPage() {
                     cursor: att ? "pointer" : "default",
                     opacity: isFuture ? 0.3 : 1,
                   }}
-                  title={att ? `${att.in} – ${att.out} (${att.hours}h)` : ""}
+                  title={att ? `${att.in} – ${att.out} (${Number(att.hours).toFixed(2)}h)` : ""}
                 >
                   <p
                     style={{
@@ -445,7 +451,7 @@ export function CrewHRPage() {
                         {att.out}
                       </p>
                       <p style={{ color: isToday ? "#EEEEEE" : style?.color, fontSize: "9px", fontWeight: 700, marginTop: "2px" }}>
-                        {att.hours}h
+                        {Number(att.hours).toFixed(2)}h
                       </p>
                     </>
                   )}
@@ -908,23 +914,27 @@ export function CrewHRPage() {
                     ))}
                   </div>
 
-                  {/* Assigned Projects Card */}
                   <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
                     <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
                       <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Dự án được phân công</p>
-                      <span style={{ color: "#D84040", fontSize: "12px" }}>{member.projects || 0} dự án</span>
+                      <span style={{ color: "#D84040", fontSize: "12px" }}>{member.assigned_projects || 0} dự án</span>
                     </div>
                     <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
-                      {allProjects.slice(0, member.projects || 2).map((p) => (
-                        <div key={p.id} className="flex items-center gap-4 px-5 py-3.5 transition-colors">
-                          <img src={p.image} alt={p.title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                      {realProjects.filter(p => p.credits?.some((c: string) => c.includes(member.name || ""))).length === 0 && (
+                        <div className="px-5 py-4 text-center">
+                          <p style={{ color: "#666", fontSize: "12px" }}>Chưa có dự án nào được phân công</p>
+                        </div>
+                      )}
+                      {realProjects.filter(p => p.credits?.some((c: string) => c.includes(member.name || ""))).map((p) => (
+                        <div key={p.slug} className="flex items-center gap-4 px-5 py-3.5 transition-colors">
+                          <img src={p.thumbnail_url || p.cover_image || "https://placehold.co/100x100"} alt={p.title} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{p.title}</p>
-                            <p style={{ color: "#666", fontSize: "11px" }}>{p.client} · {p.category}</p>
+                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{p.title || p.name}</p>
+                            <p style={{ color: "#666", fontSize: "11px" }}>{p.client_slug || "Client"} · {p.format_slug || "Format"}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: "rgba(216,64,64,0.15)", color: "#D84040" }}>
-                              {p.status}
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: "rgba(216,64,64,0.15)", color: "#D84040", textTransform: "capitalize" }}>
+                              {p.status || "In Progress"}
                             </span>
                           </div>
                         </div>

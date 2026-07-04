@@ -95,13 +95,42 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
         if crew_member:
             resolved_name = crew_member.name
 
+    resolved_status = status
+    if action == "check-in":
+        from app.modules.hr.models import Shift
+        try:
+            hh, mm = map(int, time.split(':'))
+            arrival_min = hh * 60 + mm
+            
+            shifts = db.query(Shift).all()
+            if shifts:
+                # Find the closest shift start time
+                closest_shift = None
+                min_diff = float('inf')
+                for s in shifts:
+                    s_hh, s_mm = map(int, s.start_time.split(':'))
+                    shift_start_min = s_hh * 60 + s_mm
+                    diff = abs(arrival_min - shift_start_min)
+                    if diff < min_diff:
+                        min_diff = diff
+                        closest_shift = shift_start_min
+                
+                if closest_shift is not None and arrival_min > closest_shift:
+                    resolved_status = "late"
+            else:
+                shift_start_min = 9 * 60  # Default 09:00 AM
+                if arrival_min > shift_start_min:
+                    resolved_status = "late"
+        except Exception:
+            pass
+
     db_log = AttendanceLog(
         employee_name=resolved_name,
         avatar=avatar,
         action=action,
         time=time,
         date=date,
-        status=status,
+        status=resolved_status,
         note=note
     )
     db.add(db_log)
@@ -326,10 +355,11 @@ def get_attendance_stats(db: Session) -> dict:
     wfh_count = 0
     late_count = 0
     
+    valid_crew_names = {c.name for c in crew}
     seen = set()
     for log in logs:
         emp_name = user_to_crew.get(log.employee_name, log.employee_name)
-        if emp_name not in seen:
+        if emp_name in valid_crew_names and emp_name not in seen:
             seen.add(emp_name)
             if log.action == "check-in":
                 working_count += 1
@@ -342,8 +372,8 @@ def get_attendance_stats(db: Session) -> dict:
     
     attendance_rate = "0%"
     if total_employees > 0:
-        rate = (len(seen) / total_employees) * 100
-        attendance_rate = f"{rate:.1f}%"
+        rate = min(100.0, (len(seen) / total_employees) * 100)
+        attendance_rate = f"{rate:.1f}%".replace(".0%", "%")
         
     return {
         "workingCount": working_count,

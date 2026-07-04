@@ -109,14 +109,14 @@ export function AddProjectPage() {
 
             // Upload thumbnail if selected
             if (thumbnailFile) {
-                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi);
+                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi, undefined, data.client, data.slug || "", "thumbnail");
                 coverMediaId = mediaAsset.id;
             }
 
             // Upload video if selected
             let finalVideoUrl = videoUrl;
             if (uploadedVideo) {
-                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi);
+                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, data.slug || "", "final video");
                 finalVideoUrl = mediaAsset.url;
             }
 
