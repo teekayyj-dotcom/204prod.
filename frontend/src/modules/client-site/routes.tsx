@@ -1,4 +1,5 @@
-import { ClientLayout } from "./components/ClientLayout";
+import { MaintenancePage } from "../../shared/pages/MaintenancePage";
+// import { ClientLayout } from "./components/ClientLayout";
 import { LandingPage } from "./pages/LandingPage";
 import { WorksPage } from "./pages/WorksPage";
 import { ProjectDetail } from "./pages/ProjectDetail";
@@ -8,7 +9,7 @@ import { ContactPage } from "./pages/ContactPage";
 
 export const clientSiteRoute = {
   path: "/",
-  Component: ClientLayout,
+  Component: MaintenancePage, // Bật màn hình bảo trì cho nhánh public
   children: [
     { index: true, Component: LandingPage },
     { path: "works", Component: WorksPage },
