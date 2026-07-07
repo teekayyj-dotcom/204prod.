@@ -1,0 +1,36 @@
+services:
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/204prod-frontend:${IMAGE_TAG}
+    restart: always
+
+  backend:
+    image: ${DOCKERHUB_USERNAME}/204prod-backend:${IMAGE_TAG}
+    restart: always
+    env_file:
+      - .env
+
+  mysql:
+    image: mysql:8.0
+    container_name: 204prod-database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:

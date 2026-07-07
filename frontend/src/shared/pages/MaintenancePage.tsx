@@ -218,12 +218,12 @@ export function MaintenancePage() {
     }, []);
 
     return (
-        <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[#0A0707] text-white overflow-hidden p-4 font-sans">
+        <div className="relative min-h-screen w-full flex flex-col items-center justify-center bg-[#0A0707] text-white overflow-x-hidden p-4 font-sans">
             {/* Moving text particle canvas */}
-            <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+            <canvas ref={canvasRef} className="fixed inset-0 z-0" />
 
             {/* Visual contrast shader overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/85 z-10 pointer-events-none" />
+            <div className="fixed inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/85 z-10 pointer-events-none" />
 
             {/* Main Content Container */}
             <motion.div

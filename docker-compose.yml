@@ -5,6 +5,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     volumes:
       - ./frontend:/app/frontend:delegated
       - frontend_node_modules:/app/frontend/node_modules
@@ -18,6 +19,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
