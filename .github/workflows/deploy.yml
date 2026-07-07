@@ -96,6 +96,9 @@ jobs:
             # Khởi động lại hệ thống
             IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME docker compose -f docker-compose.prod.yml up -d
             
+            # Reload Nginx để cập nhật file cấu hình mới (nếu Nginx đang chạy, không gây downtime) hoặc Restart lại Nginx
+            IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload || IMAGE_TAG=$IMAGE_TAG DOCKERHUB_USERNAME=$DOCKERHUB_USERNAME docker compose -f docker-compose.prod.yml restart nginx
+            
             # Đợi Database sẵn sàng rồi chạy migrations
             echo "Waiting for database to be ready..."
             for i in {1..30}; do
