@@ -58,6 +58,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
           # Chỉ copy các file cấu hình, file .env đã được lưu sẵn thủ công trên server
           source: "docker-compose.prod.yml,infra/nginx/nginx.prod.conf"
           target: "/var/www/204prod"
@@ -68,6 +69,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
           script: |
             cd /var/www/204prod
             
