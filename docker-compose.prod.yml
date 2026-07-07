@@ -13,6 +13,7 @@ services:
     image: mysql:8.0
     container_name: 204prod-database
     restart: always
+    command: --innodb-buffer-pool-size=128M --performance-schema=OFF
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DB}
