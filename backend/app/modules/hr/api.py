@@ -226,7 +226,13 @@ def get_hr_overview(db: Session = Depends(get_db_session)):
         
         if c_info:
             checkin_time = c_info["time"]
-            status = "wfh" if c_info["status"] == "wfh" else "office"
+            work_mode = getattr(member, 'work_mode', 'onsite')
+            if c_info["status"] == "wfh" or work_mode == "remote":
+                status = "wfh"
+            elif work_mode == "business":
+                status = "onsite"
+            else:
+                status = "office"
         
         # Determine department based on roles for UI charts
         role_lower = (member.role or "").lower()
