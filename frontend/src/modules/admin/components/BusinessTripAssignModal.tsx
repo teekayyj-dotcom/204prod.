@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Plane, Loader2 } from "lucide-react";
-import { fetchApi } from "../../../shared/utils/apiClient";
+import { fetchApi } from "../utils/apiClient";
 
 interface BusinessTripAssignModalProps {
   onClose: () => void;
