@@ -19,6 +19,20 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
     return R * c
 
+def is_date_in_range(target_date: str, date_range_str: str) -> bool:
+    try:
+        t_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+        if "→" in date_range_str:
+            parts = date_range_str.split("→")
+            s_date = datetime.strptime(parts[0].strip(), "%Y-%m-%d").date()
+            e_date = datetime.strptime(parts[1].strip(), "%Y-%m-%d").date()
+            return s_date <= t_date <= e_date
+        else:
+            s_date = datetime.strptime(date_range_str.strip(), "%Y-%m-%d").date()
+            return s_date == t_date
+    except Exception:
+        return target_date in date_range_str
+
 def get_all_freelancers(db: Session) -> list[Freelancer]:
     return db.query(Freelancer).all()
 
@@ -102,6 +116,7 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     from app.modules.crew.models import CrewMember
 
     resolved_name = employee_name
+    crew_work_mode = "onsite"
     # 1. Find user by username or display_name
     user = db.query(User).filter((User.display_name == employee_name) | (User.username == employee_name)).first()
     if user and user.email:
@@ -109,65 +124,88 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
         crew_member = db.query(CrewMember).filter(CrewMember.email == user.email).first()
         if crew_member:
             resolved_name = crew_member.name
+            crew_work_mode = getattr(crew_member, 'work_mode', 'onsite')
 
     resolved_status = status
-    from app.modules.hr.models import Shift
+    from app.modules.hr.models import Shift, LeaveRequest
     from fastapi import HTTPException
+    
+    # Check for approved WFH request
+    has_approved_wfh = False
+    try:
+        wfh_requests = db.query(LeaveRequest).filter(
+            LeaveRequest.employee_name == resolved_name,
+            LeaveRequest.status == "approved",
+            LeaveRequest.type == "wfh"
+        ).all()
+        for req in wfh_requests:
+            if is_date_in_range(date, req.date):
+                has_approved_wfh = True
+                break
+    except Exception:
+        pass
     
     # Office Location
     OFFICE_LAT = 21.0317126
     OFFICE_LNG = 105.8427696
     ALLOWED_RADIUS_METERS = 50
 
+    is_remote_or_business = crew_work_mode in ["remote", "business"]
+
     if lat is not None and lng is not None:
         distance = haversine_distance(lat, lng, OFFICE_LAT, OFFICE_LNG)
         if distance > ALLOWED_RADIUS_METERS:
-            raise HTTPException(status_code=400, detail=f"Cảnh báo: Vị trí của bạn quá xa công ty ({int(distance)}m). Vui lòng check-in tại văn phòng. Đối với trường hợp WFH, vui lòng nộp đơn trên hệ thống để Admin xét duyệt.")
+            if not has_approved_wfh and not is_remote_or_business:
+                raise HTTPException(status_code=400, detail=f"Cảnh báo: Vị trí của bạn quá xa công ty ({int(distance)}m). Vui lòng check-in tại văn phòng. Đối với trường hợp WFH, vui lòng nộp đơn trên hệ thống để Admin xét duyệt.")
     else:
-        raise HTTPException(status_code=400, detail="Không thể xác định vị trí của bạn. Vui lòng bật chia sẻ vị trí trên trình duyệt.")
+        if not has_approved_wfh and not is_remote_or_business:
+            raise HTTPException(status_code=400, detail="Không thể xác định vị trí của bạn. Vui lòng bật chia sẻ vị trí trên trình duyệt.")
 
-    try:
-        hh, mm = map(int, time.split(':'))
-        action_min = hh * 60 + mm
-        
-        shifts = db.query(Shift).all()
-        
-        if shifts:
-            if action == "check-in":
-                closest_shift = None
-                min_diff = float('inf')
-                for s in shifts:
-                    s_hh, s_mm = map(int, s.start_time.split(':'))
-                    shift_start_min = s_hh * 60 + s_mm
-                    diff = abs(action_min - shift_start_min)
-                    if diff < min_diff:
-                        min_diff = diff
-                        closest_shift = shift_start_min
-                
-                if closest_shift is not None:
-                    if action_min <= closest_shift:
-                        resolved_status = "on-time"
-                    else:
-                        resolved_status = "late"
-                        
-            elif action == "check-out":
-                closest_shift_end = None
-                min_diff = float('inf')
-                for s in shifts:
-                    e_hh, e_mm = map(int, s.end_time.split(':'))
-                    shift_end_min = e_hh * 60 + e_mm
-                    diff = abs(action_min - shift_end_min)
-                    if diff < min_diff:
-                        min_diff = diff
-                        closest_shift_end = shift_end_min
-                
-                if closest_shift_end is not None:
-                    if action_min < closest_shift_end:
-                        resolved_status = "early-leave"
-                    else:
-                        resolved_status = "on-time"
-    except Exception:
-        pass
+    if has_approved_wfh:
+        resolved_status = "wfh"
+    else:
+        try:
+            hh, mm = map(int, time.split(':'))
+            action_min = hh * 60 + mm
+            
+            shifts = db.query(Shift).all()
+            
+            if shifts:
+                if action == "check-in":
+                    closest_shift = None
+                    min_diff = float('inf')
+                    for s in shifts:
+                        s_hh, s_mm = map(int, s.start_time.split(':'))
+                        shift_start_min = s_hh * 60 + s_mm
+                        diff = abs(action_min - shift_start_min)
+                        if diff < min_diff:
+                            min_diff = diff
+                            closest_shift = shift_start_min
+                    
+                    if closest_shift is not None:
+                        if action_min <= closest_shift:
+                            resolved_status = "on-time"
+                        else:
+                            resolved_status = "late"
+                            
+                elif action == "check-out":
+                    closest_shift_end = None
+                    min_diff = float('inf')
+                    for s in shifts:
+                        e_hh, e_mm = map(int, s.end_time.split(':'))
+                        shift_end_min = e_hh * 60 + e_mm
+                        diff = abs(action_min - shift_end_min)
+                        if diff < min_diff:
+                            min_diff = diff
+                            closest_shift_end = shift_end_min
+                    
+                    if closest_shift_end is not None:
+                        if action_min < closest_shift_end:
+                            resolved_status = "early-leave"
+                        else:
+                            resolved_status = "on-time"
+        except Exception:
+            pass
 
     db_log = AttendanceLog(
         employee_name=resolved_name,
@@ -345,6 +383,29 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
             if has_wfh:
                 days.append("wfh")
                 total_days += 1.0
+                
+                checkins = [l for l in day_logs if l.action == "check-in" and l.status == "wfh"]
+                for checkin in checkins:
+                    t_str = checkin.time
+                    try:
+                        hh, mm = map(int, t_str.split(':'))
+                        arrival_min = hh * 60 + mm
+                        
+                        if shifts:
+                            closest_shift = None
+                            min_diff = float('inf')
+                            for s in shifts:
+                                s_hh, s_mm = map(int, s.start_time.split(':'))
+                                shift_start_min = s_hh * 60 + s_mm
+                                diff = abs(arrival_min - shift_start_min)
+                                if diff < min_diff:
+                                    min_diff = diff
+                                    closest_shift = shift_start_min
+                                    
+                            if closest_shift is not None and arrival_min > closest_shift + 30:
+                                late_min += (arrival_min - closest_shift - 30)
+                    except Exception:
+                        pass
             elif has_late:
                 days.append("late")
                 total_days += 1.0

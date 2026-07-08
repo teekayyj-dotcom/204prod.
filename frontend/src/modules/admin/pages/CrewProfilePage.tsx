@@ -104,6 +104,7 @@ export function CrewProfilePage() {
                     role: data.role,
                     email: data.email || "",
                     status: data.status || "Active",
+                    work_mode: data.work_mode || "onsite",
                     bio: data.bio || "",
                     created_at: dateOnly,
                 });
@@ -163,6 +164,7 @@ export function CrewProfilePage() {
                 skills_expertise: skills.join(","),
                 assigned_projects: member?.assigned_projects || 0,
                 status: data.status || "Active",
+                work_mode: data.work_mode || "onsite",
                 created_at: data.created_at ? new Date(data.created_at).toISOString() : null,
             };
             const updatedMember = await fetchApi(`/crew/${id}`, {
@@ -200,6 +202,7 @@ export function CrewProfilePage() {
                 role: member.role,
                 email: member.email || "",
                 status: member.status || "Active",
+                work_mode: member.work_mode || "onsite",
                 bio: member.bio || "",
                 created_at: dateOnly,
             });
@@ -428,14 +431,22 @@ export function CrewProfilePage() {
                                     </span>)}
                             </div>
 
-                            {/* Email + Status + Join Date */}
-                            <div className="grid grid-cols-3 gap-4 pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
+                            {/* Email + Status + Join Date + Work Mode */}
+                            <div className="grid grid-cols-2 gap-4 pt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
                                         <Mail size={10} color="#D84040"/> Email
                                     </label>
                                     {isEditing ? (<input type="email" {...register("email")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "13px" }}>{member.email || "—"}</p>)}
                                 </div>
+                                <div>
+                                    <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
+                                        <Calendar size={10} color="#D84040"/> Join Date
+                                    </label>
+                                    {isEditing ? (<input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "13px" }}>{joinedDateStr}</p>)}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 pt-4 mt-4" style={{ borderTop: "1px solid #2A1F1F" }}>
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
                                         <Activity size={10} color="#D84040"/> Availability
@@ -453,9 +464,13 @@ export function CrewProfilePage() {
                                 </div>
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1.5 flex items-center gap-1">
-                                        <Calendar size={10} color="#D84040"/> Join Date
+                                        <MapPin size={10} color="#D84040"/> Work Mode
                                     </label>
-                                    {isEditing ? (<input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "13px" }}>{joinedDateStr}</p>)}
+                                    {isEditing ? (<select {...register("work_mode")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle}>
+                                            <option value="onsite">Onsite (Tại VP)</option>
+                                            <option value="remote">Remote (Từ xa)</option>
+                                            <option value="business">Business (Công tác)</option>
+                                        </select>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full" style={{ background: "rgba(100,100,255,0.15)", color: "#8888FF", fontSize: "12px", fontWeight: 600 }}>{member.work_mode === "business" ? "Business" : member.work_mode === "remote" ? "Remote" : "Onsite"}</span>)}
                                 </div>
                             </div>
                         </div>

@@ -111,6 +111,7 @@ export function AddCrewMemberPage() {
                 skills_expertise: skills.join(","),
                 assigned_projects: 0,
                 status: data.status || "Active",
+                work_mode: data.work_mode || "onsite",
                 created_at: data.created_at ? new Date(data.created_at).toISOString() : null,
             };
             await fetchApi("/crew", {
@@ -231,8 +232,8 @@ export function AddCrewMemberPage() {
                             </div>
                         </div>
 
-                        {/* Email + Status + Join Date */}
-                        <div className="grid grid-cols-3 gap-4">
+                        {/* Email + Status + Join Date + Work Mode */}
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Mail size={13} color="#D84040"/> Email *
@@ -240,6 +241,14 @@ export function AddCrewMemberPage() {
                                 <input type="email" {...register("email", { required: "Email is required" })} placeholder="member@framecraft.co" className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, borderColor: errors.email ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.email ? "#D84040" : "#3A2A2A")}/>
                                 {errors.email && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.email.message}</p>}
                             </div>
+                            <div>
+                                <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                    <Calendar size={13} color="#D84040"/> Join Date
+                                </label>
+                                <input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <User size={13} color="#D84040"/> Availability Status
@@ -251,9 +260,13 @@ export function AddCrewMemberPage() {
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <Calendar size={13} color="#D84040"/> Join Date
+                                    <MapPin size={13} color="#D84040"/> Chế độ làm việc
                                 </label>
-                                <input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                <select {...register("work_mode")} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
+                                    <option value="onsite">Onsite (Tại văn phòng)</option>
+                                    <option value="remote">Remote (Từ xa)</option>
+                                    <option value="business">Business (Công tác)</option>
+                                </select>
                             </div>
                         </div>
 

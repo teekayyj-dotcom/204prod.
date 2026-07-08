@@ -39,6 +39,7 @@ def update_crew_member(db: Session, id: int, crew_member: CrewMember):
     existing_crew_member.skills_expertise = crew_member.skills_expertise
     existing_crew_member.assigned_projects = crew_member.assigned_projects
     existing_crew_member.status = crew_member.status
+    existing_crew_member.work_mode = crew_member.work_mode
     if crew_member.created_at:
         existing_crew_member.created_at = crew_member.created_at
     db.commit()

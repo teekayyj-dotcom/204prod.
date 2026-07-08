@@ -41,7 +41,8 @@ def create_crew_member_route(req: CrewMemberInput, db: Session = Depends(get_db_
         bio=req.bio,
         skills_expertise=req.skills_expertise,
         assigned_projects=req.assigned_projects,
-        status=req.status
+        status=req.status,
+        work_mode=req.work_mode
     )
     if req.created_at:
         db_member.created_at = req.created_at
@@ -59,7 +60,8 @@ def update_crew_member_route(id: int, req: CrewMemberInput, db: Session = Depend
         bio=req.bio,
         skills_expertise=req.skills_expertise,
         assigned_projects=req.assigned_projects,
-        status=req.status
+        status=req.status,
+        work_mode=req.work_mode
     )
     if req.created_at:
         db_member.created_at = req.created_at

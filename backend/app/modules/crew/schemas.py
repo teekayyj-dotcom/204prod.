@@ -12,6 +12,7 @@ class CrewMember(BaseModel):
     skills_expertise: str | None = None
     assigned_projects: int = 0
     status: str = "Active"
+    work_mode: str = "onsite"
     created_at: datetime
     updated_at: datetime
 
@@ -30,4 +31,5 @@ class CrewMemberInput(BaseModel):
     skills_expertise: str | None = None
     assigned_projects: int = 0
     status: str = "Active"
+    work_mode: str = "onsite"
     created_at: datetime | None = None
