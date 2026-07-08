@@ -130,18 +130,21 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     from app.modules.hr.models import Shift, LeaveRequest
     from fastapi import HTTPException
     
-    # Check for approved WFH request
+    # Check for approved WFH or Business request
     has_approved_wfh = False
+    has_approved_business = False
     try:
-        wfh_requests = db.query(LeaveRequest).filter(
+        requests = db.query(LeaveRequest).filter(
             LeaveRequest.employee_name == resolved_name,
             LeaveRequest.status == "approved",
-            LeaveRequest.type == "wfh"
+            LeaveRequest.type.in_(["wfh", "business"])
         ).all()
-        for req in wfh_requests:
+        for req in requests:
             if is_date_in_range(date, req.date):
-                has_approved_wfh = True
-                break
+                if req.type == "wfh":
+                    has_approved_wfh = True
+                elif req.type == "business":
+                    has_approved_business = True
     except Exception:
         pass
     
@@ -155,14 +158,16 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     if lat is not None and lng is not None:
         distance = haversine_distance(lat, lng, OFFICE_LAT, OFFICE_LNG)
         if distance > ALLOWED_RADIUS_METERS:
-            if not has_approved_wfh and not is_remote_or_business:
-                raise HTTPException(status_code=400, detail=f"Cảnh báo: Vị trí của bạn quá xa công ty ({int(distance)}m). Vui lòng check-in tại văn phòng. Đối với trường hợp WFH, vui lòng nộp đơn trên hệ thống để Admin xét duyệt.")
+            if not has_approved_wfh and not has_approved_business and not is_remote_or_business:
+                raise HTTPException(status_code=400, detail=f"Cảnh báo: Vị trí của bạn quá xa công ty ({int(distance)}m). Vui lòng check-in tại văn phòng. Đối với trường hợp WFH/Công tác, vui lòng nộp đơn trên hệ thống để Admin xét duyệt.")
     else:
-        if not has_approved_wfh and not is_remote_or_business:
+        if not has_approved_wfh and not has_approved_business and not is_remote_or_business:
             raise HTTPException(status_code=400, detail="Không thể xác định vị trí của bạn. Vui lòng bật chia sẻ vị trí trên trình duyệt.")
 
     if has_approved_wfh:
         resolved_status = "wfh"
+    elif has_approved_business:
+        resolved_status = "business"
     else:
         try:
             hh, mm = map(int, time.split(':'))
@@ -381,9 +386,13 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
                 continue
                 
             has_wfh = any(l.status == "wfh" for l in day_logs)
+            has_business = any(l.status == "business" for l in day_logs)
             has_late = any(l.status == "late" for l in day_logs)
             
-            if has_wfh:
+            if has_business:
+                days.append("business")
+                total_days += 1.0
+            elif has_wfh:
                 days.append("wfh")
                 total_days += 1.0
                 

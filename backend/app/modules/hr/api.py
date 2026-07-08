@@ -229,7 +229,7 @@ def get_hr_overview(db: Session = Depends(get_db_session)):
             work_mode = getattr(member, 'work_mode', 'onsite')
             if c_info["status"] == "wfh" or work_mode == "remote":
                 status = "wfh"
-            elif work_mode == "business":
+            elif c_info["status"] == "business" or work_mode == "business":
                 status = "onsite"
             else:
                 status = "office"

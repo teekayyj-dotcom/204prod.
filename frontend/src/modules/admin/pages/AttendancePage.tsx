@@ -29,6 +29,7 @@ import {
   Loader2
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { BusinessTripAssignModal } from "../components/BusinessTripAssignModal";
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ const mapDbToLog = (m: any): CheckInLog => ({
   note: m.note
 });
 
-type DayStatus = "on-time" | "late" | "absent" | "wfh" | "holiday" | "weekend" | "-";
+type DayStatus = "on-time" | "late" | "absent" | "wfh" | "business" | "holiday" | "weekend" | "-";
 
 export interface TimesheetData {
   employee: { name: string; avatar: string; role: string };
@@ -128,6 +129,7 @@ function DayCell({ status }: { status: DayStatus }) {
     late:      { bg: "#fbbf2444", title: "Đi muộn" },
     absent:    { bg: "#f8717144", title: "Vắng mặt" },
     wfh:       { bg: "#60a5fa44", title: "WFH" },
+    business:  { bg: "#f9731644", title: "Công tác" },
     holiday:   { bg: "#c084fc44", title: "Lễ" },
     weekend:   { bg: "#2A1F1F",   title: "Cuối tuần" },
     "-":       { bg: "transparent", title: "" },
@@ -631,6 +633,7 @@ interface RequestsTabProps {
 function RequestsTab({ requests, onRefresh }: RequestsTabProps) {
   const [filter, setFilter] = useState<"all" | RequestStatus>("all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [assignBusinessOpen, setAssignBusinessOpen] = useState(false);
 
   const typeIcon: Record<RequestType, React.ElementType> = {
     leave: Calendar, wfh: Home, business: Plane, explain: PenLine, sick: UserX, ot: Clock
@@ -678,14 +681,24 @@ function RequestsTab({ requests, onRefresh }: RequestsTabProps) {
             );
           })}
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
-          style={{ background: "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}
-        >
-          <Plus size={14} />
-          Tạo đơn mới
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAssignBusinessOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+            style={{ background: "#f9731633", color: "#f97316", fontSize: "13px", fontWeight: 600, border: "1px solid #f9731655" }}
+          >
+            <Plane size={14} />
+            Phân công Công tác
+          </button>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+            style={{ background: "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}
+          >
+            <Plus size={14} />
+            Tạo đơn mới
+          </button>
+        </div>
       </div>
 
       {/* List */}
@@ -754,6 +767,7 @@ function RequestsTab({ requests, onRefresh }: RequestsTabProps) {
         })}
       </div>
       <CreateRequestModal open={createOpen} onClose={() => setCreateOpen(false)} onSave={onRefresh} />
+      {assignBusinessOpen && <BusinessTripAssignModal onClose={() => setAssignBusinessOpen(false)} onSuccess={() => { setAssignBusinessOpen(false); onRefresh(); }} />}
     </div>
   );
 }
