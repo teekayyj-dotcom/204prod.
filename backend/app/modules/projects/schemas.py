@@ -216,3 +216,31 @@ class ApprovalRequestDetail(ApprovalRequestBase):
         from_attributes = True
 
 
+class ProjectActivityDetail(BaseModel):
+    id: int
+    project_slug: str
+    user_name: str
+    action: str
+    avatar: str | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectCommentCreate(BaseModel):
+    user_name: str
+    text: str
+    avatar: str | None = None
+
+
+class ProjectCommentDetail(BaseModel):
+    id: int
+    project_slug: str
+    user_name: str
+    text: str
+    avatar: str | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

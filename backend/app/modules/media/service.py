@@ -89,7 +89,7 @@ def create_media_asset_from_file(
     custom_key = None
     if is_avatar:
         clean_folder = folder.strip("/")
-        custom_key = f"{clean_folder}/{filename}"
+        custom_key = f"{clean_folder}/{asset_id}/{filename}"
     elif client_slug and project_slug and folder:
         clean_folder = folder.strip("/")
         custom_key = f"{client_slug}/{project_slug}/{clean_folder}/{asset_id}/{filename}"
@@ -201,17 +201,26 @@ def delete_media_asset(db: Session, id: str):
     if not media_asset:
         return None
         
-    # Clear any project video_url references to this media asset
+    # Clear any project video_url references to this media asset (DEPRECATED - we now prevent deletion)
     try:
-        from app.modules.projects.models import Project
+        from app.modules.projects.models import Project, ProjectGalleryImage
         projects_with_video = db.query(Project).filter(
             (Project.video_url == media_asset.url) | 
-            (Project.video_url == media_asset.thumbnail_url)
-        ).all()
-        for p in projects_with_video:
-            p.video_url = None
+            (Project.video_url == media_asset.thumbnail_url) |
+            (Project.cover_media_id == media_asset.id)
+        ).first()
+        
+        if projects_with_video:
+            raise ValueError(f"Không thể xóa media này vì đang được sử dụng trong dự án '{projects_with_video.title}'")
+            
+        gallery_usage = db.query(ProjectGalleryImage).filter(ProjectGalleryImage.media_asset_id == media_asset.id).first()
+        if gallery_usage:
+            raise ValueError(f"Không thể xóa media này vì đang được sử dụng trong thư viện ảnh của dự án '{gallery_usage.project_slug}'")
+            
+    except ValueError:
+        raise
     except Exception as e:
-        print(f"Failed to clear project video_url references: {e}")
+        print(f"Failed to check project references: {e}")
     
     # Delete from physical storage (R2 or Local)
     try:

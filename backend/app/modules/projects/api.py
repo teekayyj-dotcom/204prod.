@@ -3,7 +3,18 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
 from app.modules.projects.service import get_project, get_projects, create_project, delete_project, update_project
-from app.modules.projects.schemas import ProjectDetail, ProjectCreate, ProjectUpdate, ClientCreate, ClientUpdate, ProjectFeedbackCreate, ProjectTaskCreate, ProjectTaskUpdate, ApprovalRequestCreate
+from app.modules.projects.schemas import (
+    ApprovalRequestCreate,
+    ProjectCreate,
+    ProjectDetail,
+    ProjectUpdate,
+    ClientCreate,
+    ClientUpdate,
+    ProjectFeedbackCreate,
+    ProjectTaskCreate,
+    ProjectTaskUpdate,
+    ProjectCommentCreate
+)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -215,5 +226,33 @@ def delete_gallery_image(media_asset_id: str, db: Session = Depends(get_db_sessi
     db.commit()
     return {"status": "ok", "deleted_id": media_asset_id}
 
+@router.get("/{slug}/activities")
+def get_project_activities_route(slug: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.models import ProjectActivity
+    activities = db.query(ProjectActivity).filter(ProjectActivity.project_slug == slug).order_by(ProjectActivity.created_at.desc()).all()
+    return activities
 
 
+@router.get("/{slug}/comments")
+def get_project_comments_route(slug: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.models import ProjectComment
+    comments = db.query(ProjectComment).filter(ProjectComment.project_slug == slug).order_by(ProjectComment.created_at.desc()).all()
+    return comments
+
+
+@router.post("/{slug}/comments", status_code=status.HTTP_201_CREATED)
+def create_project_comment_route(slug: str, req: ProjectCommentCreate, db: Session = Depends(get_db_session)):
+    from app.modules.projects.models import ProjectComment, Project
+    project = db.query(Project).filter(Project.slug == slug).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    comment = ProjectComment(
+        project_slug=slug,
+        user_name=req.user_name,
+        text=req.text,
+        avatar=req.avatar
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    return comment

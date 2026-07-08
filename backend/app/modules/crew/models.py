@@ -1,6 +1,6 @@
 from datetime import datetime
 from app.db.base import Base
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 class CrewMember(Base):
@@ -12,6 +12,7 @@ class CrewMember(Base):
     phone = Column(String(50))
     role = Column(String(255))
     avatar = Column(String(500))
+    avatar_locked = Column(Boolean, default=False)
     bio = Column(String(1000))
     skills_expertise = Column(String(500))
     assigned_projects = Column(Integer, default=0)

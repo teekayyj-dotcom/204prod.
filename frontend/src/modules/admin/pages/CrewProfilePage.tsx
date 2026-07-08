@@ -142,8 +142,9 @@ export function CrewProfilePage() {
         try {
             let avatarUrl = avatarPreview;
             if (avatarFile) {
+                const renamedFile = new File([avatarFile], `${data.name}.jpg`, { type: avatarFile.type });
                 const formData = new FormData();
-                formData.append("file", avatarFile);
+                formData.append("file", renamedFile);
                 formData.append("alt", `${data.name} Avatar`);
                 formData.append("folder", "avatar/crew");
                 const mediaAsset = await fetchApi("/media/upload", {

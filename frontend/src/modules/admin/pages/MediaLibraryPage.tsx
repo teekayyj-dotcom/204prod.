@@ -108,7 +108,7 @@ export function MediaLibraryPage() {
         ]).then(([mediaData, clientsData, projectsData]) => {
             const mapped = mediaData.map(m => ({
                 id: m.id,
-                name: m.url.split('/').pop() || m.id,
+                name: (m.kind === 'video' && m.caption) ? m.caption : (m.url.split('/').pop() || m.id),
                 type: m.kind,
                 clientSlug: m.client_slug,
                 projectSlug: m.project_slug,
@@ -116,7 +116,7 @@ export function MediaLibraryPage() {
                 size: m.file_size ? `${(m.file_size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
                 uploaded: m.created_at ? new Date(m.created_at).toLocaleDateString() : "2026-05-18",
                 image: m.url,
-                previewImage: m.thumbnail_url || getImagePreviewUrl(m)
+                previewImage: (m.kind === 'video' && m.url?.includes('/play_1080p.mp4')) ? m.url.replace('/play_1080p.mp4', '/thumbnail.jpg') : (m.thumbnail_url || getImagePreviewUrl(m))
             }));
             setAssets(mapped);
             setClients(clientsData);
@@ -138,17 +138,21 @@ export function MediaLibraryPage() {
     const currentClientSlug = currentPath[0] || null;
     const currentProjectSlug = currentPath[1] || null;
 
-    const projectSubfolders = ["thumbnail", "behind the scenes", "demo", "tài liệu"];
+    const projectSubfolders = ["thumbnail", "behind the scenes", "demo", "tài liệu", "final"];
     const documentSubfolders = ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"];
 
     const getFolderDbValue = (path: string[]) => {
+        if (path[0] === "avatar") {
+            if (path.length === 2) return `avatar/${path[1]}`;
+            return null;
+        }
         if (path.length === 3) {
             const sub = path[2];
             if (sub === "thumbnail") return "thumbnail";
             if (sub === "behind the scenes") return "behind the scenes";
             if (sub === "demo") return "demo";
             if (sub === "media") return "media";
-            if (sub === "final video") return "final_video";
+            if (sub === "final video" || sub === "final") return "final video";
             return null;
         }
         if (path.length === 4) {
@@ -177,14 +181,35 @@ export function MediaLibraryPage() {
         });
     } else {
         if (currentPath.length === 0) {
-            // Root level: Clients as folders
-            foldersToRender = clients.map((c) => ({
-                id: c.slug,
-                name: c.name,
-                type: "client",
-                slug: c.slug
-            }));
-            filesToRender = assets.filter((a) => !a.clientSlug);
+            // Root level: Avatar folder + Clients as folders
+            foldersToRender = [
+                {
+                    id: "avatar",
+                    name: "Avatars",
+                    type: "subfolder",
+                    slug: "avatar"
+                },
+                ...clients.map((c) => ({
+                    id: c.slug,
+                    name: c.name,
+                    type: "client",
+                    slug: c.slug
+                }))
+            ];
+            filesToRender = assets.filter((a) => !a.clientSlug && !a.folder?.startsWith("avatar/"));
+        } else if (currentPath[0] === "avatar") {
+            if (currentPath.length === 1) {
+                // Avatar folder level: Client and Crew folders
+                foldersToRender = [
+                    { id: "avatar_client", name: "Client", type: "subfolder", slug: "client" },
+                    { id: "avatar_crew", name: "Crew", type: "subfolder", slug: "crew" }
+                ];
+                filesToRender = [];
+            } else if (currentPath.length === 2) {
+                // Leaf level for avatars
+                foldersToRender = [];
+                filesToRender = assets.filter((a) => a.folder === `avatar/${currentPath[1]}`);
+            }
         } else if (currentPath.length === 1) {
             // Client level: Projects as folders
             const clientProjects = allProjects.filter((p) => p.client_slug === currentClientSlug);
@@ -199,7 +224,7 @@ export function MediaLibraryPage() {
             // Project level: Default folders (media, demo, final video, documents)
             foldersToRender = projectSubfolders.map((sub) => ({
                 id: sub,
-                name: sub === "tài liệu" ? "Tài liệu (Documents)" : sub.charAt(0).toUpperCase() + sub.slice(1),
+                name: sub === "tài liệu" ? "Tài liệu (Documents)" : (sub === "final" ? "Final" : sub.charAt(0).toUpperCase() + sub.slice(1)),
                 type: "subfolder",
                 slug: sub
             }));
@@ -214,7 +239,7 @@ export function MediaLibraryPage() {
             }));
             filesToRender = assets.filter((a) => a.clientSlug === currentClientSlug && a.projectSlug === currentProjectSlug && a.folder === "tài liệu");
         } else {
-            // Leaf level
+            // Leaf level for projects
             const dbVal = getFolderDbValue(currentPath);
             foldersToRender = [];
             filesToRender = assets.filter((a) => a.clientSlug === currentClientSlug && a.projectSlug === currentProjectSlug && a.folder === dbVal);
@@ -312,11 +337,19 @@ export function MediaLibraryPage() {
                     {currentPath.map((pathItem, index) => {
                         let label = pathItem;
                         if (index === 0) {
-                            const client = clients.find(c => c.slug === pathItem);
-                            label = client ? client.name : pathItem;
+                            if (pathItem === "avatar") {
+                                label = "Avatars";
+                            } else {
+                                const client = clients.find(c => c.slug === pathItem);
+                                label = client ? client.name : pathItem;
+                            }
                         } else if (index === 1) {
-                            const proj = allProjects.find(p => p.slug === pathItem);
-                            label = proj ? proj.title : pathItem;
+                            if (currentPath[0] === "avatar") {
+                                label = pathItem.charAt(0).toUpperCase() + pathItem.slice(1);
+                            } else {
+                                const proj = allProjects.find(p => p.slug === pathItem);
+                                label = proj ? proj.title : pathItem;
+                            }
                         } else {
                             label = pathItem.charAt(0).toUpperCase() + pathItem.slice(1);
                         }
@@ -408,24 +441,13 @@ export function MediaLibraryPage() {
                                 {/* Preview */}
                                 <div className="relative h-36 overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                     {asset.type === "video" ? (
-                                        <div className="w-full h-full pointer-events-none relative overflow-hidden">
-                                            {asset.url?.includes("iframe.mediadelivery.net") ? (
-                                                <iframe
-                                                    src={asset.url}
-                                                    loading="lazy"
-                                                    style={{ border: "none", height: "100%", width: "100%" }}
-                                                    allow="accelerometer; gyroscope; encrypted-media; picture-in-picture;"
-                                                    className="pointer-events-none"
-                                                />
-                                            ) : (
-                                                <video
-                                                    src={asset.url}
-                                                    muted
-                                                    playsInline
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            )}
-                                            <div className="absolute inset-0 z-10" />
+                                        <div className="w-full h-full relative overflow-hidden">
+                                            <img src={asset.previewImage} alt={asset.name} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
+                                                <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                                                    <Video size={16} color="#fff" />
+                                                </div>
+                                            </div>
                                         </div>
                                     ) : asset.type === "image" ? (
                                         <img src={asset.previewImage || asset.image} alt={asset.name} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>

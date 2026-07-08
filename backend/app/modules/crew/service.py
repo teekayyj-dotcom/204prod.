@@ -32,7 +32,9 @@ def update_crew_member(db: Session, id: int, crew_member: CrewMember):
     existing_crew_member.email = crew_member.email
     existing_crew_member.phone = crew_member.phone
     existing_crew_member.role = crew_member.role
-    existing_crew_member.avatar = crew_member.avatar
+    if crew_member.avatar is not None and crew_member.avatar != existing_crew_member.avatar:
+        existing_crew_member.avatar = crew_member.avatar
+        existing_crew_member.avatar_locked = True
     existing_crew_member.bio = crew_member.bio
     existing_crew_member.skills_expertise = crew_member.skills_expertise
     existing_crew_member.assigned_projects = crew_member.assigned_projects

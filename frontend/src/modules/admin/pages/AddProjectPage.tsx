@@ -109,7 +109,8 @@ export function AddProjectPage() {
 
             // Upload thumbnail if selected
             if (thumbnailFile) {
-                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi, undefined, data.client, data.slug || "", "thumbnail");
+                const renamedThumb = new File([thumbnailFile], `${data.title}.jpg`, { type: thumbnailFile.type });
+                const mediaAsset = await uploadMediaPipeline(renamedThumb, "projects", fetchApi, undefined, data.client, data.slug || "", "thumbnail");
                 coverMediaId = mediaAsset.id;
             }
 

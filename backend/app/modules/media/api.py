@@ -59,17 +59,21 @@ def get_presigned_url(request: PresignedUrlRequest):
     asset_id = str(uuid.uuid4())
     ext = ".avif" if request.content_type == "image/avif" else ".webp"
     
+    base_name, _ = os.path.splitext(request.filename)
+    if not base_name or base_name == "image":
+        base_name = asset_id
+        
     if request.client_slug and request.project_slug and request.folder:
         clean_folder = request.folder.strip("/")
-        main_object_name = f"{request.client_slug}/{request.project_slug}/{clean_folder}/{asset_id}/main{ext}"
-        thumb_object_name = f"{request.client_slug}/{request.project_slug}/{clean_folder}/{asset_id}/thumb{ext}"
+        main_object_name = f"{request.client_slug}/{request.project_slug}/{clean_folder}/{asset_id}/{base_name} main{ext}"
+        thumb_object_name = f"{request.client_slug}/{request.project_slug}/{clean_folder}/{asset_id}/{base_name} thumb{ext}"
     elif request.folder:
         clean_folder = request.folder.strip("/")
-        main_object_name = f"{clean_folder}/{asset_id}/main{ext}"
-        thumb_object_name = f"{clean_folder}/{asset_id}/thumb{ext}"
+        main_object_name = f"{clean_folder}/{asset_id}/{base_name} main{ext}"
+        thumb_object_name = f"{clean_folder}/{asset_id}/{base_name} thumb{ext}"
     else:
-        main_object_name = f"{request.category}/{asset_id}/main{ext}"
-        thumb_object_name = f"{request.category}/{asset_id}/thumb{ext}"
+        main_object_name = f"{request.category}/{asset_id}/{base_name} main{ext}"
+        thumb_object_name = f"{request.category}/{asset_id}/{base_name} thumb{ext}"
     
     # Generate presigned PUTs
     # Note: size limits are no longer strictly enforced via presigned POST policy since we use PUT.
@@ -300,10 +304,16 @@ def media_proxy_route(
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_media_route(id: str, db: Session = Depends(get_db_session)):
-    success = delete_media_asset(db, id)
-    if not success:
+    try:
+        success = delete_media_asset(db, id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Media asset not found"
+            )
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Media asset not found"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
     return None

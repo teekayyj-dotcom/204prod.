@@ -164,7 +164,7 @@ def firebase_auth(db: Session, payload: FirebaseAuthRequest) -> AuthResponse:
         # Also sync avatar to Crew table
         from app.modules.crew.models import CrewMember
         crew = db.query(CrewMember).filter(CrewMember.email == email).first()
-        if crew and crew.avatar != avatar_url:
+        if crew and crew.avatar != avatar_url and not getattr(crew, 'avatar_locked', False):
             crew.avatar = avatar_url
             needs_commit = True
             

@@ -1322,7 +1322,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                     (p) => {
                         setUploadingFiles(prev => prev.map(f => f.id === uploadId ? { ...f, progress: p } : f));
                     },
-                    null,
+                    project.client_slug || project.client,
                     project.slug,
                     "demo"
                 );
@@ -1685,17 +1685,27 @@ function VaultTab({ project }: { project: any }) {
 // ─── VideoViewMode (helper component) ─────────────────────────────────────────────
 
 function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo: any }) {
-    const url = project?.video_url || project?.videoUrl || "";
+    let url = project?.video_url || project?.videoUrl || "";
+    
+    // Automatically convert Bunny direct URL to iframe embed URL for better player UI
+    const bunnyDirectMatch = url.match(/https:\/\/[^\/]+\/([a-zA-Z0-9-]+)\/play_1080p\.mp4/);
+    if (bunnyDirectMatch) {
+        url = `https://iframe.mediadelivery.net/embed/694348/${bunnyDirectMatch[1]}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`;
+    }
+
     const ytMatch = url ? url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/) : null;
     const vmMatch = url ? url.match(/vimeo\.com\/(\d+)/) : null;
     const embedUrl = ytMatch
         ? `https://www.youtube.com/embed/${ytMatch[1]}`
-        : vmMatch ? `https://player.vimeo.com/video/${vmMatch[1]}` : null;
+        : vmMatch ? `https://player.vimeo.com/video/${vmMatch[1]}` 
+        : url?.includes("iframe.mediadelivery.net") ? url : null;
 
     const isDirectVideo = !!url && !embedUrl && (
         url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || 
-        url.includes("play_1080p.mp4") || url.includes("mediadelivery.net") || url.includes("r2.dev")
+        url.includes("r2.dev")
     );
+    
+    let posterUrl = "";
 
     if (embedUrl) {
         return (
@@ -1707,7 +1717,7 @@ function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo
     if (isDirectVideo) {
         return (
             <div className="mt-3 rounded-xl overflow-hidden bg-black" style={{ border: "1px solid #2E2020", height: "220px" }}>
-                <video src={url} controls className="w-full h-full object-contain" />
+                <video src={url} poster={posterUrl || undefined} controls className="w-full h-full object-contain" />
             </div>
         );
     }
@@ -1799,8 +1809,10 @@ export function ProjectDetailPage() {
             fetchApi('/crew'),
             fetchApi('/finance/expenses').catch(() => []),
             fetchApi('/finance/invoices').catch(() => []),
-            fetchApi(`/projects/${id}/feedback`).catch(() => [])
-        ]).then(([projData, clientsData, categoriesData, crewData, expensesData, invoicesData, feedbackData]) => {
+            fetchApi(`/projects/${id}/feedback`).catch(() => []),
+            fetchApi(`/projects/${id}/activities`).catch(() => []),
+            fetchApi(`/projects/${id}/comments`).catch(() => [])
+        ]).then(([projData, clientsData, categoriesData, crewData, expensesData, invoicesData, feedbackData, activitiesData, commentsData]) => {
             setProject(projData);
             setIsFeatured(!!projData.featured);
             setIsPublished(!!projData.published);
@@ -1812,6 +1824,34 @@ export function ProjectDetailPage() {
             setInvoices(invoicesData || []);
             setFeedbacks(feedbackData || []);
             setGalleryImages(projData.gallery || []);
+            
+            const formatTimeAgo = (dateStr: string) => {
+                const diff = Date.now() - new Date(dateStr).getTime();
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+                if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+                if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+                if (minutes > 0) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
+                return "Just now";
+            };
+
+            setActivities((activitiesData || []).map((a: any) => ({
+                id: a.id,
+                user: a.user_name,
+                action: a.action,
+                time: formatTimeAgo(a.created_at),
+                avatar: a.avatar || a.user_name.substring(0, 2).toUpperCase()
+            })));
+
+            setComments((commentsData || []).map((c: any) => ({
+                id: c.id,
+                user: c.user_name,
+                text: c.text,
+                time: formatTimeAgo(c.created_at),
+                avatar: c.avatar || c.user_name.substring(0, 2).toUpperCase()
+            })));
+
             reset({
                 title: projData.title,
                 client: projData.client_slug || projData.client,
@@ -1824,11 +1864,6 @@ export function ProjectDetailPage() {
                 videoUrl: projData.videoUrl || "",
             });
 
-            const isMockProject = [
-                "proj-aurora-rebrand", "proj-slate-site", "proj-pulse-campaign", "proj-nova-ecom", "proj-aurora-motion", "proj-slate-photo",
-                "aurora-platform-rebrand", "slate-house-portfolio", "pulse-summer-campaign", "nova-goods-product-launch", "aurora-motion-toolkit", "slate-editorial-shoot"
-            ].includes(id.toLowerCase());
-
             const loadedCredits = projData.credits || [];
             if (loadedCredits.length > 0) {
                 const parsedCrew = loadedCredits.map((credStr, idx) => {
@@ -1838,21 +1873,7 @@ export function ProjectDetailPage() {
                     return { id: `cred-${idx}-${Date.now()}`, name, role };
                 });
                 setAssignedCrew(parsedCrew);
-            } else if (isMockProject) {
-                setActivities([
-                    { id: 1, user: "Sarah Kim", action: "updated project status to In Progress", time: "2 hours ago", avatar: "SK" },
-                    { id: 2, user: "Jake Torres", action: "pushed a new build — v0.4.1", time: "5 hours ago", avatar: "JT" },
-                    { id: 3, user: "Maya Chen", action: "uploaded revised wireframes", time: "1 day ago", avatar: "MC" },
-                    { id: 4, user: "Alex (You)", action: "created this project", time: "3 days ago", avatar: "AY" },
-                ]);
-                setComments([
-                    { id: 1, user: "Sarah Kim", text: "Client approved the direction — moving into production phase now.", time: "2 hours ago", avatar: "SK" },
-                    { id: 2, user: "Jake Torres", text: "Main components are all wired up. Need final copy from Emma before we can close the homepage.", time: "1 day ago", avatar: "JT" },
-                ]);
-                setAssignedCrew(crewMembers.slice(0, 3));
             } else {
-                setActivities([{ id: 1, user: "Alex (You)", action: "created this project", time: "Just now", avatar: "AY" }]);
-                setComments([]);
                 setAssignedCrew([]);
             }
 
@@ -1901,7 +1922,8 @@ export function ProjectDetailPage() {
         try {
             let coverMediaId = undefined;
             if (thumbnailFile) {
-                const mediaAsset = await uploadMediaPipeline(thumbnailFile, "projects", fetchApi, undefined, data.client, project.slug, "thumbnail");
+                const renamedThumb = new File([thumbnailFile], `${data.title}.jpg`, { type: thumbnailFile.type });
+                const mediaAsset = await uploadMediaPipeline(renamedThumb, "projects", fetchApi, undefined, data.client, project.slug, "thumbnail");
                 coverMediaId = mediaAsset.id;
             } else if (thumbnailPreview === null) {
                 coverMediaId = null;
@@ -1914,9 +1936,11 @@ export function ProjectDetailPage() {
             }
 
             const finalGalleryMediaIds = [];
-            for (const img of galleryImages) {
+            for (let i = 0; i < galleryImages.length; i++) {
+                const img = galleryImages[i];
                 if (img.file) {
-                    const mediaAsset = await uploadMediaPipeline(img.file, "projects", fetchApi, undefined, data.client, project.slug, "behind the scenes", true);
+                    const renamedBts = new File([img.file], `BTS ${data.title} ${i + 1}.jpg`, { type: img.file.type });
+                    const mediaAsset = await uploadMediaPipeline(renamedBts, "projects", fetchApi, undefined, data.client, project.slug, "behind the scenes", true);
                     finalGalleryMediaIds.push(mediaAsset.id);
                 } else {
                     finalGalleryMediaIds.push(img.id);
@@ -2526,11 +2550,30 @@ export function ProjectDetailPage() {
                                         </div>))}
                                     <div className="flex gap-3 pt-2" style={{ borderTop: "1px solid #2A1F1F" }}>
                                         <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#D84040", color: "#fff", fontSize: "10px", fontWeight: 700 }}>AY</div>
-                                        <input onKeyDown={(e) => {
+                                        <input onKeyDown={async (e) => {
                             if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                                const newComment = { id: Date.now(), user: "Alex (You)", text: e.currentTarget.value.trim(), time: "Just now", avatar: "AY" };
-                                setComments((prev) => [...prev, newComment]);
+                                const text = e.currentTarget.value.trim();
                                 e.currentTarget.value = "";
+                                try {
+                                    const newComment = await fetchApi(`/projects/${id}/comments`, {
+                                        method: "POST",
+                                        body: JSON.stringify({
+                                            user_name: "Alex (You)",
+                                            text: text,
+                                            avatar: "AY"
+                                        })
+                                    });
+                                    setComments((prev) => [{
+                                        id: newComment.id,
+                                        user: newComment.user_name,
+                                        text: newComment.text,
+                                        time: "Just now",
+                                        avatar: newComment.avatar
+                                    }, ...prev]);
+                                } catch (err) {
+                                    console.error("Failed to post comment", err);
+                                    alert("Failed to post comment");
+                                }
                             }
                         }} placeholder="Add a comment..." className="flex-1 px-3 py-2 rounded-lg outline-none" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", fontSize: "13px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#2A1F1F")}/>
                                     </div>

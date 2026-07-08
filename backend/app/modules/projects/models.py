@@ -219,3 +219,47 @@ class ApprovalRequest(Base):
 
     project: Mapped[Project] = relationship()
     task: Mapped[ProjectTask] = relationship()
+
+
+class ProjectActivity(Base):
+    __tablename__ = "project_activities"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_name: Mapped[str] = mapped_column(String(180), nullable=False)
+    action: Mapped[str] = mapped_column(String(255), nullable=False)
+    avatar: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    project: Mapped[Project] = relationship()
+
+
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_name: Mapped[str] = mapped_column(String(180), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    avatar: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    project: Mapped[Project] = relationship()

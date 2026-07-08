@@ -91,13 +91,13 @@ export function ImageCropperModal({ isOpen, imageSrc, onConfirm, onCancel }: Ima
     // Draw the selection onto an offscreen canvas
     const canvas = document.createElement("canvas");
     canvas.width = 400; // Standard avatar output resolution
-    canvas.height = 400;
+    canvas.height = 500;
     const ctx = canvas.getContext("2d");
 
     if (ctx) {
       // Clear canvas to white/transparent
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, 400, 400);
+      ctx.fillRect(0, 0, 400, 500);
 
       // Perform crop
       ctx.drawImage(
@@ -109,7 +109,7 @@ export function ImageCropperModal({ isOpen, imageSrc, onConfirm, onCancel }: Ima
         0,
         0,
         400,
-        400
+        500
       );
     }
 
@@ -148,7 +148,7 @@ export function ImageCropperModal({ isOpen, imageSrc, onConfirm, onCancel }: Ima
         </div>
 
         {/* Viewport container */}
-        <div className="relative w-full aspect-square bg-[#120D0D] flex items-center justify-center overflow-hidden select-none">
+        <div className="relative w-full aspect-[4/5] bg-[#120D0D] flex items-center justify-center overflow-hidden select-none">
           {/* Draggable Image */}
           <img
             ref={imgRef}
@@ -170,12 +170,12 @@ export function ImageCropperModal({ isOpen, imageSrc, onConfirm, onCancel }: Ima
             onDragStart={(e) => e.preventDefault()}
           />
 
-          {/* Mask circle overlay - visually masks the viewport */}
+          {/* Mask overlay - visually masks the viewport */}
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            {/* The circular crop guide */}
+            {/* The crop guide (4:5 ratio) */}
             <div 
               ref={maskRef}
-              className="w-64 h-64 rounded-full border-2 border-[#D84040] shadow-[0_0_0_9999px_rgba(18,13,13,0.7)]"
+              className="w-[90%] aspect-[4/5] rounded-xl border-2 border-[#D84040] shadow-[0_0_0_9999px_rgba(18,13,13,0.7)]"
             />
           </div>
 
