@@ -347,6 +347,9 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
     today = date.today()
     
     for member in crew:
+        if getattr(member, 'work_mode', 'onsite') != 'onsite':
+            continue
+            
         days = []
         total_days = 0.0
         late_min = 0
