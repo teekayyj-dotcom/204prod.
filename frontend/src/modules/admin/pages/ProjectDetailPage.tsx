@@ -2599,7 +2599,7 @@ export function ProjectDetailPage() {
                                                         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "#8E1616", color: "#EEEEEE" }}>{initials}</div>
                                                     )}
                                                     <div className="min-w-0">
-                                                        <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }} className="truncate">{c.name}</p>
+                                                        <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }} className="truncate">{realMember ? realMember.name : c.name}</p>
                                                         <p style={{ color: "#D84040", fontSize: "10px" }} className="truncate">{c.role}</p>
                                                     </div>
                                                 </div>
@@ -2683,13 +2683,13 @@ export function ProjectDetailPage() {
                                     return (
                                         <div key={c.id} className="flex items-center gap-3">
                                             {avatarUrl ? (
-                                                <img src={avatarUrl} alt={c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F" }}/>
+                                                <img src={avatarUrl} alt={realMember?.name || c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F" }}/>
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>{initials}</div>
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 {realMember ? (
-                                                    <button type="button" onClick={() => navigate(`/admin/crew/${realMember.id}`)} className="text-left hover:text-[#D84040] transition-colors" style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</button>
+                                                    <button type="button" onClick={() => navigate(`/admin/crew/${realMember.id}`)} className="text-left hover:text-[#D84040] transition-colors" style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{realMember.name}</button>
                                                 ) : (
                                                     <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</p>
                                                 )}
@@ -2711,9 +2711,13 @@ export function ProjectDetailPage() {
             const clientData = dbClients.find((c) => c.name === project.client || c.slug === project.client_slug);
             return clientData ? (<div>
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "12px", fontWeight: 700 }}>
-                                            {(clientData.name || "Client").split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                                        </div>
+                                        {(clientData.avatar || clientData.logo_media_url) ? (
+                                            <img src={clientData.avatar || clientData.logo_media_url} alt={clientData.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F", background: "#241C1C" }} />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "12px", fontWeight: 700 }}>
+                                                {(clientData.name || "Client").split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                                            </div>
+                                        )}
                                         <div>
                                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{clientData.name}</p>
                                             <p style={{ color: "#888", fontSize: "11px" }}>{clientData.contact || "Primary Contact"}</p>

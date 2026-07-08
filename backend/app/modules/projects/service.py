@@ -203,12 +203,32 @@ def create_client(db: Session, client: ClientCreate) -> Client:
     db.commit()
     db.refresh(db_client)
     sync_client_invoices(db, db_client)
-    
-    if db_client.email:
-        pre_authorize_user(db, db_client.email, "client")
-        
+    sync_client_poc_authorization(db, db_client)
     return db_client
 
+def sync_client_poc_authorization(db: Session, db_client: Client) -> None:
+    import json
+    from app.modules.users.service import pre_authorize_user
+    
+    emails_to_auth = set()
+    if db_client.email:
+        emails_to_auth.add(db_client.email.strip().lower())
+        
+    if db_client.notes:
+        try:
+            trimmed = db_client.notes.strip()
+            if trimmed.startswith("{"):
+                crm = json.loads(trimmed)
+                poc_list = crm.get("poc_list", [])
+                for poc in poc_list:
+                    if poc.get("email"):
+                        emails_to_auth.add(poc.get("email").strip().lower())
+        except Exception as e:
+            print(f"Error syncing client POC auth: {e}")
+            
+    for email in emails_to_auth:
+        if email:
+            pre_authorize_user(db, email, "client")
 
 def sync_client_invoices(db: Session, db_client: Client) -> None:
     import json
@@ -321,9 +341,7 @@ def update_client(db: Session, slug: str, client: ClientUpdate) -> Client | None
     db.commit()
     db.refresh(db_client)
     sync_client_invoices(db, db_client)
-    
-    if db_client.email:
-        pre_authorize_user(db, db_client.email, "client")
+    sync_client_poc_authorization(db, db_client)
         
     return db_client
 
