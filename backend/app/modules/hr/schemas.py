@@ -64,6 +64,8 @@ class AttendanceLogBase(BaseModel):
     date: str
     status: str = "on-time"
     note: str | None = None
+    lat: float | None = None
+    lng: float | None = None
 
 class AttendanceLogCreate(AttendanceLogBase):
     pass

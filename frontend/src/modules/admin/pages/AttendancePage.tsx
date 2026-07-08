@@ -782,12 +782,16 @@ function SettingsTab({ shifts, holidays, onRefresh }: SettingsTabProps) {
   const [shiftForm, setShiftForm] = useState({ name: "", start_time: "", end_time: "", break_time: "", days: "" });
   const [holidayForm, setHolidayForm] = useState({ name: "", date: "" });
 
-  function Toggle({ on, onChange }: { on: boolean; onChange: () => void }) {
+  function Toggle({ on, onChange, disabled }: { on: boolean; onChange: () => void, disabled?: boolean }) {
     return (
       <button
-        onClick={onChange}
+        onClick={() => { if (!disabled) onChange(); }}
         className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
-        style={{ background: on ? "#D84040" : "#2A1F1F" }}
+        style={{ 
+          background: on ? "#D84040" : "#2A1F1F",
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? "not-allowed" : "pointer"
+        }}
       >
         <div
           className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
@@ -1011,15 +1015,15 @@ function SettingsTab({ shifts, holidays, onRefresh }: SettingsTabProps) {
           style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
         >
           {[
-            { icon: MapPin,  label: "GPS (Bán kính 100m từ văn phòng)", sub: "21.0278, 105.8342 — Hà Nội", on: gps, toggle: () => setGps(!gps) },
-            { icon: FileText,label: "QR Code check-in",                sub: "Quét mã tại cổng vào",      on: qr,  toggle: () => setQr(!qr) },
-            { icon: Shield,  label: "Nhận diện khuôn mặt (FaceID)",    sub: "Yêu cầu thiết bị hỗ trợ",  on: face, toggle: () => setFace(!face) },
-            { icon: Wifi,    label: "Dải IP nội bộ",                   sub: "192.168.1.0/24",            on: ip,  toggle: () => setIp(!ip) },
+            { icon: MapPin,  label: "GPS (Bán kính 50m từ văn phòng)", sub: "21.0317, 105.8427 — Hà Nội", on: gps, toggle: () => setGps(!gps) },
+            { icon: FileText,label: "QR Code check-in",                sub: "Quét mã tại cổng vào",      on: false, toggle: () => {}, disabled: true },
+            { icon: Shield,  label: "Nhận diện khuôn mặt (FaceID)",    sub: "Yêu cầu thiết bị hỗ trợ",  on: false, toggle: () => {}, disabled: true },
+            { icon: Wifi,    label: "Dải IP nội bộ",                   sub: "192.168.1.0/24",            on: false, toggle: () => {}, disabled: true },
           ].map((item, i, arr) => (
             <div
               key={item.label}
               className="flex items-center gap-4 px-5 py-4"
-              style={{ borderBottom: i < arr.length - 1 ? "1px solid #2A1F1F" : undefined }}
+              style={{ borderBottom: i < arr.length - 1 ? "1px solid #2A1F1F" : undefined, opacity: item.disabled ? 0.5 : 1 }}
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -1031,7 +1035,7 @@ function SettingsTab({ shifts, holidays, onRefresh }: SettingsTabProps) {
                 <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{item.label}</p>
                 <p style={{ color: "#555", fontSize: "11px" }}>{item.sub}</p>
               </div>
-              <Toggle on={item.on} onChange={item.toggle} />
+              <Toggle on={item.on} onChange={item.toggle} disabled={item.disabled} />
             </div>
           ))}
         </div>

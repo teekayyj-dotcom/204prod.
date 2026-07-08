@@ -28,6 +28,8 @@ function useCheckinTimer() {
     return s ? parseInt(s) : null;
   });
   const [elapsed, setElapsed] = useState(0);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -42,57 +44,112 @@ function useCheckinTimer() {
   }, [isCheckedIn, startTime]);
 
   const checkIn = async () => {
-    const now = Date.now();
-    setIsCheckedIn(true);
-    setStartTime(now);
-    setElapsed(0);
-    localStorage.setItem("crew_checkin_active", "true");
-    localStorage.setItem("crew_checkin_start", String(now));
-    
-    try {
-      const u = JSON.parse(localStorage.getItem("user") || "{}");
-      const avatarUrl = u.avatar_url || u.avatar || u.photo_url || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || u.username || "Crew")}&background=8E1616&color=fff`;
-      await fetchApi("/hr/attendance-logs", {
-        method: "POST",
-        body: JSON.stringify({
-          employee_name: u.display_name || u.username || "Crew",
-          avatar: avatarUrl,
-          action: "check-in",
-          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-          date: new Date().toISOString().split("T")[0],
-          status: "on-time",
-          note: "Office"
-        })
-      });
-    } catch (err) {
-      console.error("Failed to check in to API", err);
+    setLocationError(null);
+    if (!("geolocation" in navigator)) {
+      setLocationError("Trình duyệt không hỗ trợ Geolocation.");
+      return;
     }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        setIsLocating(false);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const now = Date.now();
+        
+        try {
+          const u = JSON.parse(localStorage.getItem("user") || "{}");
+          const avatarUrl = u.avatar_url || u.avatar || u.photo_url || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || u.username || "Crew")}&background=8E1616&color=fff`;
+          await fetchApi("/hr/attendance-logs", {
+            method: "POST",
+            body: JSON.stringify({
+              employee_name: u.display_name || u.username || "Crew",
+              avatar: avatarUrl,
+              action: "check-in",
+              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+              date: new Date().toISOString().split("T")[0],
+              status: "on-time",
+              note: "Office",
+              lat: lat,
+              lng: lng
+            })
+          });
+
+          setIsCheckedIn(true);
+          setStartTime(now);
+          setElapsed(0);
+          localStorage.setItem("crew_checkin_active", "true");
+          localStorage.setItem("crew_checkin_start", String(now));
+        } catch (err: any) {
+          const msg = err.detail || err.message || "Lỗi lấy vị trí hoặc check-in";
+          setLocationError(msg);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Bạn đã từ chối cấp quyền vị trí. Vui lòng vào Cài đặt trình duyệt để cho phép.");
+        } else {
+          setLocationError("Không thể lấy vị trí. Vui lòng kiểm tra GPS/Mạng.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const checkOut = async () => {
-    setIsCheckedIn(false);
-    setStartTime(null);
-    setElapsed(0);
-    localStorage.removeItem("crew_checkin_active");
-    localStorage.removeItem("crew_checkin_start");
-    
-    try {
-      const u = JSON.parse(localStorage.getItem("user") || "{}");
-      const avatarUrl = u.avatar_url || u.avatar || u.photo_url || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || u.username || "Crew")}&background=8E1616&color=fff`;
-      await fetchApi("/hr/attendance-logs", {
-        method: "POST",
-        body: JSON.stringify({
-          employee_name: u.display_name || u.username || "Crew",
-          avatar: avatarUrl,
-          action: "check-out",
-          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-          date: new Date().toISOString().split("T")[0],
-          status: "on-time"
-        })
-      });
-    } catch (err) {
-      console.error("Failed to check out to API", err);
+    setLocationError(null);
+    if (!("geolocation" in navigator)) {
+      setLocationError("Trình duyệt không hỗ trợ Geolocation.");
+      return;
     }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        setIsLocating(false);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        try {
+          const u = JSON.parse(localStorage.getItem("user") || "{}");
+          const avatarUrl = u.avatar_url || u.avatar || u.photo_url || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.display_name || u.username || "Crew")}&background=8E1616&color=fff`;
+          await fetchApi("/hr/attendance-logs", {
+            method: "POST",
+            body: JSON.stringify({
+              employee_name: u.display_name || u.username || "Crew",
+              avatar: avatarUrl,
+              action: "check-out",
+              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+              date: new Date().toISOString().split("T")[0],
+              status: "on-time",
+              lat: lat,
+              lng: lng
+            })
+          });
+
+          setIsCheckedIn(false);
+          setStartTime(null);
+          setElapsed(0);
+          localStorage.removeItem("crew_checkin_active");
+          localStorage.removeItem("crew_checkin_start");
+        } catch (err: any) {
+          const msg = err.detail || err.message || "Lỗi lấy vị trí hoặc check-out";
+          setLocationError(msg);
+        }
+      },
+      (error) => {
+        setIsLocating(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("Bạn đã từ chối cấp quyền vị trí. Vui lòng vào Cài đặt trình duyệt để cho phép.");
+        } else {
+          setLocationError("Không thể lấy vị trí. Vui lòng kiểm tra GPS/Mạng.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const format = (secs: number) => {
@@ -102,13 +159,13 @@ function useCheckinTimer() {
     return `${h}:${m}:${s}`;
   };
 
-  return { isCheckedIn, elapsed, checkIn, checkOut, format };
+  return { isCheckedIn, elapsed, checkIn, checkOut, format, isLocating, locationError };
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewWorkspacePage() {
   const navigate = useNavigate();
-  const { isCheckedIn, elapsed, checkIn, checkOut, format } = useCheckinTimer();
+  const { isCheckedIn, elapsed, checkIn, checkOut, format, isLocating, locationError } = useCheckinTimer();
   const [tasks, setTasks] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [workHours, setWorkHours] = useState(0);
@@ -327,6 +384,7 @@ export function CrewWorkspacePage() {
               <div className="flex flex-col gap-3 items-end">
                 <button
                   onClick={isCheckedIn ? checkOut : checkIn}
+                  disabled={isLocating}
                   className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-semibold transition-all duration-200"
                   style={{
                     background: isCheckedIn ? "#1D1616" : "#D84040",
@@ -336,15 +394,22 @@ export function CrewWorkspacePage() {
                     fontWeight: 700,
                     minWidth: "160px",
                     justifyContent: "center",
+                    opacity: isLocating ? 0.7 : 1,
+                    cursor: isLocating ? "not-allowed" : "pointer"
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.03)";
+                    if (!isLocating) e.currentTarget.style.transform = "scale(1.03)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)";
+                    if (!isLocating) e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
-                  {isCheckedIn ? (
+                  {isLocating ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                      Đang lấy vị trí...
+                    </span>
+                  ) : isCheckedIn ? (
                     <>
                       <Pause size={18} /> Check-out
                     </>
@@ -354,7 +419,12 @@ export function CrewWorkspacePage() {
                     </>
                   )}
                 </button>
-                {isCheckedIn && (
+                {locationError && (
+                  <p style={{ color: "#D84040", fontSize: "11px", maxWidth: "200px", textAlign: "right", marginTop: "4px" }}>
+                    {locationError}
+                  </p>
+                )}
+                {isCheckedIn && !locationError && (
                   <div
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
                     style={{ background: "#0A0707", border: "1px solid #2A1F1F" }}

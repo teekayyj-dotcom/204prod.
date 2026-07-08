@@ -68,7 +68,9 @@ def add_attendance_log(payload: AttendanceLogCreate, db: Session = Depends(get_d
         time=payload.time,
         date=payload.date,
         status=payload.status,
-        note=payload.note
+        note=payload.note,
+        lat=payload.lat,
+        lng=payload.lng
     )
 
 # Leave Requests
