@@ -11,7 +11,7 @@ export function BusinessTripAssignModal({ onClose, onSuccess }: BusinessTripAssi
   const [crew, setCrew] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [employee, setEmployee] = useState("");
+  const [employees, setEmployees] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [reason, setReason] = useState("");
@@ -22,32 +22,32 @@ export function BusinessTripAssignModal({ onClose, onSuccess }: BusinessTripAssi
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!employee || !fromDate || !toDate || !reason) {
-      alert("Vui lòng điền đầy đủ thông tin");
+    if (employees.length === 0 || !fromDate || !toDate || !reason) {
+      alert("Vui lòng điền đầy đủ thông tin và chọn ít nhất 1 nhân sự");
       return;
     }
 
     setLoading(true);
-    const selected = crew.find(c => c.name === employee);
-    
-    // Format date string for the backend e.g. "YYYY-MM-DD to YYYY-MM-DD" or similar.
-    // The backend `is_date_in_range` function splits by "to" or "-"
     const dateStr = `${fromDate} to ${toDate}`;
 
     try {
-      await fetchApi("/hr/leave-requests", {
-        method: "POST",
-        body: JSON.stringify({
-          employee_name: employee,
-          avatar: selected?.avatar || "",
-          type: "business",
-          status: "approved", // Automatically approved since Admin creates it
-          date: dateStr,
-          reason: reason,
-          submitted_at: new Date().toLocaleDateString("vi-VN"),
-          urgent: false
-        })
-      });
+      await Promise.all(employees.map(async (empName) => {
+        const selected = crew.find(c => c.name === empName);
+        return fetchApi("/hr/leave-requests", {
+          method: "POST",
+          body: JSON.stringify({
+            employee_name: empName,
+            avatar: selected?.avatar || "",
+            type: "business",
+            status: "approved",
+            date: dateStr,
+            reason: reason,
+            submitted_at: new Date().toLocaleDateString("vi-VN"),
+            urgent: false
+          })
+        });
+      }));
+      
       onSuccess();
     } catch (err: any) {
       alert("Lỗi khi phân công: " + err.message);
@@ -77,19 +77,30 @@ export function BusinessTripAssignModal({ onClose, onSuccess }: BusinessTripAssi
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label style={{ color: "#888", fontSize: "12px", fontWeight: 600 }} className="block mb-1.5">
-              Nhân sự
+              Nhân sự (Có thể chọn nhiều)
             </label>
-            <select
-              value={employee}
-              onChange={(e) => setEmployee(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg outline-none appearance-none"
-              style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "14px" }}
+            <div 
+              className="w-full px-3 py-2.5 rounded-lg outline-none overflow-y-auto"
+              style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", maxHeight: "150px" }}
             >
-              <option value="">-- Chọn nhân sự --</option>
               {crew.map((c: any) => (
-                <option key={c.id} value={c.name}>{c.name} - {c.role}</option>
+                <label key={c.id} className="flex items-center gap-3 py-1.5 cursor-pointer hover:opacity-80">
+                  <input 
+                    type="checkbox"
+                    checked={employees.includes(c.name)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setEmployees(prev => [...prev, c.name]);
+                      } else {
+                        setEmployees(prev => prev.filter(name => name !== c.name));
+                      }
+                    }}
+                    className="w-4 h-4 rounded accent-[#f97316]"
+                  />
+                  <span style={{ color: "#EEEEEE", fontSize: "14px" }}>{c.name} - {c.role}</span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
