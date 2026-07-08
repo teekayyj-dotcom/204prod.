@@ -15,9 +15,14 @@ from app.modules.auth.service import (
     firebase_auth,
     change_password,
 )
-from app.shared.dependencies.auth import require_admin_token # Assuming we might need a generic require_auth later
+from app.shared.dependencies.auth import require_admin_token, require_auth_token
+from app.modules.users.models import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+@router.get("/verify")
+def verify_token_route(user: User = Depends(require_auth_token)):
+    return {"status": "ok", "role": user.role}
 
 @router.post("/register", response_model=AuthResponse)
 def register_route(payload: RegisterRequest, db: Session = Depends(get_db_session)):

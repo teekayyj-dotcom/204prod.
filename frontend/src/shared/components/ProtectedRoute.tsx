@@ -10,24 +10,41 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
     const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const [isFirebaseChecking, setIsFirebaseChecking] = useState(!isLocalhost && !auth.currentUser);
-    const [hasFirebaseUser, setHasFirebaseUser] = useState(isLocalhost || !!auth.currentUser);
+    const [isFirebaseChecking, setIsFirebaseChecking] = useState(!auth.currentUser);
+    const [hasFirebaseUser, setHasFirebaseUser] = useState(!!auth.currentUser);
 
-    const token = localStorage.getItem("token") || (isLocalhost ? "mock-token" : "");
-    const role = localStorage.getItem("role") || (isLocalhost ? "crew" : "client");
+    const token = localStorage.getItem("token") || "";
+    const role = localStorage.getItem("role") || "";
     const location = useLocation();
 
     useEffect(() => {
-        if (isLocalhost) {
-            setIsFirebaseChecking(false);
-            return;
-        }
+        // 1. Firebase Auth Check
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setHasFirebaseUser(!!user);
             setIsFirebaseChecking(false);
         });
+        
+        // 2. Backend Verify Check (ensures user still exists and role is up to date)
+        if (token) {
+            import("../../modules/admin/utils/apiClient").then(({ fetchApi }) => {
+                fetchApi<{status: string, role: string}>("/auth/verify", {
+                    headers: { "x-admin-token": token, "Authorization": `Bearer ${token}` }
+                })
+                .then((res) => {
+                    if (res.role && res.role !== role) {
+                        localStorage.setItem("role", res.role);
+                        // Reload to apply new role logic
+                        window.location.reload();
+                    }
+                })
+                .catch(() => {
+                    // apiClient will handle 401/403 and redirect to login
+                });
+            });
+        }
+        
         return () => unsubscribe();
-    }, [isLocalhost]);
+    }, [token, role]);
 
     if (isFirebaseChecking) {
         return <div className="min-h-screen bg-[#0A0707] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#D84040] border-t-transparent rounded-full animate-spin"></div></div>;

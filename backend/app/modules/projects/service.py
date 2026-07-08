@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.modules.projects.models import Project, ProjectTask
 from app.modules.projects.repository import get_project_by_slug, list_projects
 from app.modules.projects.schemas import ProjectDetail, ProjectCreate, ProjectUpdate, ProjectTaskCreate, ProjectTaskUpdate, ApprovalRequestCreate
+from app.modules.users.service import pre_authorize_user
 
 
 def get_projects(db: Session) -> list[ProjectDetail]:
@@ -202,6 +203,10 @@ def create_client(db: Session, client: ClientCreate) -> Client:
     db.commit()
     db.refresh(db_client)
     sync_client_invoices(db, db_client)
+    
+    if db_client.email:
+        pre_authorize_user(db, db_client.email, "client")
+        
     return db_client
 
 
@@ -316,6 +321,10 @@ def update_client(db: Session, slug: str, client: ClientUpdate) -> Client | None
     db.commit()
     db.refresh(db_client)
     sync_client_invoices(db, db_client)
+    
+    if db_client.email:
+        pre_authorize_user(db, db_client.email, "client")
+        
     return db_client
 
 
@@ -324,8 +333,15 @@ def delete_client(db: Session, slug: str) -> bool:
     db_client = get_client_by_slug(db, slug)
     if not db_client:
         return False
+        
+    email_to_revoke = db_client.email
     db.delete(db_client)
     db.commit()
+    
+    if email_to_revoke:
+        from app.modules.users.service import revoke_user_authorization
+        revoke_user_authorization(db, email_to_revoke)
+        
     return True
 
 

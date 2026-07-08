@@ -17,6 +17,23 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('user');
+        
+        // Use dynamic import to avoid circular dependencies and sign out of Firebase
+        import('../../../shared/config/firebase').then(({ auth }) => {
+          import('firebase/auth').then(({ signOut }) => {
+            signOut(auth).catch(() => {});
+          });
+        });
+        
+        window.location.href = '/login';
+      }
+    }
+
     let errorDetail = '';
     try {
       const errJson = await response.json();

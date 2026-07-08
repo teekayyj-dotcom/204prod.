@@ -3,10 +3,23 @@ from app.db.session import engine
 from sqlalchemy import text
 
 
+import time
+from sqlalchemy.exc import OperationalError
+
 def init_db() -> None:
     import_models()
-    Base.metadata.create_all(bind=engine)
     
+    max_retries = 10
+    for i in range(max_retries):
+        try:
+            Base.metadata.create_all(bind=engine)
+            break
+        except OperationalError as e:
+            if i == max_retries - 1:
+                raise e
+            print(f"Database not ready yet, retrying in 2 seconds... ({i+1}/{max_retries})")
+            time.sleep(2)
+            
     # Auto-add budget column to projects table if missing
     with engine.begin() as conn:
         try:

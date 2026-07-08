@@ -38,9 +38,10 @@ export function CrewProfilePage() {
     const [deleting, setDeleting] = useState(false);
     const [skills, setSkills] = useState([]);
     const [skillInput, setSkillInput] = useState("");
-    // Add Role state
     const [addingRole, setAddingRole] = useState(false);
     const [roleInput, setRoleInput] = useState("");
+    const [systemRole, setSystemRole] = useState<string | null>(null);
+    const [updatingSystemRole, setUpdatingSystemRole] = useState(false);
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [avatarFile, setAvatarFile] = useState(null);
     const [selectedRoles, setSelectedRoles] = useState([]);
@@ -90,11 +91,11 @@ export function CrewProfilePage() {
     useEffect(() => {
         setLoading(true);
         fetchApi(`/crew/${id}`)
-            .then((data) => {
+            .then(async (data) => {
                 setMember(data);
-                const memberSkills = data.skills_expertise ? data.skills_expertise.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                const memberSkills = data.skills_expertise ? data.skills_expertise.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
                 setSkills(memberSkills);
-                const memberRoles = data.role ? data.role.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                const memberRoles = data.role ? data.role.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
                 setSelectedRoles(memberRoles);
                 setAvatarPreview(data.avatar || null);
                 const dateOnly = data.created_at ? data.created_at.split("T")[0] : new Date().toISOString().split("T")[0];
@@ -106,6 +107,20 @@ export function CrewProfilePage() {
                     bio: data.bio || "",
                     created_at: dateOnly,
                 });
+                
+                // Fetch system role if user exists
+                if (data.email) {
+                    try {
+                        const token = localStorage.getItem("token") || "";
+                        const user = await fetchApi<{role: string}>(`/users/by-email/${encodeURIComponent(data.email)}`, {
+                            headers: { "x-admin-token": token, "Authorization": `Bearer ${token}` }
+                        });
+                        setSystemRole(user.role);
+                    } catch (err) {
+                        console.error("Failed to fetch system role:", err);
+                    }
+                }
+                
                 setLoading(false);
             })
             .catch((err) => {
@@ -231,7 +246,29 @@ export function CrewProfilePage() {
             addRole(trimmed);
         }
         setRoleInput("");
+        setRoleInput("");
         setAddingRole(false);
+    };
+
+    const handleSystemRoleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newRole = e.target.value;
+        if (!member?.email) return;
+        
+        setUpdatingSystemRole(true);
+        try {
+            const token = localStorage.getItem("token") || "";
+            await fetchApi(`/users/by-email/${encodeURIComponent(member.email)}/role`, {
+                method: "PUT",
+                headers: { "x-admin-token": token, "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ role: newRole })
+            });
+            setSystemRole(newRole);
+        } catch (error) {
+            console.error("Failed to update system role:", error);
+            alert("Failed to update system role");
+        } finally {
+            setUpdatingSystemRole(false);
+        }
     };
     return (<div className="px-8 py-7 w-full">
             {/* Page Header */}
@@ -523,6 +560,33 @@ export function CrewProfilePage() {
                             <Trash2 size={14}/>
                             Remove from Crew
                         </button>
+                    </div>
+
+                    {/* System Access Role */}
+                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                        <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3 flex items-center justify-between">
+                            System Access
+                            {updatingSystemRole && <Loader2 size={12} className="animate-spin text-[#D84040]" />}
+                        </p>
+                        <select 
+                            value={systemRole || ""} 
+                            onChange={handleSystemRoleChange}
+                            className="px-3 py-2 rounded-lg outline-none cursor-pointer w-full" 
+                            style={{ background: "#1D1616", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "13px" }}
+                            disabled={!systemRole || updatingSystemRole}
+                        >
+                            {!systemRole && <option value="">No linked account</option>}
+                            {systemRole && (
+                                <>
+                                    <option value="admin">Admin</option>
+                                    <option value="crew">Crew</option>
+                                    <option value="outsource">Outsource</option>
+                                    <option value="pending">Pending</option>
+                                </>
+                            )}
+                        </select>
+                    </div>
+
                     {/* Role badge — with Add Role */}
                     <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-3">Current Roles</p>
@@ -598,7 +662,6 @@ export function CrewProfilePage() {
                                 )}
                             </div>
                         )}
-                    </div>
                     </div>
                 </div>
             </div>

@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.modules.crew.models import CrewMember
 
 from app.modules.projects.models import ProjectCredit
+from app.modules.users.service import pre_authorize_user
 
 def get_crew_members(db: Session):
     members = db.query(CrewMember).all()
@@ -17,6 +18,10 @@ def create_crew_member(db: Session, crew_member: CrewMember):
     db.add(crew_member)
     db.commit()
     db.refresh(crew_member)
+    
+    if crew_member.email:
+        pre_authorize_user(db, crew_member.email, "crew")
+        
     return crew_member
 
 def update_crew_member(db: Session, id: int, crew_member: CrewMember):
@@ -36,12 +41,23 @@ def update_crew_member(db: Session, id: int, crew_member: CrewMember):
         existing_crew_member.created_at = crew_member.created_at
     db.commit()
     db.refresh(existing_crew_member)
+    
+    if existing_crew_member.email:
+        pre_authorize_user(db, existing_crew_member.email, "crew")
+        
     return existing_crew_member
 
 def delete_crew_member(db: Session, id: int):
     crew_member = db.query(CrewMember).filter(CrewMember.id == id).first()
     if not crew_member:
         return None
+        
+    email_to_revoke = crew_member.email
     db.delete(crew_member)
     db.commit()
+    
+    if email_to_revoke:
+        from app.modules.users.service import revoke_user_authorization
+        revoke_user_authorization(db, email_to_revoke)
+        
     return True
