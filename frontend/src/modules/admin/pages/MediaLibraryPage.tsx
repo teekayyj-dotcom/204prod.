@@ -138,7 +138,7 @@ export function MediaLibraryPage() {
     const currentClientSlug = currentPath[0] || null;
     const currentProjectSlug = currentPath[1] || null;
 
-    const projectSubfolders = ["thumbnail", "behind the scenes", "demo (admin dashboard)", "tài liệu"];
+    const projectSubfolders = ["thumbnail", "behind the scenes", "demo", "tài liệu"];
     const documentSubfolders = ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"];
 
     const getFolderDbValue = (path: string[]) => {
@@ -146,9 +146,8 @@ export function MediaLibraryPage() {
             const sub = path[2];
             if (sub === "thumbnail") return "thumbnail";
             if (sub === "behind the scenes") return "behind the scenes";
-            if (sub === "demo (admin dashboard)") return "demo (admin dashboard)";
-            if (sub === "media") return "media";
             if (sub === "demo") return "demo";
+            if (sub === "media") return "media";
             if (sub === "final video") return "final_video";
             return null;
         }

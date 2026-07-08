@@ -254,11 +254,11 @@ export function CrewProjectsPage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       
-      const cleanTitle = (selectedProject.name || selectedProject.id || "Project").replace(/[^a-zA-Z0-9]/g, '');
-      const existingDeliverables = (selectedProject.gallery || []).filter((f: any) => f.folder === "deliverables" || f.folder === "demo (admin dashboard)");
-      const deliverableNumber = existingDeliverables.length + 1;
+      const cleanTitle = (selectedProject.name || selectedProject.id || "Project").replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+      const existingDemos = (selectedProject.gallery || []).filter((f: any) => f.folder === "demo");
+      const demoNumber = existingDemos.length + 1;
       const extension = file.name.split('.').pop() || 'mp4';
-      const newFileName = `${cleanTitle}_deliverable_v${deliverableNumber}.${extension}`;
+      const newFileName = `${cleanTitle} Demo ${demoNumber}.${extension}`;
       const renamedFile = new File([file], newFileName, { type: file.type });
 
       const uploadId = Math.random().toString(36).substring(7);
@@ -275,12 +275,12 @@ export function CrewProjectsPage() {
           },
           null,
           selectedProject.id,
-          "deliverables"
+          "demo"
         );
         
         await fetchProjects();
       } catch (err) {
-        console.error("Failed to upload deliverable:", err);
+        console.error("Failed to upload demo:", err);
         alert("Upload file thất bại. Vui lòng thử lại!");
       } finally {
         setUploadingFiles(prev => prev.filter(f => f.id !== uploadId));
@@ -299,8 +299,8 @@ export function CrewProjectsPage() {
 
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
-  const deliverables = selectedProject ? (selectedProject.gallery || []).filter((f: any) => f.folder === "deliverables" || f.folder === "demo (admin dashboard)") : [];
-  const lastDemo = [...deliverables].reverse().find((f: any) => f.type === 'video');
+  const deliverables = selectedProject ? [...(selectedProject.gallery || [])].filter((f: any) => f.folder === "demo").reverse() : [];
+  const lastDemo = deliverables.find((f: any) => f.type === 'video');
   const playbackUrl = lastDemo 
     ? `/crew-dashboard/projects/${selectedProject?.id}/playback?video=${encodeURIComponent(lastDemo.url)}` 
     : `/crew-dashboard/projects/${selectedProject?.id}/playback`;
@@ -585,7 +585,7 @@ export function CrewProjectsPage() {
           <button
             onClick={() => {
               if (lastDemo) navigate(playbackUrl);
-              else alert("Chưa có bản demo video nào được upload vào thư mục deliverables.");
+              else alert("Chưa có bản demo video nào được upload.");
             }}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 border text-xs font-bold transition-all ${lastDemo ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
             style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", borderColor: "#D84040", color: "#D84040" }}
@@ -1007,7 +1007,7 @@ export function CrewProjectsPage() {
           >
             <div className="flex items-center gap-2 mb-4">
               <Upload size={15} style={{ color: "#10B981" }} />
-              <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Bàn giao — Deliverables</h3>
+              <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>Bàn giao — Demo</h3>
             </div>
             <div
               onClick={handleFileUpload}

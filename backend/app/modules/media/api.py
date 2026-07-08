@@ -168,6 +168,7 @@ def save_video_to_db(
         kind="video",
         url=direct_url,           # Direct CDN URL as main URL
         thumbnail_url=embed_url,  # Embed URL stored in thumbnail_url for iframe use
+        alt=request.title,
         caption=request.title,
         bunny_video_id=request.video_id,
         client_slug=request.client_slug,
@@ -178,7 +179,7 @@ def save_video_to_db(
     db.commit()
     db.refresh(new_asset)
     
-    if request.folder in ("project/gallery", "demo (admin dashboard)") and request.project_slug:
+    if request.folder in ("project/gallery", "demo") and request.project_slug:
         from app.modules.projects.models import ProjectGalleryImage
         from sqlalchemy import func
         max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == request.project_slug).scalar()

@@ -163,7 +163,7 @@ def finalize_media_asset(
     )
     saved_asset = save_media_asset(db, db_media_asset)
 
-    if folder == "project/gallery" and project_slug:
+    if folder in ("project/gallery", "demo") and project_slug:
         from app.modules.projects.models import ProjectGalleryImage
         from sqlalchemy import func
         max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == project_slug).scalar()

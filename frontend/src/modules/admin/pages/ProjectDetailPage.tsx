@@ -1210,7 +1210,7 @@ function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: 
 
 function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { project: any, feedbacks: any[], setFeedbacks: React.Dispatch<React.SetStateAction<any[]>>, setProject: React.Dispatch<React.SetStateAction<any>> }) {
     const navigate = useNavigate();
-    const media = (project?.gallery || []).filter((item: any) => item.type === 'video');
+    const media = [...(project?.gallery || [])].filter((item: any) => item.type === 'video').reverse();
     const [mediaView, setMediaView] = useState<"grid" | "feedback">("grid");
     const [uploadingFiles, setUploadingFiles] = useState<{ id: string, name: string, progress: number, type: string, previewUrl: string }[]>([]);
     const [replyText, setReplyText] = useState<Record<number, string>>({});
@@ -1303,12 +1303,11 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
             const file = (e.target as HTMLInputElement).files?.[0];
             if (!file) return;
             
-            // Rename file: ProjectName_demovX.mp4
+            // Rename file: [Tên dự án] Demo [Version bản demo]
             const demoNumber = media.length + 1;
-            // project.title might contain spaces or special chars, but for simplicity we just use it directly
-            // or replace spaces with underscores to be safe
-            const cleanTitle = (project.title || "Project").replace(/[^a-zA-Z0-9]/g, '');
-            const newFileName = `${cleanTitle}_demov${demoNumber}.mp4`;
+            const cleanTitle = (project.title || "Project").replace(/[^a-zA-Z0-9\s]/g, '').trim();
+            const extension = file.name.split('.').pop() || 'mp4';
+            const newFileName = `${cleanTitle} Demo ${demoNumber}.${extension}`;
             const renamedFile = new File([file], newFileName, { type: file.type });
             
             const uploadId = Math.random().toString(36).substring(7);
@@ -1325,7 +1324,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                     },
                     null,
                     project.slug,
-                    "demo (admin dashboard)"
+                    "demo"
                 );
                 
                 const updatedProj = await fetchApi<any>(`/projects/${project.slug}`);
@@ -1381,7 +1380,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                         }
                                     }}
                                     title={file.type === "video" ? "Mở phòng chiếu Cinema Review" : undefined}
-                                    style={{ height: "80px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden", position: "relative", cursor: file.type === "video" ? "pointer" : "default" }}
+                                    style={{ height: "150px", background: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(46,32,32,0.5)", overflow: "hidden", position: "relative", cursor: file.type === "video" ? "pointer" : "default" }}
                                 >
                                     {file.type === "video" ? (
                                         <>
@@ -1425,7 +1424,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                     {/* Uploading files */}
                     {uploadingFiles.map(upFile => (
                         <div key={upFile.id} style={{ borderRadius: "10px", border: "1px solid rgba(46,32,32,0.5)", background: "rgba(29,22,22,0.3)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                            <div style={{ height: "80px", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                            <div style={{ height: "150px", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
                                 {upFile.type.startsWith("image/") ? (
                                     <img src={upFile.previewUrl} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.5 }} alt="preview" />
                                 ) : (
@@ -1448,7 +1447,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
 
                     <div 
                         onClick={handleFileUpload}
-                        style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "130px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
+                        style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "240px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.background = "rgba(216,64,64,0.05)"; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A1F1F"; e.currentTarget.style.background = "transparent"; }}
                     >

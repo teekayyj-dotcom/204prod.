@@ -37,7 +37,7 @@ def _map_to_detail(p: Project) -> ProjectDetail:
                 "url": g.media_asset.url,
                 "thumbnail_url": g.media_asset.thumbnail_url or (f"https://vz-f1a07f87-b02.b-cdn.net/{g.media_asset.bunny_video_id}/thumbnail.jpg" if g.media_asset.bunny_video_id else None),
                 "bunny_video_id": g.media_asset.bunny_video_id,
-                "name": g.media_asset.alt or g.media_asset.id,
+                "name": g.media_asset.alt or g.media_asset.caption or g.media_asset.id,
                 "size": f"{round(g.media_asset.file_size / (1024 * 1024), 2)} MB" if g.media_asset.file_size else "0.0 MB",
                 "type": g.media_asset.kind,
                 "uploaded": g.media_asset.created_at.strftime("%Y-%m-%d") if g.media_asset.created_at else "",

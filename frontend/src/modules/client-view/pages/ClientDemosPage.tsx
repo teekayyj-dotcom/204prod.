@@ -29,67 +29,44 @@ export function ClientDemosPage() {
                 // Map projects and backfill with mock review files to show a rich Netflix-like gallery
                 const constructedDemos: DemoItem[] = [];
 
-                projects.forEach((proj, idx) => {
-                    // Each project will have at least one main video demo or draft review asset
-                    const hasVideo = !!proj.video_url;
-                    
-                    if (hasVideo) {
-                        constructedDemos.push({
-                            id: `demo-vid-${proj.slug}`,
-                            projectTitle: proj.title,
-                            projectSlug: proj.slug,
-                            title: `Bản dựng Video TVC - Phase ${idx + 1}`,
-                            type: "video",
-                            url: proj.video_url,
-                            coverUrl: proj.cover_image || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
-                            status: proj.status === "Review" ? "Pending Review" : proj.status === "Completed" ? "Approved" : "Draft",
-                            uploadedAt: "Cập nhật 2 ngày trước"
+                projects.forEach((proj) => {
+                    let hasDemo = false;
+                    if (proj.gallery && Array.isArray(proj.gallery)) {
+                        proj.gallery.forEach((g: any) => {
+                            const f = (g.folder || "").toLowerCase();
+                            if (f === "demo" && g.published) {
+                                hasDemo = true;
+                                constructedDemos.push({
+                                    id: g.id,
+                                    projectTitle: proj.title || "Project",
+                                    projectSlug: proj.slug,
+                                    title: g.name || "Bản dựng nháp (Demo)",
+                                    type: g.type === "video" ? "video" : g.type === "document" ? "document" : g.type === "image" ? "image" : "storyboard",
+                                    url: g.url,
+                                    coverUrl: g.type === "image" ? g.url : (g.type === "video" && g.bunny_video_id ? `https://vz-f1a07f87-b02.b-cdn.net/${g.bunny_video_id}/thumbnail.jpg` : (g.thumbnail_url && !g.thumbnail_url.includes("iframe") ? g.thumbnail_url : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80")),
+                                    status: "Pending Review",
+                                    uploadedAt: g.uploaded || "Gần đây"
+                                });
+                            }
                         });
                     }
 
-                    // Add an extra mock design storyboard/asset to ensure the page has a rich variety of files
-                    constructedDemos.push({
-                        id: `demo-img-${proj.slug}`,
-                        projectTitle: proj.title,
-                        projectSlug: proj.slug,
-                        title: `Storyboard & Key Visual - Concept ${idx + 1}`,
-                        type: "image",
-                        url: proj.cover_image || "https://images.unsplash.com/photo-1542204172-e7052809a862?auto=format&fit=crop&w=600&q=80",
-                        coverUrl: proj.cover_image || "https://images.unsplash.com/photo-1542204172-e7052809a862?auto=format&fit=crop&w=600&q=80",
-                        status: idx % 3 === 0 ? "Approved" : idx % 3 === 1 ? "Pending Review" : "Rejected",
-                        uploadedAt: "Cập nhật 4 ngày trước"
-                    });
+                    if (!hasDemo && proj.video_url) {
+                        constructedDemos.push({
+                            id: `demo-vid-${proj.slug}`,
+                            projectTitle: proj.title || "Project",
+                            projectSlug: proj.slug,
+                            title: "Bản dựng nháp (Demo)",
+                            type: "video",
+                            url: proj.video_url,
+                            coverUrl: proj.video_url.includes('vz-f1a07f87-b02.b-cdn.net') ? `https://vz-f1a07f87-b02.b-cdn.net/${proj.video_url.split('/')[3]}/thumbnail.jpg` : proj.cover_image || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
+                            status: proj.status === "Review" ? "Pending Review" : proj.status === "Completed" ? "Approved" : "Draft",
+                            uploadedAt: "Gần đây"
+                        });
+                    }
                 });
 
-                // Fallback demo files if DB is empty
-                if (constructedDemos.length === 0) {
-                    setDemos([
-                        {
-                            id: "demo-mock-1",
-                            projectTitle: "Vingroup — TVC Q2",
-                            projectSlug: "vingroup-tvc",
-                            title: "Bản dựng Video TVC Final Draft",
-                            type: "video",
-                            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                            coverUrl: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
-                            status: "Pending Review",
-                            uploadedAt: "Cập nhật 1 ngày trước"
-                        },
-                        {
-                            id: "demo-mock-2",
-                            projectTitle: "Highlands — Rebranding",
-                            projectSlug: "highlands-rebrand",
-                            title: "Storyboard & Logo Concept 2",
-                            type: "image",
-                            url: "https://images.unsplash.com/photo-1542204172-e7052809a862?auto=format&fit=crop&w=600&q=80",
-                            coverUrl: "https://images.unsplash.com/photo-1542204172-e7052809a862?auto=format&fit=crop&w=600&q=80",
-                            status: "Approved",
-                            uploadedAt: "Cập nhật 3 ngày trước"
-                        }
-                    ]);
-                } else {
-                    setDemos(constructedDemos);
-                }
+                setDemos(constructedDemos);
                 setLoading(false);
             })
             .catch((err) => {
@@ -158,9 +135,6 @@ export function ClientDemosPage() {
                         demo.status === "Pending Review" ? "#FFC107" :
                         demo.status === "Rejected" ? "#F44336" : "#888";
 
-                    const ytMatch = demo.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-                    const isEmbeddable = demo.type === "video" && ytMatch;
-
                     return (
                         <div
                             key={demo.id}
@@ -172,20 +146,10 @@ export function ClientDemosPage() {
                             onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")}
                             onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(46, 32, 32, 0.6)")}
                         >
-                            {/* Media thumbnail / Video Embed */}
+                            {/* Media thumbnail */}
                             <div className="relative aspect-video bg-black/40 overflow-hidden">
-                                {activeVideo === demo.id && isEmbeddable ? (
-                                    <iframe
-                                        src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`}
-                                        className="w-full h-full"
-                                        style={{ border: "none" }}
-                                        allow="autoplay; fullscreen"
-                                        allowFullScreen
-                                    />
-                                ) : (
-                                    <>
-                                        <img
-                                            src={demo.coverUrl}
+                                <img
+                                    src={demo.coverUrl}
                                             alt={demo.title}
                                             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
                                         />
@@ -202,8 +166,7 @@ export function ClientDemosPage() {
                                                 <Play size={18} fill="white" className="ml-0.5" />
                                             </button>
                                         )}
-                                    </>
-                                )}
+
 
                                 {/* Status badge */}
                                 <div className="absolute top-3 left-3 z-10">

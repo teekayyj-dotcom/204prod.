@@ -56,10 +56,17 @@ interface ProjectData {
 interface DemoDeliverable {
     id: string;
     title: string;
-    type: "video" | "storyboard" | "concept";
+    type: "video" | "storyboard" | "concept" | "document";
     url: string;
     coverUrl: string;
     status: "Draft" | "Pending Review" | "Approved" | "Rejected";
+}
+
+interface ProjectDocument {
+    id: string;
+    name: string;
+    type: string;
+    url: string;
 }
 
 export function ClientProjectDetailPage() {
@@ -73,60 +80,100 @@ export function ClientProjectDetailPage() {
 
     // Dynamic state for deliverables
     const [deliverables, setDeliverables] = useState<DemoDeliverable[]>([]);
+    const [documents, setDocuments] = useState<ProjectDocument[]>([]);
 
-    const [activities] = useState([
-        { id: 1, user: "Sarah Kim", action: "đã cập nhật lộ trình sản xuất sang giai đoạn Hậu kỳ", time: "2 giờ trước", avatar: "SK" },
-        { id: 2, user: "Jake Torres", action: "đã tải lên bản dựng Video TVC nháp đợt 1", time: "5 giờ trước", avatar: "JT" },
-        { id: 3, user: "Maya Chen", action: "đã chốt kịch bản phân cảnh chi tiết", time: "1 ngày trước", avatar: "MC" },
-    ]);
-
-    const [comments, setComments] = useState([
-        { id: 1, user: "Sarah Kim", text: "Team đã chuẩn bị xong file dựng nháp đợt 1 cho các cảnh quay trong nhà. Đối tác vui lòng xem và duyệt tại khu vực Media phía dưới nhé.", time: "2 giờ trước", avatar: "SK" },
-        { id: 2, user: "Đối tác (Bạn)", text: "Trông rất tốt, team làm việc nhanh chóng quá. Kịch bản phân cảnh trước đó đã chốt rất khớp.", time: "1 ngày trước", avatar: "KH" },
-    ]);
+    const [activities, setActivities] = useState<any[]>([]);
+    const [comments, setComments] = useState<any[]>([]);
 
     useEffect(() => {
         if (!id) return;
         setLoading(true);
         fetchApi<ProjectData>(`/projects/${id}`)
-            .then((data) => {
+            .then(async (data) => {
                 setProject(data);
                 
                 // Initialize dynamic client deliverables
                 const filesList: DemoDeliverable[] = [];
+                const docsList: ProjectDocument[] = [];
                 if (data.gallery && Array.isArray(data.gallery)) {
+                    const docFolders = ["tài liệu", "creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"];
+                    const folderToTypeMap: Record<string, string> = {
+                        "creative brief": "Creative Brief",
+                        "tài liệu hợp đồng": "Hợp đồng kinh tế",
+                        "báo giá": "Báo giá chi tiết",
+                        "hoá đơn": "Hoá đơn",
+                        "tài liệu": "Tài liệu chung"
+                    };
                     data.gallery.forEach((g: any) => {
                         if (g.published) {
-                            filesList.push({
-                                id: g.id,
-                                title: g.name || "Tài liệu bàn giao",
-                                type: g.type === "video" ? "video" : g.type === "image" ? "concept" : "storyboard",
-                                url: g.url,
-                                coverUrl: g.type === "image" ? g.url : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
-                                status: "Pending Review"
-                            });
+                            const f = (g.folder || "").toLowerCase();
+                            if (docFolders.includes(f)) {
+                                docsList.push({
+                                    id: g.id,
+                                    name: g.name || "Tài liệu",
+                                    type: folderToTypeMap[f] || "Tài liệu đính kèm",
+                                    url: g.url
+                                });
+                            } else if (f === "demo") {
+                                filesList.push({
+                                    id: g.id,
+                                    title: g.name || "Tài liệu bàn giao",
+                                    type: g.type === "video" ? "video" : g.type === "document" ? "document" : g.type === "image" ? "concept" : "storyboard",
+                                    url: g.url,
+                                    coverUrl: g.type === "image" ? g.url : (g.type === "video" && g.bunny_video_id ? `https://vz-f1a07f87-b02.b-cdn.net/${g.bunny_video_id}/thumbnail.jpg` : (g.thumbnail_url && !g.thumbnail_url.includes("iframe") ? g.thumbnail_url : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80")),
+                                    status: "Pending Review"
+                                });
+                            }
                         }
                     });
                 }
+                setDocuments(docsList);
                 
                 // Fallback to video_url if no gallery items are uploaded yet
                 if (filesList.length === 0 && data.video_url) {
                     filesList.push({
                         id: "deliv-video-main",
-                        title: "Bản dựng Video TVC - Demo 1 (Draft)",
+                        title: `${data.title} - Video`,
                         type: "video",
                         url: data.video_url,
                         coverUrl: data.cover_image || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
                         status: "Pending Review"
                     });
                 }
-                setDeliverables(filesList);
+                setDeliverables(filesList.reverse());
 
                 if (data.client_slug) {
                     fetchApi<ClientData>(`/projects/clients/${data.client_slug}`)
                         .then((cData) => setClientData(cData))
                         .catch((err) => console.error("Error fetching client details:", err));
                 }
+
+                try {
+                    const fbData = await fetchApi<any[]>(`/projects/${data.slug || id}/feedback`);
+                    const allComments: any[] = [];
+                    (fbData || []).forEach((f: any) => {
+                        allComments.push({
+                            id: `fb-${f.id}`,
+                            user: "Khách hàng",
+                            text: f.content,
+                            time: f.created_at ? new Date(f.created_at).toLocaleDateString("vi-VN") : "Gần đây",
+                            avatar: "KH"
+                        });
+                        if (f.reply_content) {
+                            allComments.push({
+                                id: `reply-${f.id}`,
+                                user: f.reply_author || "Admin",
+                                text: f.reply_content,
+                                time: "Phản hồi",
+                                avatar: (f.reply_author || "A").substring(0, 2).toUpperCase()
+                            });
+                        }
+                    });
+                    setComments(allComments);
+                } catch (err) {
+                    console.error("Error fetching feedback:", err);
+                }
+
                 setLoading(false);
             })
             .catch((err) => {
@@ -184,6 +231,8 @@ export function ClientProjectDetailPage() {
         const name = parts[1]?.trim() || "";
         return { id: `cred-${idx}`, name, role };
     });
+
+    const accountLead = parsedCrew.find(c => c.role.toLowerCase().includes("account") || c.role.toLowerCase().includes("am")) || parsedCrew[0] || null;
 
     // Determine milestones states dynamically based on project progress
     const milestones = [
@@ -351,8 +400,7 @@ export function ClientProjectDetailPage() {
                                     demo.status === "Pending Review" ? "#FFC107" : 
                                     demo.status === "Rejected" ? "#F44336" : "#888";
 
-                                const ytMatch = demo.url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-                                const isPlayable = demo.type === "video" && ytMatch;
+
 
                                 return (
                                     <div 
@@ -371,7 +419,11 @@ export function ClientProjectDetailPage() {
                                                     }
                                                 }}
                                             >
-                                                <img src={demo.coverUrl} alt={demo.title} className="w-full h-full object-cover opacity-80" />
+                                                {demo.type === "document" && demo.url.toLowerCase().endsWith('.pdf') ? (
+                                                    <iframe src={`${demo.url}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-full object-cover opacity-80 pointer-events-none" title={demo.title} />
+                                                ) : (
+                                                    <img src={demo.coverUrl} alt={demo.title} className="w-full h-full object-cover opacity-80" />
+                                                )}
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
                                                 
                                                 {demo.type === "video" && (
@@ -435,24 +487,26 @@ export function ClientProjectDetailPage() {
                     <div className="rounded-xl p-5 space-y-3 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
                         <h3 className="text-xs uppercase tracking-wider text-gray-400 font-bold">Tài liệu dự án (Documents)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {[
-                                { name: "Creative Brief.docx", type: "Brief ban đầu" },
-                                { name: "Báo giá chi tiết.pdf", type: "Báo giá đã ký" },
-                                { name: "Hợp đồng sản xuất.pdf", type: "Hợp đồng kinh tế" },
-                            ].map((doc) => (
-                                <div key={doc.name} className="p-3 rounded-lg bg-[#1D1616]/30 border border-[#2E2020]/45 flex items-center justify-between text-xs backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.01)]">
+                            {documents.map((doc) => (
+                                <div key={doc.id} className="p-3 rounded-lg bg-[#1D1616]/30 border border-[#2E2020]/45 flex items-center justify-between text-xs backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.01)]">
                                     <div className="min-w-0">
                                         <p className="font-semibold truncate">{doc.name}</p>
                                         <p className="text-[10px] text-gray-500 mt-0.5">{doc.type}</p>
                                     </div>
                                     <button 
-                                        onClick={() => alert(`Tải xuống ${doc.name}`)}
+                                        onClick={() => window.open(doc.url, "_blank")}
                                         className="p-1 rounded bg-[#2A1F1F] hover:bg-[#3A2A2A] text-white/80 transition-colors"
+                                        title="Tải xuống / Xem"
                                     >
                                         <Download size={12} />
                                     </button>
                                 </div>
                             ))}
+                            {documents.length === 0 && (
+                                <div className="col-span-full py-4 text-center text-gray-500 text-xs italic">
+                                    Chưa có tài liệu đính kèm cho dự án này.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -590,11 +644,11 @@ export function ClientProjectDetailPage() {
                             <p style={{ fontSize: "13px", fontWeight: 600 }} className="mb-3">Account Lead</p>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-[#8E1616] text-[#EEEEEE] text-xs font-bold border border-[#2A1F1F]">
-                                    SK
+                                    {accountLead ? accountLead.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() : "AL"}
                                 </div>
                                 <div>
-                                    <p style={{ fontSize: "13px", fontWeight: 600 }}>Sarah Kim</p>
-                                    <p style={{ color: "#888", fontSize: "11px" }}>AM / Phụ trách chính</p>
+                                    <p style={{ fontSize: "13px", fontWeight: 600 }}>{accountLead ? accountLead.name : "Chưa có thông tin"}</p>
+                                    <p style={{ color: "#888", fontSize: "11px" }}>{accountLead ? accountLead.role : "Account Manager"}</p>
                                 </div>
                             </div>
                         </div>
