@@ -25,12 +25,13 @@ export function AddCrewMemberPage() {
     const [success, setSuccess] = useState(false);
     const [skills, setSkills] = useState([]);
     const [skillInput, setSkillInput] = useState("");
-    const [avatarPreview, setAvatarPreview] = useState(null);
-    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>("/img/crew/default.jpg");
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [selectedRoles, setSelectedRoles] = useState([]);
     const [availableRolesList, setAvailableRolesList] = useState<string[]>([]); // from /categories type=hr_role
     const [cropperOpen, setCropperOpen] = useState(false);
     const [rawImageSrc, setRawImageSrc] = useState(null);
+    const [systemAccessRole, setSystemAccessRole] = useState("crew");
 
     const handleCropConfirm = (croppedBlob: Blob, croppedPreviewUrl: string) => {
         const croppedFile = new File([croppedBlob], "avatar.jpg", { type: "image/jpeg" });
@@ -85,7 +86,7 @@ export function AddCrewMemberPage() {
     const onSubmit = async (data) => {
         setSubmitting(true);
         try {
-            let avatarUrl = "";
+            let avatarUrl = "/img/crew/default.jpg";
             if (avatarFile) {
                 const formData = new FormData();
                 formData.append("file", avatarFile);
@@ -96,6 +97,8 @@ export function AddCrewMemberPage() {
                     body: formData,
                 });
                 avatarUrl = mediaAsset.url;
+            } else if (!avatarPreview) {
+                avatarUrl = "";
             }
             const payload = {
                 name: data.name,
@@ -113,6 +116,20 @@ export function AddCrewMemberPage() {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
+
+            if (data.email) {
+                try {
+                    const token = localStorage.getItem("token") || "";
+                    await fetchApi(`/users/by-email/${encodeURIComponent(data.email)}/role`, {
+                        method: "PUT",
+                        headers: { "x-admin-token": token, "Authorization": `Bearer ${token}` },
+                        body: JSON.stringify({ role: systemAccessRole })
+                    });
+                } catch (err) {
+                    console.error("Failed to set system access role:", err);
+                }
+            }
+
             setSuccess(true);
             setTimeout(() => navigate("/admin/crew"), 1300);
         } catch (error) {
@@ -184,7 +201,7 @@ export function AddCrewMemberPage() {
                             </div>
                         </div>
 
-                        {/* Name + Role */}
+                        {/* Name + System Access */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
@@ -195,38 +212,21 @@ export function AddCrewMemberPage() {
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <Briefcase size={13} color="#D84040"/> Roles / Titles *
+                                    <UserCheck size={13} color="#D84040"/> System Access *
                                 </label>
-                                <input type="hidden" {...register("role", { validate: () => selectedRoles.length > 0 || "At least one role is required" })} />
-                                {selectedRoles.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5 mb-2">
-                                        {selectedRoles.map((role) => (
-                                            <span key={role} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
-                                                {role}
-                                                <button type="button" onClick={() => removeRole(role)} className="ml-1 hover:opacity-75">
-                                                    <X size={10}/>
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
                                 <select 
-                                    value="" 
-                                    onChange={(e) => {
-                                        addRole(e.target.value);
-                                        e.target.value = "";
-                                    }} 
+                                    value={systemAccessRole}
+                                    onChange={(e) => setSystemAccessRole(e.target.value)}
                                     className="px-3 py-2.5 rounded-lg outline-none appearance-none cursor-pointer" 
-                                    style={{ ...inputStyle, borderColor: selectedRoles.length === 0 && errors.role ? "#D84040" : "#3A2A2A" }} 
+                                    style={inputStyle}
                                     onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
-                                    onBlur={(e) => (e.target.style.borderColor = selectedRoles.length === 0 && errors.role ? "#D84040" : "#3A2A2A")}
+                                    onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
                                 >
-                                    <option value="">Select roles...</option>
-                                    {availableRolesList.filter(r => !selectedRoles.includes(r)).map((r) => (
-                                        <option key={r} value={r}>{r}</option>
-                                    ))}
+                                    <option value="admin">Admin</option>
+                                    <option value="crew">Crew</option>
+                                    <option value="outsource">Outsource</option>
+                                    <option value="pending">Pending</option>
                                 </select>
-                                {selectedRoles.length === 0 && errors.role && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.role.message}</p>}
                             </div>
                         </div>
 
@@ -254,6 +254,43 @@ export function AddCrewMemberPage() {
                                 </label>
                                 <input type="date" {...register("created_at")} className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                             </div>
+                        </div>
+
+                        {/* Roles / Titles (moved below Email) */}
+                        <div>
+                            <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                <Briefcase size={13} color="#D84040"/> Roles / Titles *
+                            </label>
+                            <input type="hidden" {...register("role", { validate: () => selectedRoles.length > 0 || "At least one role is required" })} />
+                            {selectedRoles.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {selectedRoles.map((role) => (
+                                        <span key={role} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs" style={{ background: "rgba(216,64,64,0.12)", color: "#D84040", border: "1px solid rgba(216,64,64,0.25)" }}>
+                                            {role}
+                                            <button type="button" onClick={() => removeRole(role)} className="ml-1 hover:opacity-75">
+                                                <X size={10}/>
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                            <select 
+                                value="" 
+                                onChange={(e) => {
+                                    addRole(e.target.value);
+                                    e.target.value = "";
+                                }} 
+                                className="px-3 py-2.5 rounded-lg outline-none appearance-none cursor-pointer" 
+                                style={{ ...inputStyle, borderColor: selectedRoles.length === 0 && errors.role ? "#D84040" : "#3A2A2A" }} 
+                                onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
+                                onBlur={(e) => (e.target.style.borderColor = selectedRoles.length === 0 && errors.role ? "#D84040" : "#3A2A2A")}
+                            >
+                                <option value="">Select roles...</option>
+                                {availableRolesList.filter(r => !selectedRoles.includes(r)).map((r) => (
+                                    <option key={r} value={r}>{r}</option>
+                                ))}
+                            </select>
+                            {selectedRoles.length === 0 && errors.role && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.role.message}</p>}
                         </div>
 
                         {/* Skills */}

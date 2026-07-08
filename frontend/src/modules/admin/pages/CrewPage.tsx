@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, Plus, Briefcase, UserCheck, UserX, Mail, Loader2, X, Clock, CheckCircle } from "lucide-react";
+import { Search, Plus, Briefcase, UserCheck, UserX, Mail, Loader2, X, Clock, CheckCircle, Trash2 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 import { OutsourcePage } from "./OutsourcePage";
 
@@ -153,6 +153,22 @@ export function CrewPage() {
         } catch (error) {
             console.error("Error approving user:", error);
             alert("Đã xảy ra lỗi khi phê duyệt user.");
+        }
+    };
+
+    const handleDeleteUser = async (userId: string | number) => {
+        if (!confirm("Bạn có chắc chắn muốn xoá tài khoản này không?")) return;
+        try {
+            const token = localStorage.getItem("token") || "";
+            await fetchApi(`/users/${userId}`, {
+                method: "DELETE",
+                headers: { "x-admin-token": token }
+            });
+            alert("Đã xoá tài khoản thành công!");
+            fetchPendingUsers();
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            alert("Đã xảy ra lỗi khi xoá tài khoản.");
         }
     };
 
@@ -370,6 +386,16 @@ export function CrewPage() {
                                     <option value="outsource">Cộng tác viên (Outsource)</option>
                                     <option value="admin">Quản trị viên (Admin)</option>
                                 </select>
+                                <button 
+                                    onClick={() => handleDeleteUser(user.id)}
+                                    className="p-2 rounded-lg flex items-center justify-center transition-all"
+                                    style={{ background: "rgba(216,64,64,0.1)", color: "#D84040", border: "1px solid rgba(216,64,64,0.2)" }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = "#D84040"; e.currentTarget.style.color = "#fff"; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(216,64,64,0.1)"; e.currentTarget.style.color = "#D84040"; }}
+                                    title="Từ chối / Xoá tài khoản"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
                         </div>
                     ))}

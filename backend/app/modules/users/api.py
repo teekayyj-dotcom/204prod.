@@ -57,3 +57,16 @@ def update_user_role_by_email_route(
     db.commit()
     db.refresh(user)
     return {"message": "Role updated successfully", "role": user.role}
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_route(
+    user_id: int,
+    db: Session = Depends(get_db_session),
+    _: str = Depends(require_admin_token)
+):
+    from app.modules.users.service import delete_user
+    success = delete_user(db, user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    return None
+
