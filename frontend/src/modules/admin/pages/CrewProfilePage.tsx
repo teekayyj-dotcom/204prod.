@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, Edit3, Save, X, Trash2, CheckCircle2, Loader2, Mail, Briefcase, User, AlertTriangle, Tag, Plus, Activity, Calendar, Star, Check, Camera } from "lucide-react";
+import { ArrowLeft, Edit3, Save, X, Trash2, CheckCircle2, Loader2, Mail, Briefcase, User, AlertTriangle, Tag, Plus, Activity, Calendar, Star, Check, Camera, MapPin } from "lucide-react";
 import { allProjects } from "../data/mockData";
 import { fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";

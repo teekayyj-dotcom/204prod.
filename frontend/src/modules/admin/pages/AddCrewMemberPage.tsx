@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, UserPlus, Loader2, CheckCircle2, User, Mail, Briefcase, Tag, AlignLeft, X, Plus, Info, UserCheck, Camera, Calendar } from "lucide-react";
+import { ArrowLeft, UserPlus, Loader2, CheckCircle2, User, Mail, Briefcase, Tag, AlignLeft, X, Plus, Info, UserCheck, Camera, Calendar, MapPin } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 import { ImageCropperModal } from "../components/ImageCropperModal";
 const inputStyle = {
