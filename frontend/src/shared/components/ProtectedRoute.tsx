@@ -50,7 +50,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         return <div className="min-h-screen bg-[#0A0707] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#D84040] border-t-transparent rounded-full animate-spin"></div></div>;
     }
 
-    if (!token || !hasFirebaseUser) {
+    if (!token) {
         // Redirect to login but save the attempted URL
         return <Navigate to="/login" state={{ from: location }} replace />;
     }

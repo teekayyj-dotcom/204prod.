@@ -97,6 +97,13 @@ export function AuthPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+
+    useEffect(() => {
+        const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+        const isApp = /FBAN|FBAV|Instagram|Zalo|Line|Messenger/i.test(ua);
+        setIsInAppBrowser(isApp);
+    }, []);
 
     // Password requirements verification
     const hasUppercase = /[A-Z]/.test(password);
@@ -378,6 +385,16 @@ export function AuthPage() {
                         </p>
                     </div>
 
+                    {/* In-App Browser Warning Banner */}
+                    {isInAppBrowser && (
+                        <div className="bg-[#D84040]/10 border border-[#D84040]/30 rounded-xl p-3 text-center -mb-2">
+                            <p className="text-[#D84040] text-[11px] font-bold uppercase mb-1">Cảnh báo trình duyệt</p>
+                            <p className="text-[#EEEEEE] text-[11px] leading-relaxed">
+                                Đăng nhập bằng Google có thể gặp lỗi trên trình duyệt của ứng dụng. Vui lòng nhấn vào biểu tượng <strong className="text-white">...</strong> ở góc phải màn hình và chọn <strong className="text-white">"Mở bằng trình duyệt"</strong> (Safari/Chrome) để đăng nhập.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Form Fields */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {/* Username Input */}
@@ -542,7 +559,11 @@ export function AuthPage() {
                                             console.error("Google auth error:", error);
                                             // Ignore user closed popup error
                                             if (error.code !== 'auth/popup-closed-by-user') {
-                                                alert(error.message || "Đăng nhập Google thất bại.");
+                                                if (isInAppBrowser) {
+                                                    alert("Lỗi đăng nhập Google do bị chặn bởi trình duyệt ứng dụng. Vui lòng chọn 'Mở bằng trình duyệt' (Open in Browser) ở tuỳ chọn góc phải.");
+                                                } else {
+                                                    alert(error.message || "Đăng nhập Google thất bại.");
+                                                }
                                             }
                                         } finally {
                                             setLoading(false);
