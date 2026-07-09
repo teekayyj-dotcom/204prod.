@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star, Loader2, Coins } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
@@ -9,6 +9,96 @@ const statusColors = {
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838" },
 };
+
+const ProjectGridCard = React.memo(({ project, featuredIds, toggleFeatured, navigate }) => (
+    <div className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
+        <div className="relative h-40 overflow-hidden">
+            <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}/>
+            <div className="absolute top-3 left-3">
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: statusColors[project.status]?.bg || "rgba(0,0,0,0.4)", color: statusColors[project.status]?.text || "#fff", backdropFilter: "blur(6px)" }}>
+                    {project.status}
+                </span>
+            </div>
+            <button className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{ background: featuredIds.has(project.slug) ? "rgba(255,193,7,0.2)" : "rgba(29,22,22,0.7)", border: `1px solid ${featuredIds.has(project.slug) ? "rgba(255,193,7,0.6)" : "rgba(255,255,255,0.1)"}`, backdropFilter: "blur(6px)" }} onClick={(e) => toggleFeatured(e, project.slug)} title={featuredIds.has(project.slug) ? "Remove from featured" : "Mark as featured"}>
+                <Star size={13} fill={featuredIds.has(project.slug) ? "#FFC107" : "none"} color={featuredIds.has(project.slug) ? "#FFC107" : "#888"}/>
+            </button>
+        </div>
+        <div className="p-4">
+            <div className="flex items-start justify-between mb-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="truncate">{project.title}</h3>
+                    {project.published && <span title="Published" className="text-[10px] flex-shrink-0">🌐</span>}
+                    {project.locked && <span title="Locked" className="text-[10px] flex-shrink-0">🔒</span>}
+                </div>
+                {featuredIds.has(project.slug) && (<span className="flex items-center gap-1 px-1.5 py-0.5 rounded ml-2 flex-shrink-0" style={{ background: "rgba(255,193,7,0.1)", color: "#FFC107", fontSize: "10px", border: "1px solid rgba(255,193,7,0.25)" }}>
+                        <Star size={9} fill="#FFC107"/> Featured
+                    </span>)}
+            </div>
+            <p style={{ color: "#888", fontSize: "12px" }} className="mb-3">
+                {project.client} · {project.format}
+            </p>
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                    <Calendar size={12} color="#666"/>
+                    <span style={{ color: "#666", fontSize: "11px" }}>{project.year}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Coins size={12} color="#D84040"/>
+                    <span style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{project.budget}</span>
+                </div>
+            </div>
+            <div>
+                <div className="flex justify-between mb-1">
+                    <span style={{ color: "#666", fontSize: "11px" }}>Progress</span>
+                    <span style={{ color: "#D84040", fontSize: "11px", fontWeight: 600 }}>{project.progress}%</span>
+                </div>
+                <div className="rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
+                    <div className="h-full rounded-full" style={{ width: `${project.progress}%`, background: project.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
+                </div>
+            </div>
+        </div>
+    </div>
+));
+
+const ProjectListRow = React.memo(({ p, featuredIds, toggleFeatured, navigate }) => (
+    <tr className="hover:bg-white/5 transition-colors cursor-pointer" style={{ borderBottom: "1px solid #2A1F1F" }} onClick={() => navigate(`/admin/projects/${p.slug}`)}>
+        <td className="px-5 py-3.5">
+            <div className="flex items-center gap-3">
+                <img src={p.cover_image} alt={p.title} className="w-10 h-7 rounded object-cover" />
+                <div>
+                    <div className="flex items-center gap-1.5">
+                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{p.title}</p>
+                        {p.published && <span title="Published" className="text-[10px]">🌐</span>}
+                        {p.locked && <span title="Locked" className="text-[10px]">🔒</span>}
+                    </div>
+                    <p style={{ color: "#666", fontSize: "11px" }}>{p.year}</p>
+                </div>
+            </div>
+        </td>
+        <td className="px-5 py-3.5" style={{ color: "#999", fontSize: "13px" }}>{p.client}</td>
+        <td className="px-5 py-3.5" style={{ color: "#999", fontSize: "13px" }}>{p.format}</td>
+        <td className="px-5 py-3.5">
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ background: statusColors[p.status]?.bg || "rgba(0,0,0,0.4)", color: statusColors[p.status]?.text || "#fff" }}>{p.status}</span>
+        </td>
+        <td className="px-5 py-3.5" style={{ color: "#999", fontSize: "13px" }}>{p.dueDate}</td>
+        <td className="px-5 py-3.5" style={{ color: "#D84040", fontSize: "13px", fontWeight: 600 }}>{p.budget}</td>
+        <td className="px-5 py-3.5" style={{ minWidth: "100px" }}>
+            <div className="flex items-center gap-2">
+                <div className="flex-1 rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
+                    <div className="h-full rounded-full" style={{ width: `${p.progress}%`, background: p.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
+                </div>
+                <span style={{ color: "#666", fontSize: "11px", flexShrink: 0 }}>{p.progress}%</span>
+            </div>
+        </td>
+        <td className="px-5 py-3.5">
+            <button onClick={(e) => toggleFeatured(e, p.slug)} className="w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{ background: featuredIds.has(p.slug) ? "rgba(255,193,7,0.12)" : "transparent" }}>
+                <Star size={14} fill={featuredIds.has(p.slug) ? "#FFC107" : "none"} color={featuredIds.has(p.slug) ? "#FFC107" : "#444"}/>
+            </button>
+        </td>
+    </tr>
+));
+
 export function ProjectsPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -67,22 +157,22 @@ export function ProjectsPage() {
     }, [pagination.page, pagination.size, search, statusFilter, categoryFilter, showFeaturedOnly, sortBy]);
 
     const statuses = ["All", "In Progress", "Review", "Planning", "Completed"];
-    const toggleFeatured = async (e, slug) => {
+    const toggleFeatured = useCallback(async (e, slug) => {
         e.stopPropagation();
-        const isFeatured = featuredIds.has(slug);
-        const nextFeatured = !isFeatured;
+        let isFeatured = false;
 
         // Optimistically update UI
         setFeaturedIds((prev) => {
+            isFeatured = prev.has(slug);
             const next = new Set(prev);
-            next.has(slug) ? next.delete(slug) : next.add(slug);
+            isFeatured ? next.delete(slug) : next.add(slug);
             return next;
         });
 
         try {
             await fetchApi(`/projects/${slug}`, {
                 method: "PUT",
-                body: JSON.stringify({ featured: nextFeatured }),
+                body: JSON.stringify({ featured: !isFeatured }),
             });
         } catch (err) {
             console.error("Failed to toggle project featured state:", err);
@@ -93,7 +183,7 @@ export function ProjectsPage() {
                 return next;
             });
         }
-    };
+    }, []);
 
     // Use allProjects directly as it's already filtered and sorted by backend
     const sorted = allProjects;
@@ -178,67 +268,15 @@ export function ProjectsPage() {
 
             {/* Grid View */}
             {view === "grid" && (<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {sorted.map((project) => (<div key={project.slug} className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
-                            <div className="relative h-40 overflow-hidden">
-                                <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
-                                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}/>
-                                {/* Status badge */}
-                                <div className="absolute top-3 left-3">
-                                    <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{
-                    background: statusColors[project.status]?.bg || "rgba(0,0,0,0.4)",
-                    color: statusColors[project.status]?.text || "#fff",
-                    backdropFilter: "blur(6px)",
-                }}>
-                                        {project.status}
-                                    </span>
-                                </div>
-                                {/* Featured star */}
-                                <button className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{
-                    background: featuredIds.has(project.slug) ? "rgba(255,193,7,0.2)" : "rgba(29,22,22,0.7)",
-                    border: `1px solid ${featuredIds.has(project.slug) ? "rgba(255,193,7,0.6)" : "rgba(255,255,255,0.1)"}`,
-                    backdropFilter: "blur(6px)",
-                }} onClick={(e) => toggleFeatured(e, project.slug)} title={featuredIds.has(project.slug) ? "Remove from featured" : "Mark as featured"}>
-                                    <Star size={13} fill={featuredIds.has(project.slug) ? "#FFC107" : "none"} color={featuredIds.has(project.slug) ? "#FFC107" : "#888"}/>
-                                </button>
-                            </div>
-                            <div className="p-4">
-                                <div className="flex items-start justify-between mb-1">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                        <h3 style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="truncate">{project.title}</h3>
-                                        {project.published && <span title="Published" className="text-[10px] flex-shrink-0">🌐</span>}
-                                        {project.locked && <span title="Locked" className="text-[10px] flex-shrink-0">🔒</span>}
-                                    </div>
-                                    {featuredIds.has(project.slug) && (<span className="flex items-center gap-1 px-1.5 py-0.5 rounded ml-2 flex-shrink-0" style={{ background: "rgba(255,193,7,0.1)", color: "#FFC107", fontSize: "10px", border: "1px solid rgba(255,193,7,0.25)" }}>
-                                            <Star size={9} fill="#FFC107"/> Featured
-                                        </span>)}
-                                </div>
-                                <p style={{ color: "#888", fontSize: "12px" }} className="mb-3">
-                                    {project.client} · {project.format}
-                                </p>
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-1.5">
-                                        <Calendar size={12} color="#666"/>
-                                        <span style={{ color: "#666", fontSize: "11px" }}>{project.year}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Coins size={12} color="#D84040"/>
-                                        <span style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{project.budget}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between mb-1">
-                                        <span style={{ color: "#666", fontSize: "11px" }}>Progress</span>
-                                        <span style={{ color: "#D84040", fontSize: "11px", fontWeight: 600 }}>{project.progress}%</span>
-                                    </div>
-                                    <div className="rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
-                                        <div className="h-full rounded-full" style={{
-                    width: `${project.progress}%`,
-                    background: project.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)",
-                }}/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>))}
+                    {sorted.map((project) => (
+                        <ProjectGridCard 
+                            key={project.slug} 
+                            project={project} 
+                            featuredIds={featuredIds} 
+                            toggleFeatured={toggleFeatured} 
+                            navigate={navigate} 
+                        />
+                    ))}
                 </div>)}
 
             {/* List View */}
@@ -253,49 +291,15 @@ export function ProjectsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {sorted.map((p) => (<tr key={p.slug} className="hover:bg-white/5 transition-colors cursor-pointer" style={{ borderBottom: "1px solid #2A1F1F" }} onClick={() => navigate(`/admin/projects/${p.slug}`)}>
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <img src={p.cover_image} alt={p.title} className="w-10 h-7 rounded object-cover" />
-                                                <div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{p.title}</p>
-                                                        {p.published && <span title="Published" className="text-[10px]">🌐</span>}
-                                                        {p.locked && <span title="Locked" className="text-[10px]">🔒</span>}
-                                                    </div>
-                                                    <p style={{ color: "#666", fontSize: "11px" }}>{p.year}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5" style={{ color: "#999", fontSize: "13px" }}>{p.client}</td>
-                                        <td className="px-5 py-3.5" style={{ color: "#999", fontSize: "13px" }}>{p.format}</td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{
-                        background: statusColors[p.status]?.bg || "rgba(0,0,0,0.4)",
-                        color: statusColors[p.status]?.text || "#fff",
-                    }}>{p.status}</span>
-                                        </td>
-                                        <td className="px-5 py-3.5" style={{ color: "#999", fontSize: "13px" }}>{p.dueDate}</td>
-                                        <td className="px-5 py-3.5" style={{ color: "#D84040", fontSize: "13px", fontWeight: 600 }}>{p.budget}</td>
-                                        <td className="px-5 py-3.5" style={{ minWidth: "100px" }}>
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
-                                                    <div className="h-full rounded-full" style={{
-                        width: `${p.progress}%`,
-                        background: p.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)",
-                    }}/>
-                                                </div>
-                                                <span style={{ color: "#666", fontSize: "11px", flexShrink: 0 }}>{p.progress}%</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <button onClick={(e) => toggleFeatured(e, p.slug)} className="w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{
-                        background: featuredIds.has(p.slug) ? "rgba(255,193,7,0.12)" : "transparent",
-                    }}>
-                                                <Star size={14} fill={featuredIds.has(p.slug) ? "#FFC107" : "none"} color={featuredIds.has(p.slug) ? "#FFC107" : "#444"}/>
-                                            </button>
-                                        </td>
-                                    </tr>))}
+                                {sorted.map((p) => (
+                                    <ProjectListRow 
+                                        key={p.slug} 
+                                        p={p} 
+                                        featuredIds={featuredIds} 
+                                        toggleFeatured={toggleFeatured} 
+                                        navigate={navigate} 
+                                    />
+                                ))}
                             </tbody>
                         </table>
                     </div>
