@@ -774,11 +774,11 @@ export function CRMOverviewPage() {
   useEffect(() => {
     Promise.all([
       fetchApi("/projects/clients/all"),
-      fetchApi("/projects")
+      fetchApi("/projects?size=1000")
     ])
       .then(([clientsData, projectsData]) => {
         setClients(clientsData || []);
-        setProjects(projectsData || []);
+        setProjects(projectsData?.items || projectsData || []);
         setLoading(false);
       })
       .catch(err => {
