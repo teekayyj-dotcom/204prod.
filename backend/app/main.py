@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import os
+import redis.asyncio as redis
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_pagination import add_pagination
 
 from app.core.config import settings
 from app.modules.auth.api import router as auth_router
@@ -26,6 +31,11 @@ async def lifespan(app: FastAPI):
     
     # Initialize Firebase Admin SDK
     init_firebase_admin()
+    
+    # Initialize Redis Cache
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    redis_client = redis.from_url(redis_url)
+    FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
     
     # Seed data
     db = SessionLocal()
@@ -69,4 +79,7 @@ import os
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+# Add pagination support
+add_pagination(app)
 

@@ -44,6 +44,12 @@ services:
     # profiles:
     #   - local
 
+  redis:
+    image: redis:alpine
+    container_name: 204prod-redis
+    ports:
+      - "6379:6379"
+
   nginx:
     image: nginx:alpine
     ports:

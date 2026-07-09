@@ -13,6 +13,7 @@ export function ProjectsPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [allProjects, setAllProjects] = useState([]);
+    const [pagination, setPagination] = useState({ page: 1, size: 12, total: 0 });
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -26,23 +27,45 @@ export function ProjectsPage() {
     // Sync query parameter changes to categoryFilter state
     useEffect(() => {
         const typeParam = searchParams.get("type");
-        setCategoryFilter(typeParam || "All");
+        if (typeParam) {
+            setCategoryFilter(typeParam);
+            setPagination(prev => ({ ...prev, page: 1 }));
+        }
     }, [searchParams]);
 
+    // Reset page to 1 when filters change
     useEffect(() => {
-        Promise.all([
-            fetchApi('/projects'),
-            fetchApi('/categories')
-        ]).then(([projectsData, categoriesData]) => {
-            setAllProjects(projectsData);
-            setCategories(categoriesData);
-            setFeaturedIds(new Set(projectsData.filter((p) => p.featured).map((p) => p.slug)));
-            setLoading(false);
-        }).catch(err => {
-            console.error(err);
-            setLoading(false);
-        });
+        setPagination(prev => ({ ...prev, page: 1 }));
+    }, [search, statusFilter, categoryFilter, showFeaturedOnly, sortBy]);
+
+    useEffect(() => {
+        fetchApi('/categories').then(setCategories).catch(console.error);
     }, []);
+
+    useEffect(() => {
+        setLoading(true);
+        const params = new URLSearchParams();
+        params.append("page", pagination.page);
+        params.append("size", pagination.size);
+        if (search) params.append("search", search);
+        if (statusFilter !== "All") params.append("status", statusFilter);
+        if (categoryFilter !== "All") params.append("format_name", categoryFilter);
+        if (showFeaturedOnly) params.append("featured", "true");
+        if (sortBy !== "default") params.append("sort_by", sortBy);
+
+        fetchApi(`/projects?${params.toString()}`)
+            .then(data => {
+                setAllProjects(data.items || []);
+                setPagination(prev => ({ ...prev, total: data.total || 0 }));
+                setFeaturedIds(new Set((data.items || []).filter((p) => p.featured).map((p) => p.slug)));
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, [pagination.page, pagination.size, search, statusFilter, categoryFilter, showFeaturedOnly, sortBy]);
+
     const statuses = ["All", "In Progress", "Review", "Planning", "Completed"];
     const toggleFeatured = async (e, slug) => {
         e.stopPropagation();
@@ -71,34 +94,11 @@ export function ProjectsPage() {
             });
         }
     };
-    const filtered = allProjects.filter((p) => {
-        const matchSearch = p.title.toLowerCase().includes(search.toLowerCase()) ||
-            p.client.toLowerCase().includes(search.toLowerCase()) ||
-            p.format.toLowerCase().includes(search.toLowerCase());
-        const matchStatus = statusFilter === "All" || p.status === statusFilter;
-        const matchCat = categoryFilter === "All" || p.format === categoryFilter;
-        const matchFeatured = !showFeaturedOnly || featuredIds.has(p.slug);
-        return matchSearch && matchStatus && matchCat && matchFeatured;
-    });
 
-    const sorted = [...filtered].sort((a, b) => {
-        if (sortBy === "name") {
-            return a.title.localeCompare(b.title);
-        }
-        if (sortBy === "budget") {
-            const valA = parseFloat(a.budget.replace(/[$,]/g, "")) || 0;
-            const valB = parseFloat(b.budget.replace(/[$,]/g, "")) || 0;
-            return valB - valA;
-        }
-        if (sortBy === "progress") {
-            return b.progress - a.progress;
-        }
-        if (sortBy === "format") {
-            return a.format.localeCompare(b.format);
-        }
-        return 0;
-    });
-    if (loading) {
+    // Use allProjects directly as it's already filtered and sorted by backend
+    const sorted = allProjects;
+
+    if (loading && allProjects.length === 0) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="animate-spin text-white/50" size={32} />
@@ -301,9 +301,42 @@ export function ProjectsPage() {
                     </div>
                 </div>)}
 
-            {sorted.length === 0 && (<div className="text-center py-16">
+            {sorted.length === 0 && !loading && (
+                <div className="text-center py-16">
                     <Star size={40} color="#3A2A2A" className="mx-auto mb-3"/>
                     <p style={{ color: "#666", fontSize: "14px" }}>No projects found</p>
-                </div>)}
-        </div>);
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {pagination.total > 0 && (
+                <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#2E2020]">
+                    <p style={{ color: "#666", fontSize: "13px" }}>
+                        Showing {((pagination.page - 1) * pagination.size) + 1} to {Math.min(pagination.page * pagination.size, pagination.total)} of {pagination.total} projects
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            disabled={pagination.page === 1}
+                            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                            className="px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ background: "#241C1C", color: "#EEEEEE", fontSize: "13px", border: "1px solid #2E2020" }}
+                        >
+                            Previous
+                        </button>
+                        <span style={{ color: "#888", fontSize: "13px", margin: "0 8px" }}>
+                            Page {pagination.page} of {Math.ceil(pagination.total / pagination.size)}
+                        </span>
+                        <button 
+                            disabled={pagination.page >= Math.ceil(pagination.total / pagination.size)}
+                            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                            className="px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ background: "#241C1C", color: "#EEEEEE", fontSize: "13px", border: "1px solid #2E2020" }}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }

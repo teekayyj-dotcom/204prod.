@@ -19,12 +19,31 @@ from app.modules.projects.schemas import (
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
-@router.get("")
-def list_projects_route(db: Session = Depends(get_db_session)):
-    return get_projects(db)
+from fastapi_pagination import Page
 
+@router.get("", response_model=Page[ProjectDetail])
+def list_projects_route(
+    search: str | None = Query(None),
+    status: str | None = Query(None),
+    format_name: str | None = Query(None),
+    featured: bool | None = Query(None),
+    sort_by: str | None = Query(None),
+    db: Session = Depends(get_db_session)
+):
+    return get_projects(
+        db, 
+        search=search, 
+        status=status, 
+        format_name=format_name, 
+        featured=featured, 
+        sort_by=sort_by
+    )
+
+
+from fastapi_cache.decorator import cache
 
 @router.get("/clients/all")
+@cache(expire=300)
 def list_clients_route(db: Session = Depends(get_db_session)):
     from app.modules.projects.service import get_clients
     return get_clients(db)

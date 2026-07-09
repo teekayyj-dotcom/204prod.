@@ -6,8 +6,15 @@ from app.modules.projects.schemas import ProjectDetail, ProjectCreate, ProjectUp
 from app.modules.users.service import pre_authorize_user
 
 
-def get_projects(db: Session) -> list[ProjectDetail]:
-    return list_projects(db)
+def get_projects(
+    db: Session,
+    search: str | None = None,
+    status: str | None = None,
+    format_name: str | None = None,
+    featured: bool | None = None,
+    sort_by: str | None = None,
+):
+    return list_projects(db, search=search, status=status, format_name=format_name, featured=featured, sort_by=sort_by)
 
 
 def get_project(db: Session, slug: str) -> ProjectDetail:

@@ -50,7 +50,17 @@ def _map_to_detail(p: Project) -> ProjectDetail:
     )
 
 
-def list_projects(db: Session) -> list[ProjectDetail]:
+from fastapi_pagination.ext.sqlalchemy import paginate
+
+def list_projects(
+    db: Session,
+    search: str | None = None,
+    status: str | None = None,
+    format_name: str | None = None,
+    featured: bool | None = None,
+    sort_by: str | None = None,
+):
+    from app.modules.categories.models import Category
     stmt = select(Project).options(
         joinedload(Project.client).joinedload(Client.logo_media),
         joinedload(Project.format_category),
@@ -58,8 +68,38 @@ def list_projects(db: Session) -> list[ProjectDetail]:
         joinedload(Project.credits),
         joinedload(Project.gallery_images).joinedload(ProjectGalleryImage.media_asset)
     )
-    projects = db.scalars(stmt).unique().all()
-    return [_map_to_detail(p) for p in projects]
+    
+    if search:
+        stmt = stmt.where(
+            Project.title.ilike(f"%{search}%") | 
+            Project.client_slug.ilike(f"%{search}%") | 
+            Project.format_slug.ilike(f"%{search}%")
+        )
+    if status and status != "All":
+        stmt = stmt.where(Project.status == status)
+    if format_name and format_name != "All":
+        # frontend passes the category name
+        stmt = stmt.outerjoin(Project.format_category).where(
+            (Category.name == format_name) | (Project.format_slug == format_name)
+        )
+    if featured is True:
+        stmt = stmt.where(Project.featured == True)
+        
+    if sort_by:
+        if sort_by == "name":
+            stmt = stmt.order_by(Project.title.asc())
+        elif sort_by == "budget":
+            stmt = stmt.order_by(Project.budget.desc())
+        elif sort_by == "progress":
+            stmt = stmt.order_by(Project.status.asc())
+        elif sort_by == "format":
+            stmt = stmt.order_by(Project.format_slug.asc())
+        else:
+            stmt = stmt.order_by(Project.created_at.desc())
+    else:
+        stmt = stmt.order_by(Project.created_at.desc())
+
+    return paginate(db, stmt, transformer=lambda items: [_map_to_detail(p) for p in items])
 
 
 def get_project_by_slug(db: Session, slug: str) -> ProjectDetail | None:

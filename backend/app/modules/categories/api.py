@@ -15,7 +15,10 @@ from app.modules.categories.models import Category as CategoryModel
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
+from fastapi_cache.decorator import cache
+
 @router.get("")
+@cache(expire=300)
 def list_categories_route(db: Session = Depends(get_db_session)):
     return get_categories(db)
 
