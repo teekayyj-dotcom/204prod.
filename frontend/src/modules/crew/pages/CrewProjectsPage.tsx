@@ -663,7 +663,9 @@ export function CrewProjectsPage() {
                       onDragStart={() => onDragStart(col.id, task.id)}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveTaskMenu(activeTaskMenu === task.id ? null : task.id);
+                        if (col.id !== "done") {
+                          setActiveTaskMenu(activeTaskMenu === task.id ? null : task.id);
+                        }
                       }}
                       className="rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-150 relative"
                       style={{
@@ -695,24 +697,28 @@ export function CrewProjectsPage() {
                             style={{ background: "#141010" }}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button
-                              onClick={() => {
-                                handleEditTaskClick(col.id, task);
-                                setActiveTaskMenu(null);
-                              }}
-                              className="w-full text-left px-2 py-1 rounded text-[10px] hover:bg-white/5 transition-colors text-white font-medium cursor-pointer"
-                            >
-                              Sửa công việc
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeleteTask(col.id, task.id);
-                                setActiveTaskMenu(null);
-                              }}
-                              className="w-full text-left px-2 py-1 rounded text-[10px] hover:bg-[#D84040]/10 text-[#D84040] transition-colors font-medium cursor-pointer"
-                            >
-                              Xóa công việc
-                            </button>
+                            {col.id !== "done" && (
+                              <button
+                                onClick={() => {
+                                  handleEditTaskClick(col.id, task);
+                                  setActiveTaskMenu(null);
+                                }}
+                                className="w-full text-left px-2 py-1 rounded text-[10px] hover:bg-white/5 transition-colors text-white font-medium cursor-pointer"
+                              >
+                                Sửa công việc
+                              </button>
+                            )}
+                            {col.id !== "done" && (
+                              <button
+                                onClick={() => {
+                                  handleDeleteTask(col.id, task.id);
+                                  setActiveTaskMenu(null);
+                                }}
+                                className="w-full text-left px-2 py-1 rounded text-[10px] hover:bg-[#D84040]/10 text-[#D84040] transition-colors font-medium cursor-pointer"
+                              >
+                                Xóa công việc
+                              </button>
+                            )}
                           </div>
                         </>
                       )}

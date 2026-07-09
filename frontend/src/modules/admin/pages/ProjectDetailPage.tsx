@@ -379,7 +379,8 @@ function KanbanTab() {
                             {/* Cards */}
                             <div style={{ padding: "0 8px 8px", display: "flex", flexDirection: "column", gap: "7px", minHeight: "60px" }}>
                                 {colTasks.map(task => {
-                                    const overdue = isOverdue(task.deadline);
+                                    const isDone = col.id === "done" || task.status === "done";
+                                    const overdue = !isDone && isOverdue(task.deadline);
                                     const daysLeft = getDaysLeft(task.deadline);
                                     const isDragging = dragging === task.id;
                                     return (
@@ -483,8 +484,8 @@ function KanbanTab() {
                                                     <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assigneeName}</span>
                                                 </div>
                                                 {task.deadline && (
-                                                    <span style={{ fontSize: "9px", color: overdue ? "#f87171" : daysLeft !== null && daysLeft <= 2 ? "#E8A838" : "#555", fontWeight: overdue ? 700 : 400 }}>
-                                                        {overdue ? `${Math.abs(daysLeft!)}d trễ` : daysLeft === 0 ? "Hôm nay" : `${daysLeft}d`}
+                                                    <span style={{ fontSize: "9px", color: isDone ? "#4CAF50" : overdue ? "#f87171" : daysLeft !== null && daysLeft <= 2 ? "#E8A838" : "#555", fontWeight: overdue || isDone ? 700 : 400 }}>
+                                                        {isDone ? "Hoàn thành" : overdue ? `${Math.abs(daysLeft!)}d trễ` : daysLeft === 0 ? "Hôm nay" : `${daysLeft}d`}
                                                     </span>
                                                 )}
                                             </div>
