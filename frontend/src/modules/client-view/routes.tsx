@@ -1,13 +1,4 @@
 import { MainLayout } from "./layout/MainLayout";
-import { ClientDashboardPage } from "./pages/ClientDashboardPage";
-import { ClientProjectsPage } from "./pages/ClientProjectsPage";
-import { ClientProjectDetailPage } from "./pages/ClientProjectDetailPage";
-import { ClientPlaybackPage } from "./pages/ClientPlaybackPage";
-import { ClientDemosPage } from "./pages/ClientDemosPage";
-import { ClientBillingPage } from "./pages/ClientBillingPage";
-import { ClientSupportPage } from "./pages/ClientSupportPage";
-import { ClientSettingsPage } from "./pages/ClientSettingsPage";
-
 import { ProtectedRoute } from "../../shared/components/ProtectedRoute";
 
 export const clientRoute = {
@@ -18,13 +9,13 @@ export const clientRoute = {
         </ProtectedRoute>
     ),
     children: [
-        { index: true, Component: ClientDashboardPage },
-        { path: "projects", Component: ClientProjectsPage },
-        { path: "projects/:id", Component: ClientProjectDetailPage },
-        { path: "projects/:id/playback", Component: ClientPlaybackPage },
-        { path: "demos", Component: ClientDemosPage },
-        { path: "billing", Component: ClientBillingPage },
-        { path: "support", Component: ClientSupportPage },
-        { path: "settings", Component: ClientSettingsPage },
+        { index: true, lazy: () => import("./pages/ClientDashboardPage").then(m => ({ Component: m.ClientDashboardPage })) },
+        { path: "projects", lazy: () => import("./pages/ClientProjectsPage").then(m => ({ Component: m.ClientProjectsPage })) },
+        { path: "projects/:id", lazy: () => import("./pages/ClientProjectDetailPage").then(m => ({ Component: m.ClientProjectDetailPage })) },
+        { path: "projects/:id/playback", lazy: () => import("./pages/ClientPlaybackPage").then(m => ({ Component: m.ClientPlaybackPage })) },
+        { path: "demos", lazy: () => import("./pages/ClientDemosPage").then(m => ({ Component: m.ClientDemosPage })) },
+        { path: "billing", lazy: () => import("./pages/ClientBillingPage").then(m => ({ Component: m.ClientBillingPage })) },
+        { path: "support", lazy: () => import("./pages/ClientSupportPage").then(m => ({ Component: m.ClientSupportPage })) },
+        { path: "settings", lazy: () => import("./pages/ClientSettingsPage").then(m => ({ Component: m.ClientSettingsPage })) },
     ],
 };

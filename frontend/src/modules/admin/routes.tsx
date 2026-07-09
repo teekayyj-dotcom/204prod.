@@ -1,27 +1,4 @@
 import { MainLayout } from "./layout/MainLayout";
-import { DashboardPage } from "./pages/DashboardPage";
-import { CategoriesPage } from "./pages/CategoriesPage";
-import { CategoryDetailPage } from "./pages/CategoryDetailPage";
-import { ClientsPage } from "./pages/ClientsPage";
-import { ClientProfilePage } from "./pages/ClientProfilePage";
-import { ProjectsPage } from "./pages/ProjectsPage";
-import { CrewPage } from "./pages/CrewPage";
-import { CrewProfilePage } from "./pages/CrewProfilePage";
-import { MediaLibraryPage } from "./pages/MediaLibraryPage";
-import { AddProjectPage } from "./pages/AddProjectPage";
-import { AddCategoryPage } from "./pages/AddCategoryPage";
-import { AddClientPage } from "./pages/AddClientPage";
-import { AddCrewMemberPage } from "./pages/AddCrewMemberPage";
-import { ProjectDetailPage } from "./pages/ProjectDetailPage";
-import { HROverviewPage } from "./pages/HROverviewPage";
-import { AttendancePage } from "./pages/AttendancePage";
-import { CRMOverviewPage } from "./pages/CRMOverviewPage";
-import { FinanceRevenuePage } from "./pages/FinanceRevenuePage";
-import { FinanceOverviewPage } from "./pages/FinanceOverviewPage";
-import { FinanceGoalsPage } from "./pages/FinanceGoalsPage";
-import { FinanceExpensesPage } from "./pages/FinanceExpensesPage";
-import { FinancePayablesPage } from "./pages/FinancePayablesPage";
-import { ClientPlaybackPage } from "../client-view/pages/ClientPlaybackPage";
 
 export function AdminNotFound() {
     return (<div className="flex flex-col items-center justify-center h-full py-32" style={{ color: "#666" }}>
@@ -45,29 +22,29 @@ export const adminRoute = {
         </ProtectedRoute>
     ),
     children: [
-        { index: true, Component: DashboardPage },
-        { path: "categories", Component: CategoriesPage },
-        { path: "categories/new", Component: AddCategoryPage },
-        { path: "categories/:id", Component: CategoryDetailPage },
-        { path: "clients", Component: ClientsPage },
-        { path: "clients/new", Component: AddClientPage },
-        { path: "clients/:id", Component: ClientProfilePage },
-        { path: "projects", Component: ProjectsPage },
-        { path: "projects/new", Component: AddProjectPage },
-        { path: "projects/:id", Component: ProjectDetailPage },
-        { path: "projects/:id/playback", Component: ClientPlaybackPage },
-        { path: "crew", Component: CrewPage },
-        { path: "crew/new", Component: AddCrewMemberPage },
-        { path: "crew/:id", Component: CrewProfilePage },
-        { path: "media", Component: MediaLibraryPage },
-        { path: "crm/overview", Component: CRMOverviewPage },
-        { path: "hr/overview", Component: HROverviewPage },
-        { path: "hr/attendance", Component: AttendancePage },
-        { path: "finance/overview", Component: FinanceOverviewPage },
-        { path: "finance/goals", Component: FinanceGoalsPage },
-        { path: "finance/revenue", Component: FinanceRevenuePage },
-        { path: "finance/expenses", Component: FinanceExpensesPage },
-        { path: "finance/payables", Component: FinancePayablesPage },
+        { index: true, lazy: () => import("./pages/DashboardPage").then(m => ({ Component: m.DashboardPage })) },
+        { path: "categories", lazy: () => import("./pages/CategoriesPage").then(m => ({ Component: m.CategoriesPage })) },
+        { path: "categories/new", lazy: () => import("./pages/AddCategoryPage").then(m => ({ Component: m.AddCategoryPage })) },
+        { path: "categories/:id", lazy: () => import("./pages/CategoryDetailPage").then(m => ({ Component: m.CategoryDetailPage })) },
+        { path: "clients", lazy: () => import("./pages/ClientsPage").then(m => ({ Component: m.ClientsPage })) },
+        { path: "clients/new", lazy: () => import("./pages/AddClientPage").then(m => ({ Component: m.AddClientPage })) },
+        { path: "clients/:id", lazy: () => import("./pages/ClientProfilePage").then(m => ({ Component: m.ClientProfilePage })) },
+        { path: "projects", lazy: () => import("./pages/ProjectsPage").then(m => ({ Component: m.ProjectsPage })) },
+        { path: "projects/new", lazy: () => import("./pages/AddProjectPage").then(m => ({ Component: m.AddProjectPage })) },
+        { path: "projects/:id", lazy: () => import("./pages/ProjectDetailPage").then(m => ({ Component: m.ProjectDetailPage })) },
+        { path: "projects/:id/playback", lazy: () => import("../client-view/pages/ClientPlaybackPage").then(m => ({ Component: m.ClientPlaybackPage })) },
+        { path: "crew", lazy: () => import("./pages/CrewPage").then(m => ({ Component: m.CrewPage })) },
+        { path: "crew/new", lazy: () => import("./pages/AddCrewMemberPage").then(m => ({ Component: m.AddCrewMemberPage })) },
+        { path: "crew/:id", lazy: () => import("./pages/CrewProfilePage").then(m => ({ Component: m.CrewProfilePage })) },
+        { path: "media", lazy: () => import("./pages/MediaLibraryPage").then(m => ({ Component: m.MediaLibraryPage })) },
+        { path: "crm/overview", lazy: () => import("./pages/CRMOverviewPage").then(m => ({ Component: m.CRMOverviewPage })) },
+        { path: "hr/overview", lazy: () => import("./pages/HROverviewPage").then(m => ({ Component: m.HROverviewPage })) },
+        { path: "hr/attendance", lazy: () => import("./pages/AttendancePage").then(m => ({ Component: m.AttendancePage })) },
+        { path: "finance/overview", lazy: () => import("./pages/FinanceOverviewPage").then(m => ({ Component: m.FinanceOverviewPage })) },
+        { path: "finance/goals", lazy: () => import("./pages/FinanceGoalsPage").then(m => ({ Component: m.FinanceGoalsPage })) },
+        { path: "finance/revenue", lazy: () => import("./pages/FinanceRevenuePage").then(m => ({ Component: m.FinanceRevenuePage })) },
+        { path: "finance/expenses", lazy: () => import("./pages/FinanceExpensesPage").then(m => ({ Component: m.FinanceExpensesPage })) },
+        { path: "finance/payables", lazy: () => import("./pages/FinancePayablesPage").then(m => ({ Component: m.FinancePayablesPage })) },
         { path: "*", Component: AdminNotFound },
     ],
 };

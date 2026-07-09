@@ -1,10 +1,4 @@
 import { CrewMainLayout } from "./layout/CrewMainLayout";
-import { CrewWorkspacePage } from "./pages/CrewWorkspacePage";
-import { CrewProjectsPage } from "./pages/CrewProjectsPage";
-import { CrewMediaLibraryPage } from "./pages/CrewMediaLibraryPage";
-import { CrewHRPage } from "./pages/CrewHRPage";
-import { ProtectedRoute } from "../../shared/components/ProtectedRoute";
-import { ClientPlaybackPage } from "../client-view/pages/ClientPlaybackPage";
 
 function CrewNotFound() {
   return (
@@ -28,11 +22,11 @@ export const crewRoute = {
     </ProtectedRoute>
   ),
   children: [
-    { index: true, Component: CrewWorkspacePage },
-    { path: "projects", Component: CrewProjectsPage },
-    { path: "projects/:id/playback", Component: ClientPlaybackPage },
-    { path: "media", Component: CrewMediaLibraryPage },
-    { path: "hr", Component: CrewHRPage },
+    { index: true, lazy: () => import("./pages/CrewWorkspacePage").then(m => ({ Component: m.CrewWorkspacePage })) },
+    { path: "projects", lazy: () => import("./pages/CrewProjectsPage").then(m => ({ Component: m.CrewProjectsPage })) },
+    { path: "projects/:id/playback", lazy: () => import("../client-view/pages/ClientPlaybackPage").then(m => ({ Component: m.ClientPlaybackPage })) },
+    { path: "media", lazy: () => import("./pages/CrewMediaLibraryPage").then(m => ({ Component: m.CrewMediaLibraryPage })) },
+    { path: "hr", lazy: () => import("./pages/CrewHRPage").then(m => ({ Component: m.CrewHRPage })) },
     { path: "*", Component: CrewNotFound },
   ],
 };
