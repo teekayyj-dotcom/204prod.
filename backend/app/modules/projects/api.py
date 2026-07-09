@@ -20,8 +20,14 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 from fastapi_pagination import Page
+from fastapi_pagination.customization import CustomizedPage, UseParamsFields
 
-@router.get("", response_model=Page[ProjectDetail])
+ProjectPage = CustomizedPage[
+    Page[ProjectDetail],
+    UseParamsFields(size=Query(50, ge=1, le=1000))
+]
+
+@router.get("", response_model=ProjectPage)
 def list_projects_route(
     search: str | None = Query(None),
     status: str | None = Query(None),
