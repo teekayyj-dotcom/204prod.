@@ -10,9 +10,9 @@ import { CrewRadar } from "../dashboard/CrewRadar";
 export function DashboardPage() {
     const navigate = useNavigate();
     return (
-        <div className="px-8 py-7" style={{ background: "#110D0D", minHeight: "100vh" }}>
+        <div className="px-4 md:px-8 py-7 w-full overflow-x-hidden" style={{ background: "#110D0D", minHeight: "100vh" }}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
                     <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
                         Dashboard
@@ -21,7 +21,7 @@ export function DashboardPage() {
                         Welcome back — here's your operational command center.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     {/* Search */}
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>
                         <Search size={15} color="#666"/>
@@ -29,7 +29,7 @@ export function DashboardPage() {
                     </div>
 
                     {/* Notifications */}
-                    <button className="relative w-10 h-10 rounded-lg flex items-center justify-center transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>
+                    <button className="hidden lg:flex relative w-10 h-10 rounded-lg items-center justify-center transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>
                         <Bell size={17} color="#888"/>
                         <span className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ background: "#D84040" }}/>
                     </button>
@@ -60,7 +60,7 @@ export function DashboardPage() {
             </section>
 
             {/* Action Center & Top Projects */}
-            <div className="grid grid-cols-3 gap-6 mb-7">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-7">
                 <div className="col-span-1">
                     <ActionCenter />
                 </div>

@@ -308,7 +308,7 @@ export function CrewHRPage() {
   };
 
   return (
-    <div className="px-8 py-7">
+    <div className="px-4 md:px-8 py-7 w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -331,33 +331,33 @@ export function CrewHRPage() {
       </div>
 
       {/* Summary row */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
         {[
           { label: "Tổng giờ làm", value: `${totalHours.toFixed(1)}h`, sub: "tháng này", color: "#D84040" },
           { label: "Ngày đi làm đúng giờ", value: String(normalDays), sub: "ngày", color: "#10B981" },
           { label: "Đi muộn", value: String(lateDays), sub: "ngày", color: "#D4A843" },
           { label: "WFH / Nghỉ phép", value: `${wfhDays + leaveDays}`, sub: "ngày", color: "#8B5CF6" },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl px-5 py-4" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
-            <p style={{ color: "#555", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "6px" }}>
+          <div key={s.label} className="rounded-xl px-4 py-4 sm:px-5" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
+            <p style={{ color: "#555", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "6px" }} className="break-words">
               {s.label}
             </p>
-            <p style={{ color: s.color, fontSize: "28px", fontWeight: 700, lineHeight: 1 }}>{s.value}</p>
-            <p style={{ color: "#444", fontSize: "11px", marginTop: "2px" }}>{s.sub}</p>
+            <p style={{ color: s.color, fontSize: "24px", sm: {fontSize: "28px"}, fontWeight: 700, lineHeight: 1 }}>{s.value}</p>
+            <p style={{ color: "#444", fontSize: "11px", marginTop: "4px" }}>{s.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
       <div
-        className="flex gap-1 p-1 mb-6 w-fit rounded-xl"
+        className="flex overflow-x-auto gap-1 p-1 mb-6 w-full md:w-fit rounded-xl"
         style={{ background: "#141010", border: "1px solid #2A1F1F" }}
       >
         {(["attendance", "requests", "settings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className="px-5 py-2 rounded-lg transition-all duration-200"
+            className="px-4 sm:px-5 py-2 rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0"
             style={{
               background: activeTab === tab ? "#D84040" : "transparent",
               color: activeTab === tab ? "#EEEEEE" : "#666",
@@ -372,95 +372,93 @@ export function CrewHRPage() {
 
       {/* TAB: Attendance calendar */}
       {activeTab === "attendance" && (
-        <div className="rounded-2xl p-6" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
-          {/* Month header */}
-          <div className="flex items-center justify-between mb-5">
-            <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>
-              Tháng{" "}
-              {new Date(currentYear, currentMonth).toLocaleDateString("vi-VN", {
-                month: "long",
-                year: "numeric",
-              })}
-            </h3>
-            {/* Legend */}
-            <div className="flex items-center gap-4">
-              {[
-                { label: "Đúng giờ", color: "#10B981" },
-                { label: "WFH", color: "#8B5CF6" },
-                { label: "Đi muộn", color: "#D4A843" },
-                { label: "Nghỉ phép", color: "#D84040" },
-              ].map((l) => (
-                <div key={l.label} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm" style={{ background: l.color }} />
-                  <span style={{ color: "#555", fontSize: "10px" }}>{l.label}</span>
+        <div className="rounded-2xl p-4 sm:p-6 overflow-x-auto" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
+          <div className="min-w-[500px]">
+            {/* Month header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+              <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>
+                Tháng {currentMonth + 1} năm {currentYear}
+              </h3>
+              {/* Legend */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                {[
+                  { label: "Đúng giờ", color: "#10B981" },
+                  { label: "WFH", color: "#8B5CF6" },
+                  { label: "Đi muộn", color: "#D4A843" },
+                  { label: "Nghỉ phép", color: "#D84040" },
+                ].map((l) => (
+                  <div key={l.label} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm" style={{ background: l.color }} />
+                    <span style={{ color: "#555", fontSize: "10px" }}>{l.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 mb-2">
+              {WEEKDAYS.map((w) => (
+                <div key={w} style={{ color: "#555", fontSize: "10px", fontWeight: 700, textAlign: "center", padding: "4px 0" }}>
+                  {w}
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Weekday headers */}
-          <div className="grid grid-cols-7 mb-2">
-            {WEEKDAYS.map((w) => (
-              <div key={w} style={{ color: "#555", fontSize: "10px", fontWeight: 700, textAlign: "center", padding: "4px 0" }}>
-                {w}
-              </div>
-            ))}
-          </div>
+            {/* Calendar grid */}
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div key={`empty-${i}`} />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const att = attendanceData[day];
+                const isToday = day === new Date().getDate();
+                const isFuture = day > new Date().getDate();
+                const style = att ? dayTypeStyle(att.type) : null;
 
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1.5">
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const att = attendanceData[day];
-              const isToday = day === new Date().getDate();
-              const isFuture = day > new Date().getDate();
-              const style = att ? dayTypeStyle(att.type) : null;
-
-              return (
-                <div
-                  key={day}
-                  className="rounded-xl p-2 transition-all duration-150"
-                  style={{
-                    background: isToday ? "#D84040" : style ? style.bg : "#1D1616",
-                    border: `1px solid ${isToday ? "#D84040" : style ? style.border : "#2A1F1F"}`,
-                    minHeight: "70px",
-                    cursor: att ? "pointer" : "default",
-                    opacity: isFuture ? 0.3 : 1,
-                  }}
-                  title={att ? `${att.in} – ${att.out} (${Number(att.hours).toFixed(2)}h)` : ""}
-                >
-                  <p
+                return (
+                  <div
+                    key={day}
+                    className="rounded-xl p-2 transition-all duration-150"
                     style={{
-                      color: isToday ? "#EEEEEE" : style ? style.color : "#444",
-                      fontSize: "12px",
-                      fontWeight: isToday ? 700 : 600,
-                      marginBottom: "4px",
+                      background: isToday ? "#D84040" : style ? style.bg : "#1D1616",
+                      border: `1px solid ${isToday ? "#D84040" : style ? style.border : "#2A1F1F"}`,
+                      minHeight: "70px",
+                      cursor: att ? "pointer" : "default",
+                      opacity: isFuture ? 0.3 : 1,
                     }}
+                    title={att ? `${att.in} – ${att.out} (${Number(att.hours).toFixed(2)}h)` : ""}
                   >
-                    {day}
-                  </p>
-                  {att && att.type !== "leave" && (
-                    <>
-                      <p style={{ color: isToday ? "rgba(255,255,255,0.7)" : "#666", fontSize: "9px", lineHeight: 1.3 }}>
-                        {att.in}
-                      </p>
-                      <p style={{ color: isToday ? "rgba(255,255,255,0.7)" : "#666", fontSize: "9px" }}>
-                        {att.out}
-                      </p>
-                      <p style={{ color: isToday ? "#EEEEEE" : style?.color, fontSize: "9px", fontWeight: 700, marginTop: "2px" }}>
-                        {Number(att.hours).toFixed(2)}h
-                      </p>
-                    </>
-                  )}
-                  {att && att.type === "leave" && (
-                    <p style={{ color: "#D84040", fontSize: "9px", fontWeight: 700 }}>Nghỉ phép</p>
-                  )}
-                </div>
-              );
-            })}
+                    <p
+                      style={{
+                        color: isToday ? "#EEEEEE" : style ? style.color : "#444",
+                        fontSize: "12px",
+                        fontWeight: isToday ? 700 : 600,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {day}
+                    </p>
+                    {att && att.type !== "leave" && (
+                      <>
+                        <p style={{ color: isToday ? "rgba(255,255,255,0.7)" : "#666", fontSize: "9px", lineHeight: 1.3 }}>
+                          {att.in}
+                        </p>
+                        <p style={{ color: isToday ? "rgba(255,255,255,0.7)" : "#666", fontSize: "9px" }}>
+                          {att.out}
+                        </p>
+                        <p style={{ color: isToday ? "#EEEEEE" : style?.color, fontSize: "9px", fontWeight: 700, marginTop: "2px" }}>
+                          {Number(att.hours).toFixed(2)}h
+                        </p>
+                      </>
+                    )}
+                    {att && att.type === "leave" && (
+                      <p style={{ color: "#D84040", fontSize: "9px", fontWeight: 700 }}>Nghỉ phép</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

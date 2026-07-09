@@ -6,12 +6,76 @@ export function ContactPage() {
   const { scrollYProgress } = useScroll();
   const [isSocialOpen, setIsSocialOpen] = useState(false);
 
+  // Form states
+  const [formData, setFormData] = useState({
+    name: '',
+    organization: '',
+    email: '',
+    category: '',
+    budget: '',
+    phone: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
   // Parallax effect for the background text
   const yText = useTransform(scrollYProgress, [0, 1], [0, 300]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name && !formData.organization) {
+      alert("Please enter a name or organization");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+
+    try {
+      const payload = {
+        name: formData.organization || formData.name || 'Unknown Lead',
+        contact: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        industry: formData.category,
+        status: 'Lead',
+        notes: `Budget: ${formData.budget} | Message: ${formData.message}`
+      };
+
+      const response = await fetch('/api/v1/projects/clients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        setSubmitSuccess(true);
+        setFormData({ name: '', organization: '', email: '', category: '', budget: '', phone: '', message: '' });
+        setTimeout(() => setSubmitSuccess(false), 5000);
+      } else {
+        const errData = await response.json().catch(() => null);
+        console.error("Submit error", errData);
+        alert("Failed to submit. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="h-screen w-full bg-black text-white relative overflow-hidden flex flex-col justify-center py-6">
@@ -135,20 +199,26 @@ export function ContactPage() {
           </div>
         </motion.div>
 
-        {/* Right Col: Form */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="bg-zinc-950/50 backdrop-blur-xl border border-white/10 border-t-white/20 border-l-white/20 p-6 md:p-8 lg:p-10 rounded-xl md:col-span-3 flex flex-col justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]"
+          className="bg-zinc-950/50 backdrop-blur-xl border border-white/10 border-t-white/20 border-l-white/20 p-6 md:p-8 lg:p-10 rounded-xl md:col-span-3 flex flex-col justify-center shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)] relative"
         >
-          <form className="flex flex-col gap-3 md:gap-4" onSubmit={(e) => e.preventDefault()}>
+          {submitSuccess && (
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-green-500/20 text-green-400 border border-green-500/50 px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-widest backdrop-blur-md z-20 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+              Message Sent Successfully!
+            </div>
+          )}
+          <form className="flex flex-col gap-3 md:gap-4" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <div className="flex flex-col gap-1.5 relative group">
                 <label htmlFor="name" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Name</label>
                 <input
                   type="text"
                   id="name"
+                  value={formData.name}
+                  onChange={handleChange}
                   placeholder="John Doe"
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
                 />
@@ -159,6 +229,8 @@ export function ContactPage() {
                 <input
                   type="text"
                   id="organization"
+                  value={formData.organization}
+                  onChange={handleChange}
                   placeholder="Acme Corp"
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
                 />
@@ -171,6 +243,9 @@ export function ContactPage() {
                 <input
                   type="email"
                   id="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   placeholder="john@example.com"
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
                 />
@@ -180,6 +255,8 @@ export function ContactPage() {
                 <label htmlFor="category" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Category</label>
                 <select
                   id="category"
+                  value={formData.category}
+                  onChange={handleChange}
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white/90 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] appearance-none"
                 >
                   <option value="" className="bg-zinc-900 text-white">Select a category</option>
@@ -196,6 +273,8 @@ export function ContactPage() {
                 <label htmlFor="budget" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Estimated Budget</label>
                 <select
                   id="budget"
+                  value={formData.budget}
+                  onChange={handleChange}
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white/90 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] appearance-none"
                 >
                   <option value="" className="bg-zinc-900 text-white">Select budget range</option>
@@ -210,6 +289,8 @@ export function ContactPage() {
                 <input
                   type="tel"
                   id="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
                   placeholder="+1 (555) 000-0000"
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
                 />
@@ -220,14 +301,16 @@ export function ContactPage() {
               <label htmlFor="message" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Message</label>
               <textarea
                 id="message"
+                value={formData.message}
+                onChange={handleChange}
                 rows={2}
                 placeholder="Tell us about your project..."
                 className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 resize-none w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
               />
             </div>
 
-            <button className="mt-1 md:mt-2 bg-white text-black rounded-lg py-3 px-6 md:px-8 font-bold uppercase tracking-widest text-xs md:text-sm hover:shadow-[0_0_20px_rgba(255,255,255,0.6)] hover:-translate-y-1 transition-all duration-300 w-full">
-              Send Message
+            <button disabled={isSubmitting} type="submit" className="mt-1 md:mt-2 bg-white text-black rounded-lg py-3 px-6 md:px-8 font-bold uppercase tracking-widest text-xs md:text-sm hover:shadow-[0_0_20px_rgba(255,255,255,0.6)] hover:-translate-y-1 transition-all duration-300 w-full disabled:opacity-50 disabled:hover:shadow-none disabled:hover:translate-y-0 disabled:cursor-not-allowed">
+              {isSubmitting ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         </motion.div>

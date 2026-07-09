@@ -107,9 +107,10 @@ export function ClientsPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-7">
                 {[
             { label: "Total Clients", value: clients.length, icon: Users },
+            { label: "New Leads", value: clients.filter((c) => c.status === "Lead").length, icon: Mail },
             { label: "Active", value: clients.filter((c) => c.status === "Active").length, icon: TrendingUp },
             { label: "Total Projects", value: clients.reduce((s, c) => s + c.projects, 0), icon: Briefcase },
             { label: "Total Budget", value: `$${(totalBudget / 1000).toFixed(0)}K`, icon: TrendingUp },

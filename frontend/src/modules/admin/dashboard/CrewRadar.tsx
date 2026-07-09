@@ -10,7 +10,7 @@ export function CrewRadar() {
 
   useEffect(() => {
     Promise.all([
-      fetchApi<any[]>("/crew/members").catch(() => []),
+      fetchApi<any[]>("/crew").catch(() => []),
       fetchApi<any[]>("/hr/attendance-logs").catch(() => [])
     ]).then(([members, logs]) => {
       // 1. Total crew

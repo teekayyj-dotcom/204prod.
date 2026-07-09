@@ -473,7 +473,7 @@ export function CrewProjectsPage() {
     s === "In Progress" ? "#D4A843" : s === "Review" ? "#8B5CF6" : s === "Done" ? "#10B981" : "#888";
 
   return (
-    <div className="px-8 py-7">
+    <div className="px-4 md:px-8 py-7 w-full max-w-full overflow-x-hidden">
       <GoldBadge visible={showBadge} />
 
       {/* Header */}
@@ -490,7 +490,7 @@ export function CrewProjectsPage() {
 
       {/* Project selector */}
       {projectsList.length > 0 && (
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3 mb-6 overflow-x-auto no-scrollbar pb-2 snap-x">
           {projectsList.map((proj) => (
             <button
               key={proj.id}
@@ -599,20 +599,20 @@ export function CrewProjectsPage() {
       </div>
 
       {/* Main content grid */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* LEFT: Kanban (3/4 width) */}
-        <div className="col-span-3">
+        <div className="xl:col-span-3 min-w-0">
           <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
             Bảng Công việc — Kanban
           </h3>
 
-          <div className="grid grid-cols-4 gap-3">
+          <div className="flex overflow-x-auto xl:grid xl:grid-cols-4 gap-3 pb-2 snap-x">
             {columns.map((col) => (
               <div
                 key={col.id}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(col.id)}
-                className="rounded-xl p-3 min-h-64"
+                className="rounded-xl p-3 min-h-64 min-w-[280px] xl:min-w-0 snap-start"
                 style={{
                   background: "#141010",
                   border: `1px solid ${col.id === "done" ? "rgba(16,185,129,0.2)" : "#2A1F1F"}`,

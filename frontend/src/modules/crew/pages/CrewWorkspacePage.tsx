@@ -260,9 +260,9 @@ export function CrewWorkspacePage() {
   ];
 
   return (
-    <div className="px-8 py-7">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="px-4 md:px-8 py-7 w-full max-w-full overflow-x-hidden">
+      {/* Background decoration */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6 md:mb-8 min-w-0">
         <div>
           <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
             {greeting}, {getUserName()}
@@ -277,7 +277,7 @@ export function CrewWorkspacePage() {
           </p>
         </div>
         <button
-          className="flex items-center gap-2 px-4 py-2 rounded-lg"
+          className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-lg"
           style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#888", fontSize: "13px" }}
         >
           <Bell size={15} />
@@ -294,7 +294,7 @@ export function CrewWorkspacePage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4 mb-7">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-7 min-w-0">
         {dynamicStats.map((stat) => (
           <div
             key={stat.label}
@@ -317,12 +317,10 @@ export function CrewWorkspacePage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* LEFT: Check-in + Tasks */}
-        <div className="col-span-2 space-y-5">
-          {/* Check-in Block */}
-          <div
-            className="rounded-2xl p-6"
+      <div className="flex flex-col gap-6 min-w-0">
+        {/* Check-in Block */}
+        <div
+            className="rounded-2xl p-5 md:p-6"
             style={{
               background: isCheckedIn
                 ? "linear-gradient(135deg, #1a0f0f 0%, #1D1616 100%)"
@@ -331,8 +329,8 @@ export function CrewWorkspacePage() {
               transition: "all 0.4s ease",
             }}
           >
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 min-w-0">
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {isCheckedIn ? (
                     <span
@@ -359,9 +357,9 @@ export function CrewWorkspacePage() {
                   </span>
                 </div>
                 <div
+                  className="text-4xl md:text-[52px] my-2 md:my-0"
                   style={{
                     fontFamily: "monospace",
-                    fontSize: "52px",
                     fontWeight: 700,
                     color: isCheckedIn ? "#EEEEEE" : "#333",
                     letterSpacing: "0.05em",
@@ -381,11 +379,11 @@ export function CrewWorkspacePage() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-3 items-end">
+              <div className="flex flex-col gap-3 items-start lg:items-end w-full lg:w-auto mt-2 lg:mt-0">
                 <button
                   onClick={isCheckedIn ? checkOut : checkIn}
                   disabled={isLocating}
-                  className="flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-semibold transition-all duration-200"
+                  className="w-full lg:w-auto flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-xl font-semibold transition-all duration-200"
                   style={{
                     background: isCheckedIn ? "#1D1616" : "#D84040",
                     color: isCheckedIn ? "#D84040" : "#EEEEEE",
@@ -550,10 +548,10 @@ export function CrewWorkspacePage() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* RIGHT: Alerts */}
-        <div className="space-y-5">
+        {/* BOTTOM: Alerts & Schedule */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 min-w-0">
+          {/* Alerts */}
           <div
             className="rounded-2xl p-5"
             style={{ background: "#141010", border: "1px solid #2A1F1F" }}

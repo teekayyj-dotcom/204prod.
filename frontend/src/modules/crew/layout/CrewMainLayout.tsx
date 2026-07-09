@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { CrewSidebar } from "./CrewSidebar";
-import { Menu } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
+import { fetchApi } from "../../admin/utils/apiClient";
 
 export function CrewMainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const isPlaybackPage = location.pathname.endsWith("/playback");
+  const [alertsCount, setAlertsCount] = useState(0);
+
+  useEffect(() => {
+    fetchApi("/projects/tasks/all").then(data => {
+      const mappedTasks = Array.isArray(data) ? data : [];
+      const now = Date.now();
+      const overdue = mappedTasks.filter(t => t.status !== "done" && t.deadline && new Date(t.deadline).getTime() < now);
+      setAlertsCount(overdue.length);
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="flex min-h-screen relative overflow-hidden bg-[#0A0707]">
@@ -27,7 +38,7 @@ export function CrewMainLayout() {
         <CrewSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       )}
 
-      <div className={`flex-1 flex flex-col min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
         {/* Mobile Header Bar */}
         {!isPlaybackPage && (
           <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
@@ -38,16 +49,33 @@ export function CrewMainLayout() {
                 <span style={{ color: "#D84040", fontSize: "8px", fontWeight: 700, letterSpacing: "0.1rem" }}>WORKSPACE</span>
               </div>
             </div>
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
-            >
-              <Menu size={20} />
-            </button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg"
+                style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#888", fontSize: "12px" }}
+              >
+                <Bell size={14} />
+                <span className="hidden min-[400px]:inline">Thông báo</span>
+                {alertsCount > 0 && (
+                  <span
+                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-white ml-1"
+                    style={{ background: "#D84040", fontSize: "10px", fontWeight: 700 }}
+                  >
+                    {alertsCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-1.5 sm:p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+              >
+                <Menu size={20} />
+              </button>
+            </div>
           </header>
         )}
 
-        <main className="flex-1 overflow-y-auto min-h-screen">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 min-h-screen">
           <Outlet />
         </main>
       </div>

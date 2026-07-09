@@ -7,8 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from app.modules.media.models import MediaAsset
     from app.modules.categories.models import Category
+
+from app.modules.media.models import MediaAsset
 
 class Client(Base):
     __tablename__ = "clients"
