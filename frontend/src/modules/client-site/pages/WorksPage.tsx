@@ -646,9 +646,10 @@ export function WorksPage() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("/api/v1/projects");
+        const response = await fetch("/api/v1/projects/all");
         if (response.ok) {
-          const data = await response.json();
+          const rawData = await response.json();
+          const data = Array.isArray(rawData) ? rawData : (rawData.items || []);
           if (data && data.length > 0) {
             const publishedData = data.filter((proj: any) => proj.published && !proj.locked);
             const mapped = publishedData.map((proj: any, idx: number) => ({

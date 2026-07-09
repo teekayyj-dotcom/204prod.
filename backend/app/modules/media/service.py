@@ -215,7 +215,11 @@ def delete_media_asset(db: Session, id: str):
             
         gallery_usage = db.query(ProjectGalleryImage).filter(ProjectGalleryImage.media_asset_id == media_asset.id).first()
         if gallery_usage:
-            raise ValueError(f"Không thể xóa media này vì đang được sử dụng trong thư viện ảnh của dự án '{gallery_usage.project_slug}'")
+            if media_asset.folder not in ("project/gallery", "demo", "gallery"):
+                db.delete(gallery_usage)
+                db.commit()
+            else:
+                raise ValueError(f"Không thể xóa media này vì đang được sử dụng trong thư viện ảnh của dự án '{gallery_usage.project_slug}'")
             
     except ValueError:
         raise

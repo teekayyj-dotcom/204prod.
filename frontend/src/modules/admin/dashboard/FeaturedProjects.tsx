@@ -1,4 +1,5 @@
-import { featuredProjects } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { fetchApi } from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 
 const statusColors: Record<string, { bg: string; text: string }> = {
@@ -10,7 +11,15 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export function FeaturedProjects() {
+  const [projects, setProjects] = useState<any[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchApi<any[]>("/projects/all").then(data => {
+      const featured = data.filter((p: any) => p.featured).slice(0, 4);
+      setProjects(featured);
+    }).catch(console.error);
+  }, []);
 
   return (
     <div>
@@ -27,16 +36,16 @@ export function FeaturedProjects() {
         </button>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        {featuredProjects.map((project) => (
+        {projects.map((project) => (
           <div
-            key={project.id}
-            onClick={() => navigate(`/admin/projects/${project.id}`)}
+            key={project.id || project.slug}
+            onClick={() => navigate(`/admin/projects/${project.slug || project.id}`)}
             className="rounded-xl overflow-hidden group cursor-pointer backdrop-blur-md transition-all duration-300 hover:border-[#D84040]/70"
             style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
           >
             <div className="relative h-36 overflow-hidden">
               <img
-                src={project.image}
+                src={project.cover_image || project.image || "https://via.placeholder.com/400x300?text=No+Image"}
                 alt={project.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
@@ -69,7 +78,7 @@ export function FeaturedProjects() {
                 </div>
               </div>
               <div className="flex gap-1.5 mb-3">
-                {project.tags.map((tag) => (
+                {(project.tags || []).map((tag: string) => (
                   <span
                     key={tag}
                     className="px-2 py-0.5 rounded"
@@ -83,15 +92,15 @@ export function FeaturedProjects() {
                 <div className="flex justify-between mb-1.5">
                   <span style={{ color: "#777", fontSize: "11px" }}>Progress</span>
                   <span style={{ color: "#D84040", fontSize: "11px", fontWeight: 600 }}>
-                    {project.progress}%
+                    {project.progress || 0}%
                   </span>
                 </div>
                 <div className="rounded-full overflow-hidden" style={{ height: "4px", background: "#2A1F1F" }}>
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{
-                      width: `${project.progress}%`,
-                      background: project.progress === 100
+                      width: `${project.progress || 0}%`,
+                      background: (project.progress || 0) === 100
                         ? "#6B8FD6"
                         : "linear-gradient(to right, #8E1616, #D84040)",
                     }}
@@ -105,3 +114,4 @@ export function FeaturedProjects() {
     </div>
   );
 }
+

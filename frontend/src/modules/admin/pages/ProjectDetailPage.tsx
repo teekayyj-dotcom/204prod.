@@ -1539,7 +1539,7 @@ function VaultTab({ project }: { project: any }) {
 
     const fetchDocs = () => {
         setLoading(true);
-        fetchApi("/media")
+        fetchApi(`/media?t=${Date.now()}`)
             .then((data: any[]) => {
                 const filtered = data.filter(d => d.project_slug === project?.slug && ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"].includes(d.folder));
                 setDocs(filtered);
@@ -1594,10 +1594,16 @@ function VaultTab({ project }: { project: any }) {
         input.click();
     };
 
-    const handleDeleteDoc = async (docId: string) => {
+    const handleDeleteDoc = async (docId: string, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) return;
         try {
             await fetchApi(`/media/${docId}`, { method: "DELETE" });
+            setDocs(prev => prev.filter(d => d.id !== docId));
+            // Force refresh to ensure sync
             fetchDocs();
         } catch (err) {
             console.error("Failed to delete document:", err);
@@ -1676,7 +1682,7 @@ function VaultTab({ project }: { project: any }) {
                                                 <Eye size={9} /> Xem / Tải
                                             </a>
                                             <button 
-                                                onClick={() => handleDeleteDoc(doc.id)}
+                                                onClick={(e) => handleDeleteDoc(doc.id, e)}
                                                 style={{ padding: "4.5px", borderRadius: "6px", border: "1px solid rgba(216,64,64,0.2)", background: "rgba(216,64,64,0.05)", color: "#D84040", cursor: "pointer" }}
                                             >
                                                 <Trash2 size={9} />

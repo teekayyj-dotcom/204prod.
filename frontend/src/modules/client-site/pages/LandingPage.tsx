@@ -125,11 +125,13 @@ export function LandingPage() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("/api/v1/projects");
+        const response = await fetch("/api/v1/projects/all");
         if (response.ok) {
-          const data: Project[] = await response.json();
-          const featured = data.filter((p) => p.featured && (p as any).published && !(p as any).locked);
-          setProjects(featured);
+          const data = await response.json();
+          // Assuming /projects/all returns a flat array, or an object with items.
+          const items = Array.isArray(data) ? data : (data.items || []);
+          const visibleProjects = items.filter((p: any) => p.published && !p.locked);
+          setProjects(visibleProjects);
         } else {
           setProjects([]);
         }

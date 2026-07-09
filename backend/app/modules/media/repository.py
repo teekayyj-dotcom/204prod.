@@ -14,8 +14,8 @@ def save_media_asset(db: Session, media_asset: MediaAsset):
     db.commit()
     db.refresh(media_asset)
     
-    # Auto-link to project gallery if project_slug is provided
-    if media_asset.project_slug:
+    # Auto-link to project gallery if project_slug is provided and it's a gallery/demo image
+    if media_asset.project_slug and media_asset.folder in ("project/gallery", "demo", "gallery"):
         from app.modules.projects.models import ProjectGalleryImage
         from sqlalchemy import func
         

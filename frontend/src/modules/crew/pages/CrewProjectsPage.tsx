@@ -114,12 +114,27 @@ export function CrewProjectsPage() {
 
   const fetchProjects = async () => {
     try {
+      const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+      const currentUserName = userObj.display_name || userObj.username || "Crew Member";
+
       const [projectsData, allTasks] = await Promise.all([
         fetchApi<any[]>("/projects/all"),
         fetchApi<any[]>("/projects/tasks/all").catch(() => [])
       ]);
       if (projectsData && projectsData.length > 0) {
-        const mapped = projectsData.map((p: any) => {
+        const assignedProjects = projectsData.filter((p: any) => {
+          const hasCredit = Array.isArray(p.credits) && p.credits.some((c: string) => 
+            c.toLowerCase().includes(currentUserName.toLowerCase())
+          );
+          const hasTasks = allTasks.some((t: any) => 
+            t.project_slug === p.slug && 
+            t.assignee_name && 
+            t.assignee_name.toLowerCase().includes(currentUserName.toLowerCase())
+          );
+          return hasCredit || hasTasks;
+        });
+
+        const mapped = assignedProjects.map((p: any) => {
           const pTasks = allTasks.filter((t: any) => t.project_slug === p.slug);
           const doneTasks = pTasks.filter((t: any) => t.status === "done").length;
           const progress = pTasks.length > 0 ? Math.round((doneTasks / pTasks.length) * 100) : 0;
@@ -144,7 +159,8 @@ export function CrewProjectsPage() {
             const found = mapped.find((p: any) => p.id === defaultSlug);
             if (found) return found;
           }
-          if (!prev) return mapped[0];
+          if (!prev && mapped.length > 0) return mapped[0];
+          if (mapped.length === 0) return null;
           const updated = mapped.find((p: any) => p.id === prev.id);
           return updated || mapped[0];
         });
@@ -495,16 +511,17 @@ export function CrewProjectsPage() {
             <button
               key={proj.id}
               onClick={() => setSelectedProject(proj)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
+              className="flex flex-col justify-center px-5 rounded-xl transition-all duration-200 shrink-0"
               style={{
+                width: "200px",
+                height: "80px",
                 background: selectedProject?.id === proj.id ? "#1D1616" : "#141010",
                 border: `1px solid ${selectedProject?.id === proj.id ? "#D84040" : "#2A1F1F"}`,
               }}
             >
-              <Clapperboard size={15} style={{ color: selectedProject?.id === proj.id ? "#D84040" : "#555" }} />
-              <div className="text-left">
-                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{proj.name}</p>
-                <p style={{ color: "#666", fontSize: "10px" }}>{proj.client}</p>
+              <div className="text-left w-full overflow-hidden">
+                <p style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600, textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden", marginBottom: "2px" }} title={proj.name}>{proj.name}</p>
+                <p style={{ color: "#666", fontSize: "12px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }} title={proj.client}>{proj.client}</p>
               </div>
             </button>
           ))}
