@@ -25,6 +25,7 @@ const projectStatusColors = {
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838" },
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
 };
 
 const inputStyle = {

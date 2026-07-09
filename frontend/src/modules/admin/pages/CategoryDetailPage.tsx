@@ -53,6 +53,7 @@ const statusColors = {
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6", border: "rgba(107,143,214,0.3)" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
 };
 const categoryAccents = {
     Branding: { primary: "#D84040", glow: "rgba(216,64,64,0.18)" },

@@ -181,6 +181,7 @@ export function AddProjectModal({ onClose, onAdd }: Props) {
                 <option value="In Progress">In Progress</option>
                 <option value="Review">Review</option>
                 <option value="Completed">Completed</option>
+                                            <option value="Other">Other</option>
               </select>
             </div>
             <div>

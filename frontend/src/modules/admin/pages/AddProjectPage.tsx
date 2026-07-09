@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { ArrowLeft, Plus, Loader2, CheckCircle2, FolderOpen, Calendar, DollarSign, AlignLeft, Tag, User, Clock, CheckSquare, Info, Video, Link2, UploadCloud, X, Play, Camera, ImagePlus } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { AddClientModal } from "../components/AddClientModal";
 const inputStyle = {
     background: "#1D1616",
     border: "1px solid #3A2A2A",
@@ -13,6 +14,7 @@ const inputStyle = {
 };
 const statusColors = {
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838" },
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6" },
@@ -95,9 +97,12 @@ export function AddProjectPage() {
         if (file && file.type.startsWith("video/"))
             setUploadedVideo(file);
     };
-    const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
         defaultValues: { status: "Planning" },
     });
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+    const [isAddingClient, setIsAddingClient] = useState(false);
     const watched = watch();
     const statusInfo = statusColors[watched.status] || statusColors["Planning"];
     const onSubmit = async (data) => {
@@ -233,19 +238,114 @@ export function AddProjectPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <FieldLabel icon={User} text="Client *"/>
-                                <select {...register("client", { required: "Client is required" })} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.client ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.client ? "#D84040" : "#3A2A2A")}>
-                                    <option value="">Select client</option>
-                                    {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                                </select>
-                                {errors.client && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.client.message}</p>}
+                                <div className="flex gap-2">
+                                    <select {...register("client", { required: "Client is required" })} className="flex-1 px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.client ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.client ? "#D84040" : "#3A2A2A")}>
+                                        <option value="">Select client</option>
+                                        {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                                    </select>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsAddingClient(true)} 
+                                        className="flex items-center justify-center rounded-lg transition-all" 
+                                        style={{ background: "#241C1C", border: "1px solid #3A2A2A", width: "42px", height: "42px", color: "#888" }} 
+                                        title="Thêm Client mới"
+                                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#888"; }}
+                                    >
+                                        <Plus size={18} />
+                                    </button>
+                                </div>
+                                {errors.client && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.client.message as string}</p>}
                             </div>
                             <div>
                                 <FieldLabel icon={Tag} text="Category *"/>
-                                <select {...register("category", { required: "Category is required" })} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.category ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.category ? "#D84040" : "#3A2A2A")}>
-                                    <option value="">Select category</option>
-                                    {dbCategories.filter((cat: any) => cat.type === 'project_type').map((cat: any) => <option key={cat.slug} value={cat.slug}>{cat.name}</option>)}
-                                </select>
-                                {errors.category && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.category.message}</p>}
+                                {isAddingCategory ? (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            placeholder="Enter category name"
+                                            className="flex-1 px-3 py-2.5 rounded-lg outline-none appearance-none"
+                                            style={{ ...inputStyle }}
+                                            onFocus={(e) => (e.target.style.borderColor = "#D84040")}
+                                            onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    document.getElementById("btn-save-new-category")?.click();
+                                                } else if (e.key === 'Escape') {
+                                                    setIsAddingCategory(false);
+                                                    setNewCategoryName("");
+                                                    setValue("category", "", { shouldValidate: true });
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            id="btn-save-new-category"
+                                            type="button"
+                                            onClick={async () => {
+                                                const name = newCategoryName.trim();
+                                                if (name) {
+                                                    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                                                    try {
+                                                        const res = await fetchApi("/categories", {
+                                                            method: "POST",
+                                                            body: JSON.stringify({ name, slug, type: "project_type", description: "" })
+                                                        });
+                                                        setDbCategories((prev: any[]) => [...prev, res]);
+                                                        setValue("category", res.slug, { shouldValidate: true, shouldDirty: true });
+                                                        setIsAddingCategory(false);
+                                                        setNewCategoryName("");
+                                                    } catch (err) {
+                                                        alert("Lỗi khi tạo category (có thể bị trùng)");
+                                                    }
+                                                }
+                                            }}
+                                            className="px-3 py-2.5 rounded-lg font-medium transition-all"
+                                            style={{ background: "#D84040", color: "#FFF", fontSize: "12px" }}
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsAddingCategory(false);
+                                                setNewCategoryName("");
+                                                setValue("category", "", { shouldValidate: true });
+                                            }}
+                                            className="px-3 py-2.5 rounded-lg font-medium transition-all"
+                                            style={{ background: "#3A2A2A", color: "#EEE", fontSize: "12px" }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <select 
+                                            {...register("category", { required: "Category is required" })}
+                                            className="flex-1 px-3 py-2.5 rounded-lg outline-none appearance-none" 
+                                            style={{ ...inputStyle, borderColor: errors.category ? "#D84040" : "#3A2A2A" }} 
+                                            onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
+                                            onBlur={(e) => (e.target.style.borderColor = errors.category ? "#D84040" : "#3A2A2A")}>
+                                            <option value="">Select category</option>
+                                            {dbCategories.filter((cat: any) => cat.type === 'project_type').map((cat: any) => <option key={cat.slug} value={cat.slug}>{cat.name}</option>)}
+                                        </select>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setIsAddingCategory(true)} 
+                                            className="flex items-center justify-center rounded-lg transition-all" 
+                                            style={{ background: "#241C1C", border: "1px solid #3A2A2A", width: "42px", height: "42px", color: "#888" }} 
+                                            title="Thêm Category mới"
+                                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#888"; }}
+                                        >
+                                            <Plus size={18} />
+                                        </button>
+                                    </div>
+                                )}
+                                {errors.category && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.category.message as string}</p>}
                             </div>
                         </div>
 
@@ -258,6 +358,7 @@ export function AddProjectPage() {
                                     <option value="In Progress">In Progress</option>
                                     <option value="Review">Review</option>
                                     <option value="Completed">Completed</option>
+                                            <option value="Other">Other</option>
                                 </select>
                             </div>
                             <div>
@@ -511,6 +612,15 @@ export function AddProjectPage() {
                         </div>
                     </div>
                 </div>
+            )}
+            {isAddingClient && (
+                <AddClientModal 
+                    onClose={() => setIsAddingClient(false)}
+                    onAdd={(newClient) => {
+                        setDbClients((prev: any[]) => [...prev, newClient]);
+                        setValue("client", newClient.slug, { shouldValidate: true, shouldDirty: true });
+                    }}
+                />
             )}
         </div>);
 }

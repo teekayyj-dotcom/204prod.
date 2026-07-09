@@ -6,6 +6,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   Review: { bg: "#1A2A1A", text: "#4CAF50" },
   Completed: { bg: "#1A1A2A", text: "#6B8FD6" },
   Planning: { bg: "#2A2A1A", text: "#E8A838" },
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
 };
 
 export function RecentActivity() {

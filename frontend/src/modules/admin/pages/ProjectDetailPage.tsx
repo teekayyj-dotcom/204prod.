@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
+import { AddClientModal } from "../components/AddClientModal";
 import { fetchApi } from "../utils/apiClient";
 import { uploadMediaPipeline } from "../../../utils/imagePipeline";
 
@@ -22,6 +23,7 @@ const statusColors = {
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6", border: "rgba(107,143,214,0.3)" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
 };
 
 const inputStyle = {
@@ -62,6 +64,15 @@ function getDaysLeft(dateStr: string): number | null {
 function isOverdue(dateStr: string): boolean {
     const d = getDaysLeft(dateStr);
     return d !== null && d < 0;
+}
+
+function formatDueDate(dateStr?: string | null): string {
+    if (!dateStr) return "";
+    const parts = String(dateStr).split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    return dateStr;
 }
 
 function fmtVND(n: number) {
@@ -1785,6 +1796,9 @@ export function ProjectDetailPage() {
     const [isFeatured, setIsFeatured] = useState(false);
     const [isPublished, setIsPublished] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+    const [isAddingClient, setIsAddingClient] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeletingProject, setIsDeletingProject] = useState(false);
     const [activities, setActivities] = useState([]);
@@ -2297,17 +2311,114 @@ export function ProjectDetailPage() {
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                                         <User size={11} color="#D84040"/> Client
                                     </label>
-                                    {isEditing ? (<select {...register("client")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                            {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                                        </select>) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{project.client}</p>)}
+                                    {isEditing ? (
+                                        <div className="flex gap-2">
+                                            <select {...register("client")} className="flex-1 px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
+                                                {dbClients.map((c: any) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                                            </select>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setIsAddingClient(true)} 
+                                                className="flex items-center justify-center rounded-lg transition-all" 
+                                                style={{ background: "#241C1C", border: "1px solid #3A2A2A", width: "40px", height: "40px", color: "#888" }} 
+                                                title="Thêm Client mới"
+                                                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#888"; }}
+                                            >
+                                                <Plus size={18} />
+                                            </button>
+                                        </div>
+                                    ) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{project.client}</p>)}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                                         <Tag size={11} color="#D84040"/> Category
                                     </label>
-                                    {isEditing ? (<select {...register("category")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                            {dbCategories.filter((c: any) => c.type === 'project_type').map((c: any) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                                        </select>) : (<button onClick={() => {
+                                    {isEditing ? (
+                                        isAddingCategory ? (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newCategoryName}
+                                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                                    placeholder="Enter category name"
+                                                    className="flex-1 px-3 py-2 rounded-lg outline-none appearance-none"
+                                                    style={{ ...inputStyle }}
+                                                    onFocus={(e) => (e.target.style.borderColor = "#D84040")}
+                                                    onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            document.getElementById("btn-edit-save-new-category")?.click();
+                                                        } else if (e.key === 'Escape') {
+                                                            setIsAddingCategory(false);
+                                                            setNewCategoryName("");
+                                                            setValue("category", "", { shouldValidate: true });
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    id="btn-edit-save-new-category"
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        const name = newCategoryName.trim();
+                                                        if (name) {
+                                                            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                                                            try {
+                                                                const res = await fetchApi("/categories", {
+                                                                    method: "POST",
+                                                                    body: JSON.stringify({ name, slug, type: "project_type", description: "" })
+                                                                });
+                                                                setDbCategories((prev: any[]) => [...prev, res]);
+                                                                setValue("category", res.slug, { shouldValidate: true, shouldDirty: true });
+                                                                setIsAddingCategory(false);
+                                                                setNewCategoryName("");
+                                                            } catch (err) {
+                                                                alert("Lỗi khi tạo category (có thể bị trùng)");
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="px-3 py-2 rounded-lg font-medium transition-all"
+                                                    style={{ background: "#D84040", color: "#FFF", fontSize: "12px" }}
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsAddingCategory(false);
+                                                        setNewCategoryName("");
+                                                        setValue("category", "", { shouldValidate: true });
+                                                    }}
+                                                    className="px-3 py-2 rounded-lg font-medium transition-all"
+                                                    style={{ background: "#3A2A2A", color: "#EEE", fontSize: "12px" }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <select 
+                                                    {...register("category")}
+                                                    className="flex-1 px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
+                                                    <option value="">Select category</option>
+                                                    {dbCategories.filter((c: any) => c.type === 'project_type').map((c: any) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                                                </select>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setIsAddingCategory(true)} 
+                                                    className="flex items-center justify-center rounded-lg transition-all" 
+                                                    style={{ background: "#241C1C", border: "1px solid #3A2A2A", width: "40px", height: "40px", color: "#888" }} 
+                                                    title="Thêm Category mới"
+                                                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#888"; }}
+                                                >
+                                                    <Plus size={18} />
+                                                </button>
+                                            </div>
+                                        )
+                                    ) : (<button onClick={() => {
                 const catId = project.format_slug || project.category;
                 if (catId) navigate(`/admin/categories/${catId}`);
             }} className="flex items-center gap-1.5 group/cat" style={{ color: "#EEEEEE", fontSize: "14px", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
@@ -2328,13 +2439,14 @@ export function ProjectDetailPage() {
                                             <option value="In Progress">In Progress</option>
                                             <option value="Review">Review</option>
                                             <option value="Completed">Completed</option>
+                                            <option value="Other">Other</option>
                                         </select>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full" style={{ background: statusInfo.bg, color: statusInfo.text, fontSize: "12px", fontWeight: 600 }}>{project.status}</span>)}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                                         <Calendar size={11} color="#D84040"/> Due Date
                                     </label>
-                                    {isEditing ? (<input type="date" {...register("dueDate")} className="px-3 py-2 rounded-lg outline-none" style={{ ...inputStyle, colorScheme: "dark" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{project.dueDate}</p>)}
+                                    {isEditing ? (<input type="date" {...register("dueDate")} className="px-3 py-2 rounded-lg outline-none" style={{ ...inputStyle, colorScheme: "dark" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{formatDueDate(project.dueDate)}</p>)}
                                 </div>
                             </div>
 
@@ -2590,7 +2702,7 @@ export function ProjectDetailPage() {
                         <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Quick Stats</p>
                         {[
             { icon: Coins, label: "Budget", value: project.budget, color: "#D84040" },
-            { icon: Calendar, label: "Due Date", value: project.dueDate, color: "#EEEEEE" },
+            { icon: Calendar, label: "Due Date", value: formatDueDate(project.dueDate), color: "#EEEEEE" },
             { icon: Activity, label: "Progress", value: `${project.progress}%`, color: project.progress === 100 ? "#4CAF50" : "#D84040" },
         ].map(({ icon: Icon, label, value, color }) => (<div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #2A1F1F" }}>
                                 <div className="flex items-center gap-2">
@@ -2813,7 +2925,16 @@ export function ProjectDetailPage() {
                 </div>
             </div>
 
-            {/* Delete confirmation modal */}
             <DeleteConfirmModal isOpen={showDeleteModal} itemType="project" itemName={project?.title ?? ""} onConfirm={handleDeleteProject} onCancel={() => setShowDeleteModal(false)} isDeleting={isDeletingProject}/>
+            
+            {isAddingClient && (
+                <AddClientModal 
+                    onClose={() => setIsAddingClient(false)}
+                    onAdd={(newClient) => {
+                        setDbClients((prev: any[]) => [...prev, newClient]);
+                        setValue("client", newClient.slug, { shouldValidate: true, shouldDirty: true });
+                    }}
+                />
+            )}
         </div>);
 }
