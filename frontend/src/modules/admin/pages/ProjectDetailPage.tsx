@@ -2628,26 +2628,37 @@ export function ProjectDetailPage() {
                         {isEditing ? (
                             <div className="space-y-3">
                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                    {assignedCrew.map((c) => {
+                                    {Object.values(assignedCrew.reduce((acc, current) => {
+                                        const key = current.name.toLowerCase();
+                                        if (!acc[key]) acc[key] = { name: current.name, roles: [] };
+                                        acc[key].roles.push({ id: current.id, role: current.role });
+                                        return acc;
+                                    }, {} as Record<string, { name: string, roles: { id: string, role: string }[] }>)).map((c) => {
                                         const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
                                         const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                         const avatarUrl = realMember?.avatar || null;
                                         return (
-                                            <div key={c.id} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                                                <div className="flex items-center gap-2 min-w-0">
+                                            <div key={c.name} className="flex items-start justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                                                <div className="flex items-start gap-2 min-w-0 w-full">
                                                     {avatarUrl ? (
-                                                        <img src={avatarUrl} alt={c.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                                                        <img src={avatarUrl} alt={c.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
                                                     ) : (
-                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "#8E1616", color: "#EEEEEE" }}>{initials}</div>
+                                                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5" style={{ background: "#8E1616", color: "#EEEEEE" }}>{initials}</div>
                                                     )}
-                                                    <div className="min-w-0">
+                                                    <div className="min-w-0 flex-1">
                                                         <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500 }} className="truncate">{realMember ? realMember.name : c.name}</p>
-                                                        <p style={{ color: "#D84040", fontSize: "10px" }} className="truncate">{c.role}</p>
+                                                        <div className="mt-1 flex flex-wrap gap-1">
+                                                            {c.roles.map(r => (
+                                                                <div key={r.id} className="flex items-center gap-1" style={{ background: "rgba(216, 64, 64, 0.1)", padding: "2px 6px", borderRadius: "4px" }}>
+                                                                    <p style={{ color: "#D84040", fontSize: "10px" }} className="truncate">{r.role}</p>
+                                                                    <button type="button" onClick={() => setAssignedCrew(prev => prev.filter(item => item.id !== r.id))} className="text-gray-500 hover:text-red-500 transition-colors p-0.5">
+                                                                        <X size={10} />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <button type="button" onClick={() => setAssignedCrew(prev => prev.filter(item => item.id !== c.id))} className="text-gray-500 hover:text-red-500 transition-colors p-1">
-                                                    <X size={12} />
-                                                </button>
                                             </div>
                                         );
                                     })}
@@ -2659,7 +2670,7 @@ export function ProjectDetailPage() {
                                     <div className="flex flex-col sm:flex-row gap-2">
                                         <select id="assign-crew-select" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" style={inputStyle}>
                                             <option value="">Select registered crew...</option>
-                                            {dbCrew.filter(m => !assignedCrew.some(ac => ac.name.toLowerCase() === m.name.toLowerCase())).map((m) => (
+                                            {dbCrew.map((m) => (
                                                 <option key={m.id} value={m.id}>{m.name}</option>
                                             ))}
                                         </select>
@@ -2678,6 +2689,11 @@ export function ProjectDetailPage() {
                                                 if (selectedId && roleVal) {
                                                     const selectedMember = dbCrew.find(m => m.id.toString() === selectedId);
                                                     if (selectedMember) {
+                                                        const exists = assignedCrew.some(ac => ac.name === selectedMember.name && ac.role === roleVal);
+                                                        if (exists) {
+                                                            alert("Thành viên này đã được gán vai trò này.");
+                                                            return;
+                                                        }
                                                         setAssignedCrew(prev => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: roleVal }]);
                                                         selectEl.value = "";
                                                         roleEl.value = "";
@@ -2717,27 +2733,38 @@ export function ProjectDetailPage() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {assignedCrew.map((c) => {
+                                {Object.values(assignedCrew.reduce((acc, current) => {
+                                    const key = current.name.toLowerCase();
+                                    if (!acc[key]) acc[key] = { name: current.name, roles: [] };
+                                    acc[key].roles.push(current.role);
+                                    return acc;
+                                }, {} as Record<string, { name: string, roles: string[] }>)).map((c) => {
                                     const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                     const avatarUrl = realMember?.avatar || null;
                                     const status = realMember?.status || "Active";
                                     const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
                                     return (
-                                        <div key={c.id} className="flex items-center gap-3">
+                                        <div key={c.name} className="flex items-start gap-3">
                                             {avatarUrl ? (
-                                                <img src={avatarUrl} alt={realMember?.name || c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" style={{ border: "2px solid #2A1F1F" }}/>
+                                                <img src={avatarUrl} alt={realMember?.name || c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5" style={{ border: "2px solid #2A1F1F" }}/>
                                             ) : (
-                                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>{initials}</div>
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>{initials}</div>
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                {realMember ? (
-                                                    <button type="button" onClick={() => navigate(`/admin/crew/${realMember.id}`)} className="text-left hover:text-[#D84040] transition-colors" style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{realMember.name}</button>
-                                                ) : (
-                                                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</p>
-                                                )}
-                                                <p style={{ color: "#D84040", fontSize: "11px" }}>{c.role}</p>
+                                                <div className="flex items-center justify-between">
+                                                    {realMember ? (
+                                                        <button type="button" onClick={() => navigate(`/admin/crew/${realMember.id}`)} className="text-left hover:text-[#D84040] transition-colors" style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{realMember.name}</button>
+                                                    ) : (
+                                                        <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{c.name}</p>
+                                                    )}
+                                                    {realMember && (<span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: status === "Active" ? "#4CAF50" : "#E8A838" }}/>)}
+                                                </div>
+                                                <div className="mt-0.5 space-y-0.5">
+                                                    {c.roles.map((role, idx) => (
+                                                        <p key={idx} style={{ color: "#D84040", fontSize: "11px" }}>{role}</p>
+                                                    ))}
+                                                </div>
                                             </div>
-                                            {realMember && (<span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: status === "Active" ? "#4CAF50" : "#E8A838" }}/>)}
                                         </div>
                                     );
                                 })}
