@@ -56,7 +56,7 @@ export function ClientProjectsPage() {
 
     useEffect(() => {
         Promise.all([
-            fetchApi<Project[]>('/projects'),
+            fetchApi<Project[]>('/projects/all'),
             fetchApi<Category[]>('/categories')
         ]).then(([projectsData, categoriesData]) => {
             setAllProjects(projectsData);

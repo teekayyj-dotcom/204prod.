@@ -24,7 +24,7 @@ export function ClientDemosPage() {
 
     useEffect(() => {
         // Fetch projects to dynamically construct some demo deliverables
-        fetchApi<any[]>('/projects')
+        fetchApi<any[]>('/projects/all')
             .then((projects) => {
                 // Map projects and backfill with mock review files to show a rich Netflix-like gallery
                 const constructedDemos: DemoItem[] = [];

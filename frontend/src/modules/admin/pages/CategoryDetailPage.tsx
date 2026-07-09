@@ -190,7 +190,7 @@ export function CategoryDetailPage() {
     useEffect(() => {
         Promise.all([
             fetchApi(`/categories/${id}`),
-            fetchApi('/projects')
+            fetchApi('/projects/all')
         ]).then(([catData, projsData]) => {
             setCategory(catData);
             setAllProjects(projsData);

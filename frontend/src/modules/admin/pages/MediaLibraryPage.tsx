@@ -104,7 +104,7 @@ export function MediaLibraryPage() {
         Promise.all([
             fetchApi('/media'),
             fetchApi('/projects/clients/all'),
-            fetchApi('/projects')
+            fetchApi('/projects/all')
         ]).then(([mediaData, clientsData, projectsData]) => {
             const mapped = mediaData.map(m => ({
                 id: m.id,

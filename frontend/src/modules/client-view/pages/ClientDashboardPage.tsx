@@ -45,7 +45,7 @@ export function ClientDashboardPage() {
     useEffect(() => {
         // Query projects and finance stats in parallel
         const promises = [
-            fetchApi<any[]>('/projects'),
+            fetchApi<any[]>('/projects/all'),
             clientSlug 
                 ? fetchApi<{ pending: number }>(`/finance/client-summary?client_slug=${encodeURIComponent(clientSlug)}`)
                 : fetchApi<{ pending: number }>('/finance/client-summary?client_slug=')
