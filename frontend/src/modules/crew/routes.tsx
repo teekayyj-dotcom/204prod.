@@ -1,4 +1,5 @@
 import { CrewMainLayout } from "./layout/CrewMainLayout";
+import { ProtectedRoute } from "../../shared/components/ProtectedRoute";
 
 function CrewNotFound() {
   return (
