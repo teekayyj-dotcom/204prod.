@@ -45,6 +45,24 @@ def list_projects_route(
         sort_by=sort_by
     )
 
+@router.get("/all", response_model=list[ProjectDetail])
+def list_all_projects_route(db: Session = Depends(get_db_session)):
+    from app.modules.projects.models import Project, Client, ProjectGalleryImage
+    from app.modules.projects.repository import _map_to_detail
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+
+    stmt = select(Project).options(
+        joinedload(Project.client).joinedload(Client.logo_media),
+        joinedload(Project.format_category),
+        joinedload(Project.cover_media),
+        joinedload(Project.credits),
+        joinedload(Project.gallery_images).joinedload(ProjectGalleryImage.media_asset)
+    ).order_by(Project.created_at.desc())
+    
+    projects = db.scalars(stmt).unique().all()
+    return [_map_to_detail(p) for p in projects]
+
 
 from fastapi_cache.decorator import cache
 

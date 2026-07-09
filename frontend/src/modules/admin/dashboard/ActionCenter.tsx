@@ -21,10 +21,10 @@ export function ActionCenter() {
     }).catch(console.error);
 
     // Files Publish (check unpublished items in projects if available, otherwise 0)
-    fetchApi<any>("/projects?size=1000").then(data => {
-      const items = data.items || data;
+    fetchApi<any>("/projects/all").then(data => {
+      
       let count = 0;
-      items.forEach((p: any) => {
+      data.forEach((p: any) => {
         if (p.gallery && Array.isArray(p.gallery)) {
           count += p.gallery.filter((g: any) => !g.published).length;
         }

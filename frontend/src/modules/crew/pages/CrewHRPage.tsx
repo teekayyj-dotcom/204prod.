@@ -181,7 +181,7 @@ export function CrewHRPage() {
       });
 
     // Fetch Real Projects
-    fetchApi<any[]>("/projects")
+    fetchApi<any[]>("/projects/all")
       .then((data) => setRealProjects(data))
       .catch((err) => console.error("Error fetching projects:", err));
   }, [currentUserEmail, userObj.display_name, userObj.username]);

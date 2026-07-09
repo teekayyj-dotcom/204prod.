@@ -14,10 +14,10 @@ export function TopActiveProjects() {
   };
 
   useEffect(() => {
-    fetchApi<any>("/projects?size=1000").then(data => {
-      const items = data.items || data;
+    fetchApi<any>("/projects/all").then(data => {
+      
       // Sort logic: Highest budget first
-      const sorted = items
+      const sorted = data
         .filter((p: any) => p.status !== "Completed" && p.status !== "Canceled" && p.status !== "Bàn giao" && p.status !== "Đã hủy")
         .sort((a: any, b: any) => {
           const budgetA = parseBudget(a.budget);

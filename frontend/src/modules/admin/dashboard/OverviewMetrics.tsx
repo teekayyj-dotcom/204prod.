@@ -10,7 +10,7 @@ export function OverviewMetrics() {
   const [expenses, setExpenses] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchApi<any>("/projects?size=1000").then(data => setProjects(data.items || data)).catch(console.error);
+    fetchApi<any>("/projects/all").then(data => setProjects(data)).catch(console.error);
     fetchApi<any>("/finance/revenue").then(setRevenue).catch(console.error);
     fetchApi<any[]>("/finance/expenses").then(setExpenses).catch(console.error);
   }, []);

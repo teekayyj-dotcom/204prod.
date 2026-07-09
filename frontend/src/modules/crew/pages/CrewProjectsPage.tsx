@@ -115,7 +115,7 @@ export function CrewProjectsPage() {
   const fetchProjects = async () => {
     try {
       const [projectsData, allTasks] = await Promise.all([
-        fetchApi<any[]>("/projects"),
+        fetchApi<any[]>("/projects/all"),
         fetchApi<any[]>("/projects/tasks/all").catch(() => [])
       ]);
       if (projectsData && projectsData.length > 0) {

@@ -860,7 +860,7 @@ export function FinanceExpensesPage() {
       const [expensesData, talentsData, projectsData, revenueData, crewData] = await Promise.all([
         fetchApi<any>("/finance/expenses"),
         fetchApi<any>("/hr/freelancers"),
-        fetchApi<any>("/projects"),
+        fetchApi<any>("/projects/all"),
         fetchApi<any>("/finance/revenue"),
         fetchApi<any>("/crew")
       ]);
