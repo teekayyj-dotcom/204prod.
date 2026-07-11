@@ -235,12 +235,15 @@ export function ClientProjectDetailPage() {
 
     const accountLead = parsedCrew.find(c => c.role.toLowerCase().includes("account") || c.role.toLowerCase().includes("am")) || parsedCrew[0] || null;
 
-    // Determine milestones states dynamically based on project progress
+    // Determine milestones states dynamically based on project status
+    const statusOrder = ["Planning", "In Progress", "Review", "Completed"];
+    const currentStatusIdx = statusOrder.indexOf(project.status) === -1 ? 0 : statusOrder.indexOf(project.status);
+
     const milestones = [
-        { label: "Kịch bản", desc: "Duyệt kịch bản phân cảnh", isDone: project.progress >= 30, isActive: project.progress < 30 },
-        { label: "Tiền kỳ / Đi quay", desc: "Setup bối cảnh & ghi hình", isDone: project.progress >= 60, isActive: project.progress >= 30 && project.progress < 60 },
-        { label: "Hậu kỳ", desc: "Dựng hình, Kỹ xảo, Âm thanh", isDone: project.progress >= 90, isActive: project.progress >= 60 && project.progress < 90 },
-        { label: "Bàn giao", desc: "Xuất file thành phẩm & chốt nghiệm thu", isDone: project.progress === 100, isActive: project.progress >= 90 && project.progress < 100 }
+        { label: "Kịch bản", desc: "Duyệt kịch bản phân cảnh", isDone: currentStatusIdx > 0, isActive: currentStatusIdx === 0 },
+        { label: "Tiền kỳ / Đi quay", desc: "Setup bối cảnh & ghi hình", isDone: currentStatusIdx > 1, isActive: currentStatusIdx === 1 },
+        { label: "Hậu kỳ", desc: "Dựng hình, Kỹ xảo, Âm thanh", isDone: currentStatusIdx > 2, isActive: currentStatusIdx === 2 },
+        { label: "Bàn giao", desc: "Xuất file thành phẩm & chốt nghiệm thu", isDone: currentStatusIdx === 3, isActive: false }
     ];
 
     return (
@@ -308,24 +311,7 @@ export function ClientProjectDetailPage() {
                                 </p>
                             </div>
 
-                            {/* Progress bar */}
-                            <div className="pt-2">
-                                <div className="flex items-center justify-between mb-1.5 text-xs">
-                                    <span style={{ color: "#888" }}>Tiến độ tổng thể</span>
-                                    <span style={{ color: "#D84040", fontWeight: 700 }}>{project.progress}%</span>
-                                </div>
-                                <div className="rounded-full" style={{ height: "6px", background: "#2A1F1F" }}>
-                                    <div
-                                        className="h-full rounded-full transition-all duration-500"
-                                        style={{
-                                            width: `${project.progress}%`,
-                                            background: project.progress === 100
-                                                ? "#6B8FD6"
-                                                : "linear-gradient(to right, #8E1616, #D84040)",
-                                        }}
-                                    />
-                                </div>
-                            </div>
+                            {/* Progress bar removed as it's replaced by status-based milestones */}
                         </div>
                     </div>
 
@@ -340,10 +326,10 @@ export function ClientProjectDetailPage() {
                             <div 
                                 className="absolute top-8 left-[12%] h-[2px] bg-[#D84040] transition-all duration-500"
                                 style={{ 
-                                    width: project.progress === 100 ? "76%" 
-                                        : project.progress >= 90 ? "57%" 
-                                        : project.progress >= 60 ? "38%" 
-                                        : project.progress >= 30 ? "19%" : "0%" 
+                                    width: currentStatusIdx === 3 ? "76%" 
+                                        : currentStatusIdx === 2 ? "50%" 
+                                        : currentStatusIdx === 1 ? "25%" 
+                                        : "0%" 
                                 }}
                             />
 
@@ -521,7 +507,6 @@ export function ClientProjectDetailPage() {
                         {[
                             { icon: Coins, label: "Ngân sách", value: project.budget, color: "#D84040" },
                             { icon: Calendar, label: "Hạn cuối", value: `${project.year}-12-31`, color: "#EEEEEE" },
-                            { icon: Activity, label: "Tiến độ", value: `${project.progress}%`, color: project.progress === 100 ? "#4CAF50" : "#D84040" },
                         ].map(({ icon: Icon, label, value, color }) => (
                             <div key={label} className="flex items-center justify-between py-2 border-b border-[#2A1F1F]">
                                 <div className="flex items-center gap-2">

@@ -161,7 +161,6 @@ export function ClientBillingPage() {
                                             <th className="px-6 py-4">Số tiền</th>
                                             <th className="px-6 py-4">Hạn thanh toán</th>
                                             <th className="px-6 py-4">Trạng thái</th>
-                                            <th className="px-6 py-4 text-right">Thao tác</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -187,27 +186,6 @@ export function ClientBillingPage() {
                                                             <StatusIcon size={10} />
                                                             {isPaid ? "Đã thanh toán" : isOverdue ? "Quá hạn" : "Chờ thanh toán"}
                                                         </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <button
-                                                                onClick={() => alert(`Tải hóa đơn ${inv.id}.pdf`)}
-                                                                className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#2A1F1F]/50 border border-white/5 hover:bg-[#3A2A2A]/70 text-white/70 transition-colors"
-                                                                title="Tải hóa đơn"
-                                                            >
-                                                                <Download size={14} />
-                                                            </button>
-                                                            {!isPaid && (
-                                                                <button
-                                                                    onClick={() => handlePay(inv.id)}
-                                                                    disabled={isPaying}
-                                                                    className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold bg-[#D84040] hover:bg-[#c03030] text-white transition-all shadow-md shadow-[#D84040]/15 disabled:opacity-60"
-                                                                >
-                                                                    {isPaying ? <Loader2 size={11} className="animate-spin" /> : <CreditCard size={12} />}
-                                                                    {isPaying ? "Đang xử lý..." : "Thanh toán"}
-                                                                </button>
-                                                            )}
-                                                        </div>
                                                     </td>
                                                 </tr>
                                             );

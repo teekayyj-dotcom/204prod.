@@ -227,21 +227,7 @@ export function ClientProjectsPage() {
                                         <span style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{project.budget}</span>
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="flex justify-between mb-1 text-[11px]">
-                                        <span style={{ color: "#666" }}>Tiến độ</span>
-                                        <span style={{ color: "#D84040", fontWeight: 600 }}>{project.progress}%</span>
-                                    </div>
-                                    <div className="rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
-                                        <div
-                                            className="h-full rounded-full transition-all duration-300"
-                                            style={{
-                                                width: `${project.progress}%`,
-                                                background: project.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)",
-                                            }}
-                                        />
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
                     ))}

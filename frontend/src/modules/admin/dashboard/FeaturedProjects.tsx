@@ -88,25 +88,7 @@ export function FeaturedProjects() {
                   </span>
                 ))}
               </div>
-              <div>
-                <div className="flex justify-between mb-1.5">
-                  <span style={{ color: "#777", fontSize: "11px" }}>Progress</span>
-                  <span style={{ color: "#D84040", fontSize: "11px", fontWeight: 600 }}>
-                    {project.progress || 0}%
-                  </span>
-                </div>
-                <div className="rounded-full overflow-hidden" style={{ height: "4px", background: "#2A1F1F" }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${project.progress || 0}%`,
-                      background: (project.progress || 0) === 100
-                        ? "#6B8FD6"
-                        : "linear-gradient(to right, #8E1616, #D84040)",
-                    }}
-                  />
-                </div>
-              </div>
+
             </div>
           </div>
         ))}

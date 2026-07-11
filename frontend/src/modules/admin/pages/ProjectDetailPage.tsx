@@ -1727,14 +1727,14 @@ function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo
 
     if (embedUrl) {
         return (
-            <div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020" }}>
-                <iframe src={embedUrl} className="w-full" style={{ height: "220px", border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video" />
+            <div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020", aspectRatio: "3/2" }}>
+                <iframe src={embedUrl} className="w-full h-full" style={{ border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video" />
             </div>
         );
     }
     if (isDirectVideo) {
         return (
-            <div className="mt-3 rounded-xl overflow-hidden bg-black" style={{ border: "1px solid #2E2020", height: "220px" }}>
+            <div className="mt-3 rounded-xl overflow-hidden bg-black" style={{ border: "1px solid #2E2020", aspectRatio: "3/2" }}>
                 <video src={url} poster={posterUrl || undefined} controls className="w-full h-full object-contain" />
             </div>
         );
@@ -2281,19 +2281,7 @@ export function ProjectDetailPage() {
                             </div>
                         </div>
 
-                        {/* Progress bar */}
-                        <div style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} className="px-5 py-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <span style={{ color: "#888", fontSize: "12px" }}>Overall Progress</span>
-                                {isEditing ? (<div className="flex items-center gap-2">
-                                        <input type="range" min={0} max={100} {...register("progress", { valueAsNumber: true })} className="w-28 accent-red-500"/>
-                                        <span style={{ color: "#D84040", fontSize: "13px", fontWeight: 700, minWidth: "36px" }}>{watched.progress}%</span>
-                                    </div>) : (<span style={{ color: "#D84040", fontSize: "14px", fontWeight: 700 }}>{project.progress}%</span>)}
-                            </div>
-                            <div className="rounded-full" style={{ height: "6px", background: "#2A1F1F" }}>
-                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${isEditing ? watched.progress : project.progress}%`, background: project.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
-                            </div>
-                        </div>
+
                     </div>
 
                     {/* Core Details Form/View */}
@@ -2741,7 +2729,7 @@ export function ProjectDetailPage() {
                     <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                         <div className="flex items-center justify-between mb-3">
                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Assigned Crew</p>
-                            <span style={{ color: "#D84040", fontSize: "12px" }}>{assignedCrew.length} members</span>
+                            <span style={{ color: "#D84040", fontSize: "12px" }}>{new Set(assignedCrew.map(c => c.name.toLowerCase())).size} members</span>
                         </div>
 
                         {isEditing ? (
