@@ -73,8 +73,12 @@ def list_clients_route(db: Session = Depends(get_db_session)):
 @router.post("/clients", status_code=status.HTTP_201_CREATED)
 def create_client_route(req: ClientCreate, db: Session = Depends(get_db_session)):
     from app.modules.projects.service import create_client
-    return create_client(db, req)
-
+    from sqlalchemy.exc import IntegrityError
+    try:
+        return create_client(db, req)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Client name already exists")
 
 @router.get("/clients/{slug}")
 def get_client_route(slug: str, db: Session = Depends(get_db_session)):
