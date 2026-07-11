@@ -7,6 +7,7 @@ import {
     Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink,
     AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
     Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
+    FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
     Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
@@ -1731,7 +1732,7 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
             }
             let currentUrls = (project?.video_url || project?.videoUrl || "").split(",").filter(Boolean);
             const newUrls = currentUrls.filter((u: string) => u !== url).join(",");
-            const updatedProject = await fetchApi(`/projects/${project.id}`, {
+            const updatedProject = await fetchApi(`/projects/${project.slug}`, {
                 method: "PUT",
                 body: JSON.stringify({ ...project, video_url: newUrls })
             });
@@ -1760,7 +1761,7 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
                 currentUrls.push(newUrl);
             }
             const newUrlsStr = currentUrls.join(",");
-            const updatedProject = await fetchApi(`/projects/${project.id}`, {
+            const updatedProject = await fetchApi(`/projects/${project.slug}`, {
                 method: "PUT",
                 body: JSON.stringify({ ...project, video_url: newUrlsStr })
             });
