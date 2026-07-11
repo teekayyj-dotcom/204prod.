@@ -14,7 +14,7 @@ const statusColors = {
 const ProjectGridCard = React.memo(({ project, featuredIds, toggleFeatured, navigate }) => (
     <div className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
         <div className="relative h-40 overflow-hidden">
-            <img src={project.cover_image} alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+            <img src={project.cover_image || "/favicon/204-logo.png"} alt={project.title} className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!project.cover_image ? "p-8 opacity-30 grayscale" : ""}`}/>
             <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}/>
             <div className="absolute top-3 left-3">
                 <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: statusColors[project.status]?.bg || "rgba(0,0,0,0.4)", color: statusColors[project.status]?.text || "#fff", backdropFilter: "blur(6px)" }}>
@@ -66,7 +66,7 @@ const ProjectListRow = React.memo(({ p, featuredIds, toggleFeatured, navigate })
     <tr className="hover:bg-white/5 transition-colors cursor-pointer" style={{ borderBottom: "1px solid #2A1F1F" }} onClick={() => navigate(`/admin/projects/${p.slug}`)}>
         <td className="px-5 py-3.5">
             <div className="flex items-center gap-3">
-                <img src={p.cover_image} alt={p.title} className="w-10 h-7 rounded object-cover" />
+                <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-10 h-7 rounded object-cover ${!p.cover_image ? "p-1 opacity-40 bg-[#1D1616]" : ""}`} />
                 <div>
                     <div className="flex items-center gap-1.5">
                         <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{p.title}</p>

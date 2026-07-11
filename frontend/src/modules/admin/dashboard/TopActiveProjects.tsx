@@ -72,13 +72,7 @@ export function TopActiveProjects() {
                   <td className="py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-md overflow-hidden bg-[#2A1F1F]">
-                        {p.thumbnailUrl ? (
-                          <img src={p.thumbnailUrl} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#666] text-xs font-bold">
-                            {p.name?.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
+                        <img src={p.thumbnailUrl || "/favicon/204-logo.png"} alt={p.name} className={`w-full h-full object-cover ${!p.thumbnailUrl ? "p-2 opacity-40 grayscale" : ""}`} />
                       </div>
                       <span style={{ color: isTop1 ? "#fbbf24" : "#EEEEEE", fontSize: "14px", fontWeight: 500 }}>
                         {p.name}

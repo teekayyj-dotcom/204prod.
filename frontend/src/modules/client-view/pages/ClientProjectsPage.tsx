@@ -185,17 +185,11 @@ export function ClientProjectsPage() {
                             onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(46, 32, 32, 0.6)")}
                         >
                             <div className="relative h-44 overflow-hidden bg-black/40">
-                                {project.cover_image ? (
-                                    <img
-                                        src={project.cover_image}
-                                        alt={project.title}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <Briefcase size={36} className="text-white/10" />
-                                    </div>
-                                )}
+                                <img
+                                    src={project.cover_image || "/favicon/204-logo.png"}
+                                    alt={project.title}
+                                    className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!project.cover_image ? "p-8 opacity-30 grayscale" : ""}`}
+                                />
                                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(36, 28, 28, 0.7) 0%, transparent 60%)" }} />
                                 {/* Status badge */}
                                 <div className="absolute top-3 left-3">
@@ -260,13 +254,7 @@ export function ClientProjectsPage() {
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-2">
-                                                {p.cover_image ? (
-                                                    <img src={p.cover_image} alt={p.title} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/40 flex-shrink-0">
-                                                        <Briefcase size={12} className="text-white/20" />
-                                                    </div>
-                                                )}
+                                                <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-8 h-8 rounded-lg object-cover flex-shrink-0 ${!p.cover_image ? "p-1.5 opacity-40 bg-[#1D1616]" : ""}`} />
                                                 <span style={{ fontSize: "13px", fontWeight: 500 }}>{p.title}</span>
                                             </div>
                                         </td>

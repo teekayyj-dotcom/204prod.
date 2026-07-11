@@ -807,8 +807,8 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
             {/* Hero status strip */}
             <div style={{
                 borderRadius: "14px", padding: "18px 22px",
-                background: "linear-gradient(135deg, rgba(142,22,22,0.18) 0%, rgba(29,22,22,0.5) 100%)",
-                border: "1px solid rgba(216,64,64,0.2)", backdropFilter: "blur(16px)",
+                background: project.status === "Completed" ? "linear-gradient(135deg, rgba(76,175,80,0.18) 0%, rgba(29,22,22,0.5) 100%)" : "linear-gradient(135deg, rgba(142,22,22,0.18) 0%, rgba(29,22,22,0.5) 100%)",
+                border: project.status === "Completed" ? "1px solid rgba(76,175,80,0.2)" : "1px solid rgba(216,64,64,0.2)", backdropFilter: "blur(16px)",
                 display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px",
             }}>
                 <div>
@@ -844,8 +844,8 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                 </div>
                 <div style={{ textAlign: "right" }}>
                     <p style={{ color: "#888", fontSize: "11px", marginBottom: "4px" }}>Deadline</p>
-                    <p style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: isWaiting ? "#888" : isLate ? "#f87171" : "#E8A838", fontVariantNumeric: "tabular-nums" }}>
-                        {isWaiting ? "Chờ" : daysLeft === null ? "—" : isLate ? `${Math.abs(daysLeft)} ngày trễ` : daysLeft === 0 ? "Hôm nay!" : `${daysLeft} ngày`}
+                    <p style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: project.status === "Completed" ? "#4CAF50" : isWaiting ? "#888" : isLate ? "#f87171" : "#E8A838", fontVariantNumeric: "tabular-nums" }}>
+                        {project.status === "Completed" ? "Đã hoàn thành" : isWaiting ? "Chờ" : daysLeft === null ? "—" : isLate ? `${Math.abs(daysLeft)} ngày trễ` : daysLeft === 0 ? "Hôm nay!" : `${daysLeft} ngày`}
                     </p>
                     {!isWaiting && project.dueDate && <p style={{ color: "#555", fontSize: "10px", marginTop: "2px" }}>{new Date(project.dueDate).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</p>}
                 </div>

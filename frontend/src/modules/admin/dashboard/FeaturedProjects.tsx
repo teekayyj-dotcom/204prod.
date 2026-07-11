@@ -45,9 +45,9 @@ export function FeaturedProjects() {
           >
             <div className="relative h-36 overflow-hidden">
               <img
-                src={project.cover_image || project.image || "https://via.placeholder.com/400x300?text=No+Image"}
+                src={project.cover_image || project.image || "/favicon/204-logo.png"}
                 alt={project.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!(project.cover_image || project.image) ? "p-8 opacity-30 grayscale" : ""}`}
               />
               <div
                 className="absolute inset-0"
