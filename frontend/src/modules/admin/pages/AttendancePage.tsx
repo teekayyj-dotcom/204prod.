@@ -1235,12 +1235,6 @@ export function AttendancePage() {
     <div className="p-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-7">
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "#D8404022", border: "1px solid #D8404044" }}
-        >
-          <Clock size={22} style={{ color: "#D84040" }} />
-        </div>
         <div>
           <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>
             HR

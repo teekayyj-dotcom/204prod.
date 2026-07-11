@@ -910,12 +910,6 @@ export function FinanceExpensesPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "#f8717122", border: "1px solid #f8717144" }}
-            >
-              <TrendingDown size={22} style={{ color: "#f87171" }} />
-            </div>
             <div>
               <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>FINANCE</p>
               <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>Chi Phí</h1>
