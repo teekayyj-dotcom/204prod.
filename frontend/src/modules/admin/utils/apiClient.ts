@@ -11,10 +11,19 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(url, {
+  const fetchOptions: RequestInit = {
     ...options,
     headers,
-  });
+  };
+
+  // Prevent browser caching for GET requests by default unless explicitly set
+  if (!fetchOptions.method || fetchOptions.method.toUpperCase() === 'GET') {
+    if (!fetchOptions.cache) {
+      fetchOptions.cache = 'no-store';
+    }
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
