@@ -28,6 +28,8 @@ import {
 import { useEffect } from "react";
 import { fetchApi } from "../utils/apiClient";
 
+const currentYear = new Date().getFullYear();
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type GoalStatus = "on-track" | "at-risk" | "behind";
@@ -216,10 +218,13 @@ function AddGoalModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: ()
           <div>
             <label className="block text-xs text-[#888] mb-1">Chu kỳ (Cycle)</label>
             <select value={period} onChange={e => setPeriod(e.target.value)} className="w-full bg-[#2A1F1F] text-white text-sm border border-[#3E2E2E] rounded-lg px-3 py-2 outline-none">
-              <option value="2026-h1">H1 2026 (Jan–Jun)</option>
-              <option value="2026-h2">H2 2026 (Jul–Dec)</option>
-              <option value="2026-q2">Q2 2026</option>
-              <option value="2026-annual">Cả năm 2026</option>
+              <option value={`${currentYear}-q1`}>Q1 {currentYear}</option>
+              <option value={`${currentYear}-q2`}>Q2 {currentYear}</option>
+              <option value={`${currentYear}-h1`}>H1 {currentYear}</option>
+              <option value={`${currentYear}-q3`}>Q3 {currentYear}</option>
+              <option value={`${currentYear}-q4`}>Q4 {currentYear}</option>
+              <option value={`${currentYear}-h2`}>H2 {currentYear}</option>
+              <option value={`${currentYear}-annual`}>Cả năm {currentYear}</option>
             </select>
           </div>
           <div>
@@ -450,7 +455,18 @@ export function FinanceGoalsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState("2026-h1");
+  const [selectedPeriod, setSelectedPeriod] = useState(`${currentYear}-h1`);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const PERIODS = [
+    { id: `${currentYear}-q1`, label: `Q1 ${currentYear}` },
+    { id: `${currentYear}-q2`, label: `Q2 ${currentYear}` },
+    { id: `${currentYear}-h1`, label: `H1 ${currentYear}` },
+    { id: `${currentYear}-q3`, label: `Q3 ${currentYear}` },
+    { id: `${currentYear}-q4`, label: `Q4 ${currentYear}` },
+    { id: `${currentYear}-h2`, label: `H2 ${currentYear}` },
+    { id: `${currentYear}-annual`, label: `Cả năm ${currentYear}` },
+  ];
 
   const loadData = async () => {
     try {
@@ -529,13 +545,13 @@ export function FinanceGoalsPage() {
 
   const filterByPeriod = (goalsList: GoalItem[]) => {
     return goalsList.filter((g) => {
-      const gPeriod = g.period || "2026-h1";
-      if (selectedPeriod === "2026-annual") return true;
-      if (selectedPeriod === "2026-h1") {
-        return gPeriod === "2026-h1" || gPeriod === "2026-q2" || gPeriod === "2026-q1";
+      const gPeriod = g.period || `${currentYear}-h1`;
+      if (selectedPeriod === `${currentYear}-annual`) return true;
+      if (selectedPeriod === `${currentYear}-h1`) {
+        return gPeriod === `${currentYear}-h1` || gPeriod === `${currentYear}-q2` || gPeriod === `${currentYear}-q1`;
       }
-      if (selectedPeriod === "2026-h2") {
-        return gPeriod === "2026-h2" || gPeriod === "2026-q3" || gPeriod === "2026-q4";
+      if (selectedPeriod === `${currentYear}-h2`) {
+        return gPeriod === `${currentYear}-h2` || gPeriod === `${currentYear}-q3` || gPeriod === `${currentYear}-q4`;
       }
       return gPeriod === selectedPeriod;
     });
@@ -562,30 +578,50 @@ export function FinanceGoalsPage() {
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#D8404022", border: "1px solid #D8404044" }}
-          >
-            <Target size={22} style={{ color: "#D84040" }} />
-          </div>
           <div>
             <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>FINANCE</p>
             <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>Mục tiêu</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span style={{ color: "#555", fontSize: "12px" }}>Chu kỳ:</span>
-          <select
-            className="px-3 py-1.5 rounded-lg text-sm cursor-pointer"
-            style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", outline: "none" }}
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
+          <div
+            className="flex gap-1 p-1 rounded-xl transition-all duration-300 ease-in-out overflow-hidden"
+            style={{ 
+              background: isExpanded ? "rgba(29, 22, 22, 0.4)" : "transparent", 
+              border: isExpanded ? "1px solid rgba(46, 32, 32, 0.5)" : "1px solid transparent", 
+              backdropFilter: isExpanded ? "blur(8px)" : "none", 
+              WebkitBackdropFilter: isExpanded ? "blur(8px)" : "none" 
+            }}
+            onMouseLeave={() => setIsExpanded(false)}
           >
-            <option value="2026-h1">H1 2026 (Jan–Jun)</option>
-            <option value="2026-h2">H2 2026 (Jul–Dec)</option>
-            <option value="2026-q2">Q2 2026</option>
-            <option value="2026-annual">Cả năm 2026</option>
-          </select>
+            {PERIODS.map((p) => {
+              const isSelected = selectedPeriod === p.id;
+              const show = isExpanded || isSelected;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    if (!isExpanded) {
+                      setIsExpanded(true);
+                    } else {
+                      setSelectedPeriod(p.id);
+                      setIsExpanded(false);
+                    }
+                  }}
+                  className={`whitespace-nowrap rounded-lg transition-all duration-300 overflow-hidden text-sm ${
+                    isSelected
+                      ? "bg-[#D84040] text-[#EEEEEE] font-semibold px-4 py-2 opacity-100 max-w-[200px]"
+                      : show
+                        ? "text-[#666] hover:text-[#EEEEEE] font-semibold px-4 py-2 opacity-100 max-w-[200px] hover:bg-[#2A1F1F]"
+                        : "px-0 max-w-0 opacity-0 border-0 m-0"
+                  }`}
+                  style={!show ? { paddingLeft: 0, paddingRight: 0 } : {}}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#D84040] hover:bg-[#ff6b6b] text-white text-sm font-semibold rounded-lg transition-colors shadow-lg shadow-red-900/20"
@@ -658,7 +694,7 @@ export function FinanceGoalsPage() {
           <div className="flex items-center gap-2">
             <TrendingUp size={15} style={{ color: "#4ade80" }} />
             <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-              Tổng doanh thu {selectedPeriod === "2026-h1" ? "H1 2026" : selectedPeriod === "2026-h2" ? "H2 2026" : selectedPeriod === "2026-q2" ? "Q2 2026" : "Cả năm 2026"}
+              Tổng doanh thu {selectedPeriod.includes('h1') ? `H1 ${currentYear}` : selectedPeriod.includes('h2') ? `H2 ${currentYear}` : selectedPeriod.includes('annual') ? `Cả năm ${currentYear}` : selectedPeriod.replace(`${currentYear}-`, '').toUpperCase() + ` ${currentYear}`}
             </span>
           </div>
           <div className="flex items-center gap-3">

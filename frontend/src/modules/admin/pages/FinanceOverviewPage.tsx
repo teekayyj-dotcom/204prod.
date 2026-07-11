@@ -577,6 +577,24 @@ function TopProjects({ projects }: { projects: any[] }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function FinanceOverviewPage() {
+  const currentYear = new Date().getFullYear();
+  const currentMonthStr = new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" });
+  const currentMonthLabel = `Tháng ${new Date().toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" })}`;
+
+  const PERIODS = [
+    { id: "q1", label: `Q1 ${currentYear}` },
+    { id: "q2", label: `Q2 ${currentYear}` },
+    { id: "h1", label: `H1 ${currentYear}` },
+    { id: "q3", label: `Q3 ${currentYear}` },
+    { id: "q4", label: `Q4 ${currentYear}` },
+    { id: "h2", label: `H2 ${currentYear}` },
+    { id: currentMonthStr, label: currentMonthLabel },
+    { id: "annual", label: `Cả năm ${currentYear}` },
+  ];
+
+  const [period, setPeriod] = useState<string>(currentMonthStr);
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -638,16 +656,6 @@ export function FinanceOverviewPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: "rgba(216,64,64,0.12)",
-              border: "1px solid rgba(216,64,64,0.3)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <DollarSign size={22} style={{ color: "#D84040" }} />
-          </div>
           <div>
             <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>FINANCE</p>
             <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>
@@ -659,16 +667,44 @@ export function FinanceOverviewPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span style={{ color: "#555", fontSize: "12px" }}>Kỳ:</span>
-          <select className="px-3 py-1.5 rounded-xl text-sm outline-none"
-            style={{ background: "rgba(29,22,22,0.8)", color: "#EEEEEE", border: "1px solid #2A1F1F", backdropFilter: "blur(8px)" }}
-            defaultValue={new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" })}>
-            <option value={new Date().toLocaleDateString("vi-VN", { month: "2-digit", year: "numeric" })}>
-              Tháng {new Date().toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" })}
-            </option>
-            <option value="q2">Q2 {new Date().getFullYear()}</option>
-            <option value="h1">H1 {new Date().getFullYear()}</option>
-          </select>
+          <div
+            className="flex gap-1 p-1 rounded-xl transition-all duration-300 ease-in-out overflow-hidden"
+            style={{ 
+              background: isExpanded ? "rgba(29, 22, 22, 0.4)" : "transparent", 
+              border: isExpanded ? "1px solid rgba(46, 32, 32, 0.5)" : "1px solid transparent", 
+              backdropFilter: isExpanded ? "blur(8px)" : "none", 
+              WebkitBackdropFilter: isExpanded ? "blur(8px)" : "none" 
+            }}
+            onMouseLeave={() => setIsExpanded(false)}
+          >
+            {PERIODS.map((p) => {
+              const isSelected = period === p.id;
+              const show = isExpanded || isSelected;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    if (!isExpanded) {
+                      setIsExpanded(true);
+                    } else {
+                      setPeriod(p.id);
+                      setIsExpanded(false);
+                    }
+                  }}
+                  className={`whitespace-nowrap rounded-lg transition-all duration-300 overflow-hidden text-sm ${
+                    isSelected
+                      ? "bg-[#D84040] text-[#EEEEEE] font-semibold px-4 py-2 opacity-100 max-w-[200px]"
+                      : show
+                        ? "text-[#666] hover:text-[#EEEEEE] font-semibold px-4 py-2 opacity-100 max-w-[200px] hover:bg-[#2A1F1F]"
+                        : "px-0 max-w-0 opacity-0 border-0 m-0"
+                  }`}
+                  style={!show ? { paddingLeft: 0, paddingRight: 0 } : {}}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

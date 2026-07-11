@@ -338,7 +338,7 @@ function TopPerformers({ topServices, topClients }: TopPerformersProps) {
         <div className="rounded-xl overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
           <div className="px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>Top Dịch vụ</p>
-            <p style={{ color: "#555", fontSize: "11px" }}>Theo doanh thu · H1 2026</p>
+            <p style={{ color: "#555", fontSize: "11px" }}>Theo doanh thu · H1 {currentYear}</p>
           </div>
           <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
             {(topServices || []).map((svc, i) => (
@@ -395,7 +395,7 @@ function TopPerformers({ topServices, topClients }: TopPerformersProps) {
         <div className="rounded-xl overflow-hidden" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
           <div className="px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>Top Khách hàng</p>
-            <p style={{ color: "#555", fontSize: "11px" }}>Key Accounts · H1 2026</p>
+            <p style={{ color: "#555", fontSize: "11px" }}>Key Accounts · H1 {currentYear}</p>
           </div>
           <div className="divide-y" style={{ borderColor: "#2A1F1F" }}>
             {(topClients || []).map((client, i) => (
@@ -444,13 +444,13 @@ function RevenueForecast({ pipeline, forecastMonths }: RevenueForecastProps) {
   const bestCase = (pipeline || []).reduce((s, p) => s + p.value, 0);
 
   return (
-    <Section title="Dự báo Doanh thu" sub="Revenue Forecast — Pipeline & Ước tính Q3 2026" icon={Zap} color="#c084fc">
+    <Section title="Dự báo Doanh thu" sub={`Revenue Forecast — Pipeline & Ước tính Q3 ${currentYear}`} icon={Zap} color="#c084fc">
       <div className="space-y-4">
         {/* Forecast chart */}
         <div className="rounded-xl p-5" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>Dự báo Q3 2026 · Triệu ₫</p>
+              <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>Dự báo Q3 {currentYear} · Triệu ₫</p>
               <p style={{ color: "#555", fontSize: "11px" }}>Kịch bản thấp / trung bình / tốt</p>
             </div>
             <div className="flex items-center gap-4">
@@ -506,7 +506,7 @@ function RevenueForecast({ pipeline, forecastMonths }: RevenueForecastProps) {
             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>
               Pipeline đang theo dõi
             </p>
-            <span style={{ color: "#555", fontSize: "11px" }}>{(pipeline || []).length} deals · Tháng 7/2026</span>
+            <span style={{ color: "#555", fontSize: "11px" }}>{(pipeline || []).length} deals · Tháng 7/{currentYear}</span>
           </div>
           {(pipeline || []).map((deal, i) => {
             const probColor = deal.prob >= 80 ? "#4ade80" : deal.prob >= 60 ? "#fbbf24" : "#f87171";
@@ -557,11 +557,21 @@ function RevenueForecast({ pipeline, forecastMonths }: RevenueForecastProps) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const PERIODS = ["H1 2026", "Q2 2026", "Tháng 6/2026", "Cả năm 2026"] as const;
-type Period = typeof PERIODS[number];
+const currentYear = new Date().getFullYear();
+const PERIODS = [
+  `Q1 ${currentYear}`,
+  `Q2 ${currentYear}`,
+  `H1 ${currentYear}`,
+  `Q3 ${currentYear}`,
+  `Q4 ${currentYear}`,
+  `H2 ${currentYear}`,
+  `Tháng 6/${currentYear}`,
+  `Cả năm ${currentYear}`
+];
 
 export function FinanceRevenuePage() {
-  const [period, setPeriod] = useState<Period>("H1 2026");
+  const [period, setPeriod] = useState<string>(`H1 ${currentYear}`);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -620,12 +630,6 @@ export function FinanceRevenuePage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#4ade8022", border: "1px solid #4ade8044" }}
-          >
-            <TrendingUp size={22} style={{ color: "#4ade80" }} />
-          </div>
           <div>
             <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>FINANCE</p>
             <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>Doanh thu</h1>
@@ -634,24 +638,42 @@ export function FinanceRevenuePage() {
 
         {/* Period picker */}
         <div
-          className="flex gap-1 p-1 rounded-xl"
-          style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+          className="flex gap-1 p-1 rounded-xl transition-all duration-300 ease-in-out overflow-hidden"
+          style={{ 
+            background: isExpanded ? "rgba(29, 22, 22, 0.4)" : "transparent", 
+            border: isExpanded ? "1px solid rgba(46, 32, 32, 0.5)" : "1px solid transparent", 
+            backdropFilter: isExpanded ? "blur(8px)" : "none", 
+            WebkitBackdropFilter: isExpanded ? "blur(8px)" : "none" 
+          }}
+          onMouseLeave={() => setIsExpanded(false)}
         >
-          {PERIODS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className="px-3 py-1.5 rounded-lg transition-all"
-              style={{
-                background: period === p ? "#D84040" : "transparent",
-                color: period === p ? "#EEEEEE" : "#666",
-                fontSize: "12px",
-                fontWeight: 600,
-              }}
-            >
-              {p}
-            </button>
-          ))}
+          {PERIODS.map((p) => {
+            const isSelected = period === p;
+            const show = isExpanded || isSelected;
+            return (
+              <button
+                key={p}
+                onClick={() => {
+                  if (!isExpanded) {
+                    setIsExpanded(true);
+                  } else {
+                    setPeriod(p);
+                    setIsExpanded(false);
+                  }
+                }}
+                className={`whitespace-nowrap rounded-lg transition-all duration-300 overflow-hidden text-sm ${
+                  isSelected
+                    ? "bg-[#D84040] text-[#EEEEEE] font-semibold px-4 py-2 opacity-100 max-w-[200px]"
+                    : show
+                      ? "text-[#666] hover:text-[#EEEEEE] font-semibold px-4 py-2 opacity-100 max-w-[200px] hover:bg-[#2A1F1F]"
+                      : "px-0 max-w-0 opacity-0 border-0 m-0"
+                }`}
+                style={!show ? { paddingLeft: 0, paddingRight: 0 } : {}}
+              >
+                {p}
+              </button>
+            );
+          })}
         </div>
       </div>
 

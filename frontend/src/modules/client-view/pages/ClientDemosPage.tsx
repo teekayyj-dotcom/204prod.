@@ -97,12 +97,6 @@ export function ClientDemosPage() {
         <div className="p-8 space-y-8" style={{ color: "#EEEEEE" }}>
             {/* Header */}
             <div className="flex items-center gap-4">
-                <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#D8404022", border: "1px solid #D8404044" }}
-                >
-                    <MonitorPlay size={22} style={{ color: "#D84040" }} />
-                </div>
                 <div>
                     <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>CLIENT PORTAL</p>
                     <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>Kho Demo / Xét duyệt</h1>
