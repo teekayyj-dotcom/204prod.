@@ -2,8 +2,11 @@
 @import './tailwind.css';
 @import './theme.css';
 
-body {
+html, body {
   @apply select-none;
+  background-color: #0c0c0c;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 * {
