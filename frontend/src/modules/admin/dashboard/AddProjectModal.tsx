@@ -210,19 +210,31 @@ export function AddProjectModal({ onClose, onAdd }: Props) {
             <label style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="block mb-1.5">
               Budget
             </label>
-            <input
-              {...register("budget")}
-              placeholder="e.g. 25,000,000 ₫"
-              className="w-full px-3 py-2.5 rounded-lg outline-none"
-              style={{
-                background: "#1D1616",
-                border: "1px solid #3A2A2A",
-                color: "#EEEEEE",
-                fontSize: "14px",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = "#D84040")}
-              onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
-            />
+            {(() => {
+              const { onChange, ...rest } = register("budget");
+              return (
+                <input
+                  {...rest}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/,/g, "");
+                    if (!isNaN(Number(val)) && val !== "") {
+                      e.target.value = Number(val).toLocaleString("en-US");
+                    }
+                    onChange(e);
+                  }}
+                  placeholder="e.g. 25,000,000"
+                  className="w-full px-3 py-2.5 rounded-lg outline-none"
+                  style={{
+                    background: "#1D1616",
+                    border: "1px solid #3A2A2A",
+                    color: "#EEEEEE",
+                    fontSize: "14px",
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = "#D84040")}
+                  onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
+                />
+              );
+            })()}
           </div>
 
           {/* Description */}

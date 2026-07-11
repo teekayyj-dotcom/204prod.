@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, FolderOpen, Plus, Clock, DollarSign, CheckCircle2, Activity, ChevronRight, Star, Tag, ExternalLink, LayoutGrid, List, Search, Pencil, X, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, Loader2, } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { getDisplayProgress } from "../../../utils/projectProgress";
 // ── Icon catalogue for the picker ─────────────────────────────────
 const ICON_OPTIONS = [
     { name: "FolderOpen", Icon: FolderOpen },
@@ -250,7 +251,7 @@ export function CategoryDetailPage() {
     const activeCount = categoryProjects.filter((p) => p.status === "In Progress").length;
     const completedCount = categoryProjects.filter((p) => p.status === "Completed").length;
     const avgProgress = categoryProjects.length
-        ? Math.round(categoryProjects.reduce((s, p) => s + (p.progress ?? 100), 0) / categoryProjects.length)
+        ? Math.round(categoryProjects.reduce((s, p) => s + getDisplayProgress(p.status), 0) / categoryProjects.length)
         : 0;
     return (<div className="px-8 py-7 w-full">
 
@@ -491,12 +492,12 @@ export function CategoryDetailPage() {
                                     <div className="mb-3">
                                         <div className="flex items-center justify-between mb-1.5">
                                             <span style={{ color: "#555", fontSize: "11px" }}>Progress</span>
-                                            <span style={{ color: accent.primary, fontSize: "12px", fontWeight: 600 }}>{project.progress}%</span>
+                                            <span style={{ color: accent.primary, fontSize: "12px", fontWeight: 600 }}>{getDisplayProgress(project.status)}%</span>
                                         </div>
                                         <div className="rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
                                             <div className="h-full rounded-full" style={{
-                        width: `${project.progress}%`,
-                        background: project.progress === 100 ? "#6B8FD6" : `linear-gradient(to right, #8E1616, ${accent.primary})`,
+                        width: `${getDisplayProgress(project.status)}%`,
+                        background: getDisplayProgress(project.status) === 100 ? "#6B8FD6" : `linear-gradient(to right, #8E1616, ${accent.primary})`,
                     }}/>
                                         </div>
                                     </div>
@@ -545,11 +546,11 @@ export function CategoryDetailPage() {
                                 </span>
                                 <span style={{ color: accent.primary, fontSize: "13px", fontWeight: 600 }}>{project.budget}</span>
                                 <div>
-                                    <span style={{ color: accent.primary, fontSize: "11px", fontWeight: 600 }}>{project.progress}%</span>
+                                    <span style={{ color: accent.primary, fontSize: "11px", fontWeight: 600 }}>{getDisplayProgress(project.status)}%</span>
                                     <div className="rounded-full mt-1" style={{ height: "3px", background: "#2A1F1F" }}>
                                         <div className="h-full rounded-full" style={{
-                        width: `${project.progress}%`,
-                        background: project.progress === 100 ? "#6B8FD6" : `linear-gradient(to right, #8E1616, ${accent.primary})`,
+                        width: `${getDisplayProgress(project.status)}%`,
+                        background: getDisplayProgress(project.status) === 100 ? "#6B8FD6" : `linear-gradient(to right, #8E1616, ${accent.primary})`,
                     }}/>
                                     </div>
                                 </div>

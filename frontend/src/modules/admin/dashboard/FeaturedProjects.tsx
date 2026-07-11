@@ -47,7 +47,7 @@ export function FeaturedProjects() {
               <img
                 src={project.cover_image || project.image || "/favicon/204-logo.png"}
                 alt={project.title}
-                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!(project.cover_image || project.image) ? "p-8 opacity-30 grayscale" : ""}`}
+                className={`w-full h-full transition-transform duration-700 group-hover:scale-105 ${!(project.cover_image || project.image) ? "p-0 opacity-20 grayscale object-contain" : "object-cover"}`}
               />
               <div
                 className="absolute inset-0"

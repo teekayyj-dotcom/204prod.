@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Plus, Grid3X3, List, Calendar, DollarSign, Star, Loader2, Coins } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { getDisplayProgress } from "../../../utils/projectProgress";
 const statusColors = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50" },
@@ -14,7 +15,7 @@ const statusColors = {
 const ProjectGridCard = React.memo(({ project, featuredIds, toggleFeatured, navigate }) => (
     <div className="rounded-xl overflow-hidden group cursor-pointer relative" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => navigate(`/admin/projects/${project.slug}`)} onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8E1616")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2E2020")}>
         <div className="relative h-40 overflow-hidden">
-            <img src={project.cover_image || "/favicon/204-logo.png"} alt={project.title} className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!project.cover_image ? "p-8 opacity-30 grayscale" : ""}`}/>
+            <img src={project.cover_image || "/favicon/204-logo.png"} alt={project.title} className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${!project.cover_image ? "p-0 opacity-20 grayscale object-contain" : "object-cover"}`}/>
             <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #241C1C 0%, transparent 60%)" }}/>
             <div className="absolute top-3 left-3">
                 <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: statusColors[project.status]?.bg || "rgba(0,0,0,0.4)", color: statusColors[project.status]?.text || "#fff", backdropFilter: "blur(6px)" }}>
@@ -52,10 +53,10 @@ const ProjectGridCard = React.memo(({ project, featuredIds, toggleFeatured, navi
             <div>
                 <div className="flex justify-between mb-1">
                     <span style={{ color: "#666", fontSize: "11px" }}>Progress</span>
-                    <span style={{ color: "#D84040", fontSize: "11px", fontWeight: 600 }}>{project.progress}%</span>
+                    <span style={{ color: "#D84040", fontSize: "11px", fontWeight: 600 }}>{getDisplayProgress(project.status)}%</span>
                 </div>
                 <div className="rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
-                    <div className="h-full rounded-full" style={{ width: `${project.progress}%`, background: project.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
+                    <div className="h-full rounded-full" style={{ width: `${getDisplayProgress(project.status)}%`, background: getDisplayProgress(project.status) === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
                 </div>
             </div>
         </div>
@@ -66,7 +67,7 @@ const ProjectListRow = React.memo(({ p, featuredIds, toggleFeatured, navigate })
     <tr className="hover:bg-white/5 transition-colors cursor-pointer" style={{ borderBottom: "1px solid #2A1F1F" }} onClick={() => navigate(`/admin/projects/${p.slug}`)}>
         <td className="px-5 py-3.5">
             <div className="flex items-center gap-3">
-                <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-10 h-7 rounded object-cover ${!p.cover_image ? "p-1 opacity-40 bg-[#1D1616]" : ""}`} />
+                <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-10 h-7 rounded ${!p.cover_image ? "p-1 opacity-40 bg-[#1D1616] object-contain" : "object-cover"}`} />
                 <div>
                     <div className="flex items-center gap-1.5">
                         <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{p.title}</p>
@@ -87,9 +88,9 @@ const ProjectListRow = React.memo(({ p, featuredIds, toggleFeatured, navigate })
         <td className="px-5 py-3.5" style={{ minWidth: "100px" }}>
             <div className="flex items-center gap-2">
                 <div className="flex-1 rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
-                    <div className="h-full rounded-full" style={{ width: `${p.progress}%`, background: p.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
+                    <div className="h-full rounded-full" style={{ width: `${getDisplayProgress(p.status)}%`, background: getDisplayProgress(p.status) === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)" }}/>
                 </div>
-                <span style={{ color: "#666", fontSize: "11px", flexShrink: 0 }}>{p.progress}%</span>
+                <span style={{ color: "#666", fontSize: "11px", flexShrink: 0 }}>{getDisplayProgress(p.status)}%</span>
             </div>
         </td>
         <td className="px-5 py-3.5">

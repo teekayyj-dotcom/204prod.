@@ -8,22 +8,30 @@ import {
     AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
     Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
     FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
-    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical
+    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical, ChevronDown
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 import { AddClientModal } from "../components/AddClientModal";
 import { fetchApi } from "../utils/apiClient";
 import { uploadMediaPipeline } from "../../../utils/imagePipeline";
+import { polyfill } from "mobile-drag-drop";
+import "mobile-drag-drop/default.css";
+
+polyfill({
+    holdToDrag: 500
+});
+
+window.addEventListener('touchmove', function() {}, {passive: false});
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const statusColors = {
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
+    Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040", border: "rgba(216,64,64,0.3)" },
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6", border: "rgba(107,143,214,0.3)" },
-    Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
-    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
 };
 
 const inputStyle = {
@@ -781,15 +789,36 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
         }
     }, [project?.id, project?.slug]);
 
-    const projectStages = [
-        { id: "Sản xuất", done: project.progress >= 30 },
-        { id: "Hậu kỳ", done: project.progress >= 70 },
-        { id: "Bàn giao", done: project.progress >= 95 },
+    const statusMap: Record<string, number> = {
+        "lead": 0,
+        "pitching": 0,
+        "planning": 0,
+        "Planning": 0,
+        "production": 1,
+        "In Progress": 1,
+        "in progress": 1,
+        "post-production": 2,
+        "Review": 2,
+        "review": 2,
+        "completed": 3,
+        "Completed": 3,
+        "canceled": -1,
+        "Other": -1,
+        "other": -1
+    };
+    const currentStatusIdx = statusMap[project?.status] ?? -1;
+    const displayProgress = currentStatusIdx === 3 ? 100 : currentStatusIdx === 2 ? 75 : currentStatusIdx === 1 ? 50 : currentStatusIdx === 0 ? 25 : 0;
+
+    const milestones = [
+        { label: "Kịch bản", desc: "Duyệt kịch bản phân cảnh", isDone: currentStatusIdx > 0, isActive: currentStatusIdx === 0 },
+        { label: "Tiền kỳ / Đi quay", desc: "Setup bối cảnh & ghi hình", isDone: currentStatusIdx > 1, isActive: currentStatusIdx === 1 },
+        { label: "Hậu kỳ", desc: "Dựng hình, Kỹ xảo, Âm thanh", isDone: currentStatusIdx > 2, isActive: currentStatusIdx === 2 },
+        { label: "Bàn giao", desc: "Xuất file thành phẩm & chốt nghiệm thu", isDone: currentStatusIdx === 3, isActive: false }
     ];
 
     const completedTasks = tasks.filter(t => t.status === "done").length;
     const totalTasks = tasks.length;
-    const crewCount = project.credits?.length || 0;
+    const crewCount = new Set((project.credits || []).map((cred: string) => cred.split(":")[1]?.trim().toLowerCase())).size;
     const fileCount = (project.gallery?.filter((g: any) => g.type === "video")?.length || 0) + docs.length;
     const commentCount = feedbacks.length;
 
@@ -800,7 +829,7 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
         { label: "Phản hồi KH", value: `${commentCount} comments`, icon: MessageSquare, color: "#E8A838" },
     ];
 
-    const activeStage = projectStages.filter(s => s.done).pop()?.id;
+    const activeStage = milestones.filter(s => s.isDone || s.isActive).pop()?.label;
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -809,11 +838,11 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                 borderRadius: "14px", padding: "18px 22px",
                 background: project.status === "Completed" ? "linear-gradient(135deg, rgba(76,175,80,0.18) 0%, rgba(29,22,22,0.5) 100%)" : "linear-gradient(135deg, rgba(142,22,22,0.18) 0%, rgba(29,22,22,0.5) 100%)",
                 border: project.status === "Completed" ? "1px solid rgba(76,175,80,0.2)" : "1px solid rgba(216,64,64,0.2)", backdropFilter: "blur(16px)",
-                display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "14px",
+                display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "14px",
             }}>
                 <div>
                     <span style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "8px" }}>Trạng thái hiện tại</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                         <span style={{
                             padding: "4px 12px", borderRadius: "20px",
                             background: statusColors[project.status]?.bg || "#333",
@@ -821,11 +850,6 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                             fontSize: "12px", fontWeight: 700,
                             border: `1px solid ${statusColors[project.status]?.text || "#555"}33`,
                         }}>{project.status}</span>
-                        {activeStage && (
-                            <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(107,143,214,0.3)" }}>
-                                📍 {activeStage}
-                            </span>
-                        )}
                         {project.published ? (
                             <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(76,175,80,0.15)", color: "#4CAF50", fontSize: "11px", fontWeight: 600, border: "1px solid rgba(76,175,80,0.3)" }}>
                                 🌐 Published
@@ -842,7 +866,7 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                         )}
                     </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
+                <div style={{ textAlign: "left", width: "100%", maxWidth: "300px", marginTop: "4px" }}>
                     <p style={{ color: "#888", fontSize: "11px", marginBottom: "4px" }}>Deadline</p>
                     <p style={{ fontSize: "26px", fontWeight: 800, lineHeight: 1, color: project.status === "Completed" ? "#4CAF50" : isWaiting ? "#888" : isLate ? "#f87171" : "#E8A838", fontVariantNumeric: "tabular-nums" }}>
                         {project.status === "Completed" ? "Đã hoàn thành" : isWaiting ? "Chờ" : daysLeft === null ? "—" : isLate ? `${Math.abs(daysLeft)} ngày trễ` : daysLeft === 0 ? "Hôm nay!" : `${daysLeft} ngày`}
@@ -851,25 +875,51 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
                 </div>
             </div>
 
-            {/* Progress bar + stages */}
-            <div style={{ borderRadius: "14px", padding: "18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                    <span style={{ color: "#888", fontSize: "12px" }}>Tiến độ tổng thể</span>
-                    <span style={{ color: "#D84040", fontSize: "15px", fontWeight: 800 }}>{project.progress}%</span>
+            {/* Milestones / Timeline Road-map */}
+            <div className="rounded-xl p-5 space-y-4 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(29,22,22,0.4)" }}>
+                <div className="flex justify-between items-center">
+                    <span style={{ color: "#888", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase" }}>Tiến độ tổng thể</span>
+                    <span style={{ color: "#D84040", fontSize: "15px", fontWeight: 800 }}>{displayProgress}%</span>
                 </div>
-                <div style={{ height: "8px", borderRadius: "99px", background: "#2A1F1F", overflow: "hidden", marginBottom: "12px" }}>
-                    <div style={{ height: "100%", borderRadius: "99px", width: `${project.progress}%`, background: project.progress === 100 ? "#4CAF50" : "linear-gradient(90deg, #8E1616, #D84040, #E8A838)", transition: "width 0.6s ease", boxShadow: "0 0 10px rgba(216,64,64,0.3)" }} />
-                </div>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    {projectStages.map((stage, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                            <div style={{ width: "14px", height: "14px", borderRadius: "50%", background: stage.done ? "#4CAF50" : "#2A1F1F", border: `2px solid ${stage.done ? "#4CAF50" : "#3A2A2A"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                {stage.done && <CheckCircle2 size={9} color="#fff" />}
-                            </div>
-                            <span style={{ color: stage.done ? "#4CAF50" : "#444", fontSize: "11px" }}>{stage.id}</span>
-                            {i < projectStages.length - 1 && <ArrowRight size={9} color="#333" />}
-                        </div>
-                    ))}
+                
+                <div className="relative pt-4 pb-2">
+                    {/* Horizontal Line background */}
+                    <div className="absolute top-8 left-[12.5%] right-[12.5%] h-[4px] bg-[#2A1F1F] rounded-full" />
+                    {/* Horizontal Line active progress */}
+                    <div 
+                        className="absolute top-8 left-[12.5%] h-[4px] bg-[#D84040] transition-all duration-500 rounded-full"
+                        style={{ 
+                            width: currentStatusIdx === 3 ? "75%" 
+                                : currentStatusIdx === 2 ? "50%" 
+                                : currentStatusIdx === 1 ? "25%" 
+                                : "0%" 
+                        }}
+                    />
+
+                    <div className="grid grid-cols-4 relative text-center">
+                        {milestones.map((m, idx) => {
+                            const dotColor = m.isDone ? "#D84040" : m.isActive ? "#FFC107" : "#2A1F1F";
+                            const labelColor = m.isDone ? "#EEEEEE" : m.isActive ? "#FFC107" : "#555";
+                            return (
+                                <div key={m.label} className="flex flex-col items-center gap-2">
+                                    {/* Dot indicator */}
+                                    <div 
+                                        className="w-5 h-5 rounded-full z-10 flex items-center justify-center border-2"
+                                        style={{ 
+                                            background: m.isDone ? "#D84040" : "#1D1616", 
+                                            borderColor: dotColor,
+                                            boxShadow: m.isActive ? "0 0 8px #FFC10755" : "none"
+                                        }}
+                                    >
+                                        {m.isDone && <CheckCircle2 size={10} color="#fff" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold transition-all" style={{ color: labelColor }}>{m.label}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
@@ -889,7 +939,7 @@ function OverviewAdminTab({ project, navigate }: { project: any; navigate: any }
             </div>
 
             {/* Linked client */}
-            <div style={{ borderRadius: "12px", padding: "14px 18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ borderRadius: "12px", padding: "14px 18px", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <AvatarBubble initials={project.client?.slice(0, 2).toUpperCase() || "CL"} imgUrl={project.client_logo} size={36} color="#1E3A5F" />
                     <div>
@@ -932,7 +982,7 @@ function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: 
                 client_name: project.client || "",
                 project: project.title,
                 term: newInvoice.term,
-                amount: parseFloat(newInvoice.amount) || 0,
+                amount: parseFloat(String(newInvoice.amount).replace(/,/g, "")) || 0,
                 due_date: newInvoice.dueDate,
                 status: newInvoice.status,
                 note: ""
@@ -1145,10 +1195,17 @@ function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: 
                                 className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }}
                             />
                             <input 
-                                type="number"
+                                type="text"
                                 placeholder="Số tiền (₫)" 
                                 value={newInvoice.amount}
-                                onChange={e => setNewInvoice(p => ({ ...p, amount: e.target.value }))}
+                                onChange={e => {
+                                    const val = e.target.value.replace(/,/g, "");
+                                    if (!isNaN(Number(val)) && val !== "") {
+                                        setNewInvoice(p => ({ ...p, amount: Number(val).toLocaleString("en-US") }));
+                                    } else if (val === "") {
+                                        setNewInvoice(p => ({ ...p, amount: "" }));
+                                    }
+                                }}
                                 className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }}
                             />
                         </div>
@@ -1203,7 +1260,7 @@ function FinancialsTab({ project, expenses, invoices, dbClients, setInvoices }: 
                             </div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <span style={{ color: inv.status === "paid" ? "#4CAF50" : "#E8A838", fontSize: "13px", fontWeight: 700 }}>{fmtVND(inv.amount)}</span>
+                            <span style={{ color: inv.status === "paid" ? "#4CAF50" : "#E8A838", fontSize: "13px", fontWeight: 700 }}>{Number(String(inv.amount).replace(/,/g, "")).toLocaleString("en-US")} ₫</span>
                             <span style={{ padding: "2px 8px", borderRadius: "20px", fontSize: "10px", fontWeight: 700, background: inv.status === "paid" ? "rgba(76,175,80,0.15)" : "rgba(232,168,56,0.15)", color: inv.status === "paid" ? "#4CAF50" : "#E8A838" }}>
                                 {inv.status === "paid" ? "Đã thu" : "Chờ thu"}
                             </span>
@@ -1897,7 +1954,7 @@ export function ProjectDetailPage() {
     const [activeTab, setActiveTab] = useState("activity");
     const [isFeatured, setIsFeatured] = useState(false);
     const [isPublished, setIsPublished] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false);
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [isAddingClient, setIsAddingClient] = useState(false);
@@ -1932,7 +1989,6 @@ export function ProjectDetailPage() {
             setProject(projData);
             setIsFeatured(!!projData.featured);
             setIsPublished(!!projData.published);
-            setIsLocked(!!projData.locked);
             setDbClients(clientsData);
             setDbCategories(categoriesData);
             setDbCrew(crewData);
@@ -2093,7 +2149,6 @@ export function ProjectDetailPage() {
                 format_slug: data.category,
                 featured: isFeatured,
                 published: isPublished,
-                locked: isLocked,
                 status: data.status,
                 cover_media_id: coverMediaId,
                 summary: data.description || null,
@@ -2124,7 +2179,6 @@ export function ProjectDetailPage() {
         setUploadedVideo(null); setGalleryImages(project.gallery || []);
         setIsFeatured(!!project.featured);
         setIsPublished(!!project.published);
-        setIsLocked(!!project.locked);
         setIsEditing(false);
     };
 
@@ -2162,20 +2216,20 @@ export function ProjectDetailPage() {
         }
     };
 
-    const handleToggleLocked = async () => {
-        const nextVal = !isLocked;
-        setIsLocked(nextVal);
-        if (!isEditing && project) {
-            try {
-                await fetchApi(`/projects/${id}`, {
-                    method: "PUT",
-                    body: JSON.stringify({ locked: nextVal })
-                });
-                setProject(prev => prev ? { ...prev, locked: nextVal } : null);
-            } catch (err) {
-                console.error("Failed to update lock state:", err);
-                setIsLocked(!nextVal);
-            }
+    const handleStatusChange = async (newStatus: string) => {
+        setShowStatusDropdown(false);
+        if (!project) return;
+
+        setValue("status", newStatus);
+
+        try {
+            await fetchApi(`/projects/${id}`, {
+                method: "PUT",
+                body: JSON.stringify({ status: newStatus })
+            });
+            setProject(prev => prev ? { ...prev, status: newStatus } : null);
+        } catch (err) {
+            console.error("Failed to update status:", err);
         }
     };
 
@@ -2214,109 +2268,132 @@ export function ProjectDetailPage() {
         { id: "vault", label: "Tài liệu", icon: FileText },
     ];
 
-    return (<div className="px-8 py-7 w-full">
+    const renderActionButtons = () => (
+        <>
+            {isEditing ? (<>
+                <button onClick={handleCancel} className="flex items-center justify-center gap-1.5 px-4 rounded-lg transition-all whitespace-nowrap" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "12px", height: "36px", minWidth: "130px", fontWeight: 500 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
+                    <X size={14}/> Discard
+                </button>
+                <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center justify-center gap-1.5 px-4 rounded-lg transition-all whitespace-nowrap" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "12px", fontWeight: 600, height: "36px", minWidth: "130px" }}>
+                    {saving ? <><Loader2 size={14} className="animate-spin"/> Saving...</>
+                    : saved ? <><CheckCircle2 size={14}/> Saved!</>
+                    : <><Save size={14}/> Save Changes</>}
+                </button>
+            </>) : (<>
+                <button onClick={() => setIsEditing(true)} className="flex items-center justify-center gap-1.5 px-4 rounded-lg transition-all whitespace-nowrap" style={{ background: "#D84040", color: "#fff", fontSize: "12px", fontWeight: 600, height: "36px", minWidth: "130px" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
+                    <Edit3 size={14}/> Edit Project
+                </button>
+            </>)}
+        </>
+    );
+
+    return (<div className="px-4 md:px-8 py-7 w-full max-w-full overflow-x-hidden">
             {/* Page Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate("/admin/projects")} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
-                        <ArrowLeft size={16}/>
-                    </button>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span style={{ color: "#666", fontSize: "13px" }}>Projects</span>
-                            <span style={{ color: "#444" }}>/</span>
-                            <span style={{ color: "#EEEEEE", fontSize: "13px" }}>{project.title}</span>
-                        </div>
-                        <h1 style={{ color: "#EEEEEE", fontSize: "22px", fontWeight: 700 }} className="mt-0.5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center justify-between w-full lg:w-auto">
+                    <div className="flex items-center gap-3 lg:gap-4">
+                        <button onClick={() => navigate("/admin/projects")} className="hidden lg:flex w-9 h-9 rounded-lg items-center justify-center transition-all flex-shrink-0" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; e.currentTarget.style.color = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; e.currentTarget.style.color = "#888"; }}>
+                            <ArrowLeft size={16}/>
+                        </button>
+                        <h1 style={{ color: "#EEEEEE", fontSize: "22px", fontWeight: 700, lineHeight: 1 }} className="mt-0.5">
                             {watched.title || project.title}
                         </h1>
                     </div>
+                    
+                    {/* Action buttons (Mobile only) */}
+                    <div className="flex items-center gap-2 lg:hidden">
+                        {renderActionButtons()}
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 w-full lg:w-auto">
                     {/* Publish Toggle */}
                     <button
                         onClick={handleTogglePublished}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all"
+                        className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 rounded-lg transition-all whitespace-nowrap"
                         style={{
                             background: isPublished ? "rgba(76,175,80,0.12)" : "#241C1C",
                             color: isPublished ? "#4CAF50" : "#666",
                             border: `1px solid ${isPublished ? "rgba(76,175,80,0.4)" : "#2E2020"}`,
                             fontSize: "13px",
-                            fontWeight: isPublished ? 600 : 400
+                            fontWeight: isPublished ? 600 : 400,
+                            height: "36px"
                         }}
                     >
-                        <Globe size={13} />
-                        {isPublished ? "Published" : "Draft"}
+                        <Globe size={13} className="flex-shrink-0" />
+                        <span className="truncate">{isPublished ? "Published" : "Draft"}</span>
                     </button>
 
-                    {/* Lock Toggle */}
-                    <button
-                        onClick={handleToggleLocked}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all"
-                        style={{
-                            background: isLocked ? "rgba(216,64,64,0.12)" : "#241C1C",
-                            color: isLocked ? "#D84040" : "#666",
-                            border: `1px solid ${isLocked ? "rgba(216,64,64,0.4)" : "#2E2020"}`,
-                            fontSize: "13px",
-                            fontWeight: isLocked ? 600 : 400
-                        }}
-                    >
-                        {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
-                        {isLocked ? "Locked" : "Unlocked"}
-                    </button>
+                    {/* Status Dropdown */}
+                    <div className="relative flex-1 lg:flex-none">
+                        <button
+                            onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                            className="w-full flex items-center justify-between lg:justify-center gap-1.5 px-3 rounded-lg transition-all whitespace-nowrap"
+                            style={{
+                                background: (statusColors[watched.status || project?.status] || statusColors["Planning"]).bg,
+                                color: (statusColors[watched.status || project?.status] || statusColors["Planning"]).text,
+                                border: `1px solid ${(statusColors[watched.status || project?.status] || statusColors["Planning"]).border || "transparent"}`,
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                height: "36px"
+                            }}
+                        >
+                            <span className="flex items-center gap-1.5 truncate">
+                                <Activity size={13} className="flex-shrink-0" />
+                                <span className="truncate">{watched.status || project?.status || "Planning"}</span>
+                            </span>
+                            <ChevronDown size={13} className={`flex-shrink-0 transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showStatusDropdown && (
+                            <div className="absolute top-full left-0 mt-1 w-full lg:w-40 bg-[#1D1616] border border-[#2E2020] rounded-lg shadow-xl z-50 overflow-hidden">
+                                {Object.keys(statusColors).map((status) => {
+                                    const color = statusColors[status as keyof typeof statusColors];
+                                    return (
+                                        <button
+                                            key={status}
+                                            onClick={() => handleStatusChange(status)}
+                                            className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#2A1F1F] transition-colors"
+                                            style={{ color: color.text }}
+                                        >
+                                            {status}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Highlight Toggle */}
                     <button
                         onClick={handleToggleFeatured}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all"
+                        className="flex-1 lg:flex-none flex items-center justify-center gap-1.5 px-3 rounded-lg transition-all whitespace-nowrap"
                         style={{
                             background: isFeatured ? "rgba(255,193,7,0.12)" : "#241C1C",
                             color: isFeatured ? "#FFC107" : "#666",
                             border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#2E2020"}`,
                             fontSize: "13px",
-                            fontWeight: isFeatured ? 600 : 400
+                            fontWeight: isFeatured ? 600 : 400,
+                            height: "36px"
                         }}
                     >
-                        <Star size={13} fill={isFeatured ? "#FFC107" : "none"}/>
-                        {isFeatured ? "Featured" : "Highlight"}
+                        <Star size={13} fill={isFeatured ? "#FFC107" : "none"} className="flex-shrink-0" />
+                        <span className="truncate">{isFeatured ? "Featured" : "Highlight"}</span>
                     </button>
 
-                    <div className="h-6 w-[1px] bg-[#2E2020] mx-1" />
+                    <div className="hidden lg:block h-6 w-[1px] bg-[#2E2020] mx-1" />
 
-                    {isEditing ? (<>
-                            <button onClick={handleCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#EEEEEE"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; }}>
-                                <X size={14}/> Discard
-                            </button>
-                            <button onClick={handleSubmit(onSave)} disabled={saving || saved} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: saved ? "#4CAF50" : "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }}>
-                                {saving ? <><Loader2 size={13} className="animate-spin"/> Saving...</>
-                                : saved ? <><CheckCircle2 size={13}/> Saved!</>
-                                : <><Save size={13}/> Save Changes</>}
-                            </button>
-                        </>) : (<>
-                            <button onClick={() => window.open(`/works/${project.slug}`, "_blank")} className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all" style={{ background: "rgba(36, 28, 28, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", border: "1px solid #2E2020", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#2E2020"; }}>
-                                <ExternalLink size={13}/> Preview
-                            </button>
-                            {isLocked ? (
-                                <button
-                                    onClick={() => alert("Dự án này đang bị khóa. Vui lòng click vào nút 'Locked' ở trên để mở khóa trước khi chỉnh sửa.")}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all opacity-60 cursor-not-allowed"
-                                    style={{ background: "#2A1F1F", color: "#666", border: "1px solid #3A2A2A", fontSize: "13px", fontWeight: 600 }}
-                                >
-                                    <Lock size={13}/> Locked
-                                </button>
-                            ) : (
-                                <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" style={{ background: "#D84040", color: "#fff", fontSize: "13px", fontWeight: 600 }} onMouseEnter={(e) => { e.currentTarget.style.background = "#c03030"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "#D84040"; }}>
-                                    <Edit3 size={13}/> Edit Project
-                                </button>
-                            )}
-                        </>)}
+                    {/* Action buttons (Desktop only) */}
+                    <div className="hidden lg:flex items-center gap-2">
+                        {renderActionButtons()}
+                    </div>
                 </div>
             </div>
 
             {/* ══════════════ ADMIN COMMAND CENTER TABS ══════════════ */}
             <div style={{ marginBottom: "24px" }}>
                 {/* Tab bar */}
-                <div style={{
+                <div className="overflow-x-auto hide-scrollbar" style={{
                     display: "flex", gap: "2px", marginBottom: "20px",
                     background: "rgba(29,22,22,0.5)", borderRadius: "14px", padding: "5px",
                     border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(12px)",
@@ -2326,8 +2403,8 @@ export function ProjectDetailPage() {
                             key={tab.id}
                             onClick={() => setAdminTab(tab.id as any)}
                             style={{
-                                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                                padding: "9px 10px", borderRadius: "10px", border: "none", cursor: "pointer",
+                                flex: "1 0 auto", whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                                padding: "9px 12px", borderRadius: "10px", border: "none", cursor: "pointer",
                                 background: adminTab === tab.id ? "#D84040" : "transparent",
                                 color: adminTab === tab.id ? "#fff" : "#666",
                                 fontSize: "12px", fontWeight: adminTab === tab.id ? 600 : 400,
@@ -2360,10 +2437,10 @@ export function ProjectDetailPage() {
             </div>
 
             {/* Main grid */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* ── Left: Hero + Details (2 cols) ── */}
-                <div className="col-span-2 space-y-5">
+                <div className="lg:col-span-2 space-y-5">
 
                     {/* Hero Image */}
                     <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020" }}>
@@ -2413,7 +2490,7 @@ export function ProjectDetailPage() {
                             {/* Title */}
                             <div>
                                 <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                    <Briefcase size={11} color="#D84040"/> Project Title
+                                    Project Title
                                 </label>
                                 {isEditing ? (<input {...register("title", { required: true })} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>{project.title}</p>)}
                             </div>
@@ -2422,7 +2499,7 @@ export function ProjectDetailPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <User size={11} color="#D84040"/> Client
+                                        Client
                                     </label>
                                     {isEditing ? (
                                         <div className="flex gap-2">
@@ -2445,7 +2522,7 @@ export function ProjectDetailPage() {
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <Tag size={11} color="#D84040"/> Category
+                                        Category
                                     </label>
                                     {isEditing ? (
                                         isAddingCategory ? (
@@ -2541,39 +2618,43 @@ export function ProjectDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Status + Due Date */}
+                            {/* Due Date + Budget */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <Activity size={11} color="#D84040"/> Status
+                                        Due Date
                                     </label>
-                                    {isEditing ? (<select {...register("status")} className="px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                            <option value="Planning">Planning</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Review">Review</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Other">Other</option>
-                                        </select>) : (<span className="inline-flex items-center px-2.5 py-1 rounded-full" style={{ background: statusInfo.bg, color: statusInfo.text, fontSize: "12px", fontWeight: 600 }}>{project.status}</span>)}
+                                    {isEditing ? (<input type="date" {...register("dueDate")} className="px-3 py-2 rounded-lg outline-none w-full" style={{ ...inputStyle, colorScheme: "dark" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (
+                                        <p style={{ color: "#EEEEEE", fontSize: "14px" }}>{formatDueDate(project.dueDate)}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <Calendar size={11} color="#D84040"/> Due Date
+                                        Budget
                                     </label>
-                                    {isEditing ? (<input type="date" {...register("dueDate")} className="px-3 py-2 rounded-lg outline-none" style={{ ...inputStyle, colorScheme: "dark" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{formatDueDate(project.dueDate)}</p>)}
-                                </div>
-                            </div>
-
-                            {/* Budget + Tags */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <Coins size={11} color="#D84040"/> Budget
-                                    </label>
-                                    {isEditing ? (
-                                        <input {...register("budget")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
-                                    ) : (
+                                    {isEditing ? (() => {
+                                        const { onChange, ...rest } = register("budget");
+                                        return (
+                                            <input 
+                                                {...rest} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/,/g, "");
+                                                    if (!isNaN(Number(val)) && val !== "") {
+                                                        e.target.value = Number(val).toLocaleString("en-US");
+                                                    }
+                                                    onChange(e);
+                                                }}
+                                                className="px-3 py-2 rounded-lg outline-none" 
+                                                style={inputStyle} 
+                                                onFocus={(e) => (e.target.style.borderColor = "#D84040")} 
+                                                onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}
+                                            />
+                                        );
+                                    })() : (
                                         <div className="flex items-center gap-2">
-                                            <p style={{ color: "#D84040", fontSize: "15px", fontWeight: 700 }}>{project.budget}</p>
+                                            <p style={{ color: "#D84040", fontSize: "15px", fontWeight: 700 }}>
+                                                {project.budget !== "TBD" && !isNaN(Number(project.budget)) ? Number(project.budget).toLocaleString("en-US") : project.budget}
+                                            </p>
                                             {project.budget !== "TBD" && (
                                                 <button
                                                     onClick={() => navigate(`/admin/finance/revenue`)}
@@ -2587,14 +2668,6 @@ export function ProjectDetailPage() {
                                             )}
                                         </div>
                                     )}
-                                </div>
-                                <div>
-                                    <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                        <Tag size={11} color="#D84040"/> Tags
-                                    </label>
-                                    {isEditing ? (<input {...register("tags")} placeholder="Comma-separated tags" className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<div className="flex flex-wrap gap-1.5">
-                                            {(project.tags || []).map((tag) => (<span key={tag} className="px-2 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "12px", border: "1px solid #3A2A2A" }}>{tag}</span>))}
-                                        </div>)}
                                 </div>
                             </div>
 
@@ -2839,38 +2912,6 @@ export function ProjectDetailPage() {
                 {/* ── Right: Sidebar (1 col) ── */}
                 <div className="col-span-1 space-y-5">
 
-                    {/* Quick Stats */}
-                    <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                        <p style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>Quick Stats</p>
-                        {[
-            { icon: Coins, label: "Budget", value: project.budget, color: "#D84040" },
-            { icon: Calendar, label: "Due Date", value: formatDueDate(project.dueDate), color: "#EEEEEE" },
-            { icon: Activity, label: "Progress", value: `${project.progress}%`, color: project.progress === 100 ? "#4CAF50" : "#D84040" },
-        ].map(({ icon: Icon, label, value, color }) => (<div key={label} className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #2A1F1F" }}>
-                                <div className="flex items-center gap-2">
-                                    <Icon size={13} color="#8E1616"/>
-                                    <span style={{ color: "#888", fontSize: "12px" }}>{label}</span>
-                                </div>
-                                <span style={{ color, fontSize: "13px", fontWeight: 600 }}>{value}</span>
-                            </div>))}
-                        <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #2A1F1F" }}>
-                            <div className="flex items-center gap-2">
-                                <Clock size={13} color="#8E1616"/>
-                                <span style={{ color: "#888", fontSize: "12px" }}>Last Updated</span>
-                            </div>
-                            <span style={{ color: "#666", fontSize: "12px" }}>2 hours ago</span>
-                        </div>
-                        <div className="flex items-center justify-between py-2">
-                            <div className="flex items-center gap-2">
-                                <Star size={13} color="#8E1616"/>
-                                <span style={{ color: "#888", fontSize: "12px" }}>Highlighted</span>
-                            </div>
-                            <button onClick={() => setIsFeatured((v) => !v)} className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all" style={{ background: isFeatured ? "rgba(255,193,7,0.12)" : "#2A1F1F", color: isFeatured ? "#FFC107" : "#555", border: `1px solid ${isFeatured ? "rgba(255,193,7,0.4)" : "#3A2A2A"}`, fontSize: "11px", fontWeight: 600 }}>
-                                <Star size={10} fill={isFeatured ? "#FFC107" : "none"}/>
-                                {isFeatured ? "Yes" : "No"}
-                            </button>
-                        </div>
-                    </div>
 
                     {/* Assigned Crew */}
                     <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>

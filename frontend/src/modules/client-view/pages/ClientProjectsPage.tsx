@@ -11,6 +11,7 @@ import {
     Loader2
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { getDisplayProgress } from "../../../utils/projectProgress";
 
 const statusColors: Record<string, { bg: string; text: string }> = {
     "In Progress": { bg: "rgba(216,64,64,0.15)", text: "#D84040" },
@@ -182,7 +183,7 @@ export function ClientProjectsPage() {
                                 <img
                                     src={project.cover_image || "/favicon/204-logo.png"}
                                     alt={project.title}
-                                    className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!project.cover_image ? "p-8 opacity-30 grayscale" : ""}`}
+                                    className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${!project.cover_image ? "p-0 opacity-20 grayscale object-contain" : "object-cover"}`}
                                 />
                                 <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(36, 28, 28, 0.7) 0%, transparent 60%)" }} />
                                 {/* Status badge */}
@@ -248,7 +249,7 @@ export function ClientProjectsPage() {
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-2">
-                                                <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-8 h-8 rounded-lg object-cover flex-shrink-0 ${!p.cover_image ? "p-1.5 opacity-40 bg-[#1D1616]" : ""}`} />
+                                                <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-8 h-8 rounded-lg flex-shrink-0 ${!p.cover_image ? "p-1.5 opacity-40 bg-[#1D1616] object-contain" : "object-cover"}`} />
                                                 <span style={{ fontSize: "13px", fontWeight: 500 }}>{p.title}</span>
                                             </div>
                                         </td>
@@ -279,14 +280,14 @@ export function ClientProjectsPage() {
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1 rounded-full" style={{ height: "4px", background: "#2A1F1F" }}>
                                                     <div
-                                                        className="h-full rounded-full"
+                                                        className="h-full rounded-full transition-all duration-500"
                                                         style={{
-                                                            width: `${p.progress}%`,
-                                                            background: p.progress === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)",
+                                                            width: `${getDisplayProgress(p.status)}%`,
+                                                            background: getDisplayProgress(p.status) === 100 ? "#6B8FD6" : "linear-gradient(to right, #8E1616, #D84040)",
                                                         }}
                                                     />
                                                 </div>
-                                                <span style={{ color: "#666", fontSize: "11px", flexShrink: 0 }}>{p.progress}%</span>
+                                                <span style={{ color: "#666", fontSize: "11px", flexShrink: 0 }}>{getDisplayProgress(p.status)}%</span>
                                             </div>
                                         </td>
                                         <td className="px-5 py-3.5 text-right">

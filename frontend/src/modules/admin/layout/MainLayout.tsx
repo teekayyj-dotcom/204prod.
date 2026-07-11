@@ -35,15 +35,12 @@ export function MainLayout() {
           <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <img src="/favicon/204-logo.png" alt="204 Logo" className="h-10 w-10 object-contain" />
-              <span className="tracking-widest uppercase text-white font-extrabold text-lg">204 PROD</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <button
-                className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg"
-                style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#888", fontSize: "12px" }}
+                className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
               >
-                <Bell size={14} />
-                <span className="hidden min-[400px]:inline">Thông báo</span>
+                <Bell size={20} />
               </button>
               <button
                 onClick={() => setSidebarOpen(true)}
