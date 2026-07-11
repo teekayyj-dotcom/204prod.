@@ -3074,7 +3074,9 @@ export function ProjectDetailPage() {
                     onClose={() => setIsAddingClient(false)}
                     onAdd={(newClient) => {
                         setDbClients((prev: any[]) => [...prev, newClient]);
-                        setValue("client", newClient.slug, { shouldValidate: true, shouldDirty: true });
+                        setTimeout(() => {
+                            setValue("client", newClient.slug, { shouldValidate: true, shouldDirty: true });
+                        }, 0);
                     }}
                 />
             )}
