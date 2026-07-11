@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { X, Plus, Loader2, User, Building2, Phone, Mail } from "lucide-react";
+import { X, Plus, Loader2, User, Building2, Phone, Mail, CheckCircle2 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 
 interface FormData {
