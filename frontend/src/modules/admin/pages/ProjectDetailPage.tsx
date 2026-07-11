@@ -7,8 +7,7 @@ import {
     Clock, CheckCircle2, Loader2, Trash2, MessageSquare, Activity, ExternalLink,
     AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
     Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
-    FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
-    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins
+    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -1702,60 +1701,140 @@ function VaultTab({ project }: { project: any }) {
 
 // ─── VideoViewMode (helper component) ─────────────────────────────────────────────
 
-function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo: any }) {
-    let url = project?.video_url || project?.videoUrl || "";
-    
-    // Automatically convert Bunny direct URL to iframe embed URL for better player UI
+function VideoItem({ url, project, setProject }: { url: string; project: any; setProject: any }) {
+    const [showMenu, setShowMenu] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    let displayUrl = url;
     const bunnyDirectMatch = url.match(/https:\/\/[^\/]+\/([a-zA-Z0-9-]+)\/play_1080p\.mp4/);
     if (bunnyDirectMatch) {
-        url = `https://iframe.mediadelivery.net/embed/694348/${bunnyDirectMatch[1]}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`;
+        displayUrl = `https://iframe.mediadelivery.net/embed/694348/${bunnyDirectMatch[1]}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`;
     }
-
     const ytMatch = url ? url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/) : null;
     const vmMatch = url ? url.match(/vimeo\.com\/(\d+)/) : null;
     const embedUrl = ytMatch
         ? `https://www.youtube.com/embed/${ytMatch[1]}`
         : vmMatch ? `https://player.vimeo.com/video/${vmMatch[1]}` 
-        : url?.includes("iframe.mediadelivery.net") ? url : null;
-
+        : displayUrl.includes("iframe.mediadelivery.net") ? displayUrl : null;
     const isDirectVideo = !!url && !embedUrl && (
-        url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || 
-        url.includes("r2.dev")
+        url.endsWith(".mp4") || url.endsWith(".mov") || url.endsWith(".webm") || url.includes("r2.dev")
     );
-    
-    let posterUrl = "";
 
-    if (embedUrl) {
-        return (
-            <div className="mt-3 rounded-xl overflow-hidden" style={{ border: "1px solid #2E2020", aspectRatio: "3/2" }}>
+    const handleDelete = async () => {
+        setIsProcessing(true);
+        try {
+            const allMedia = await fetchApi('/media');
+            const targetMedia = allMedia.find((m: any) => m.url === url);
+            if (targetMedia) {
+                await fetchApi(`/media/${targetMedia.id}`, { method: 'DELETE' }).catch(console.error);
+            }
+            let currentUrls = (project?.video_url || project?.videoUrl || "").split(",").filter(Boolean);
+            const newUrls = currentUrls.filter((u: string) => u !== url).join(",");
+            const updatedProject = await fetchApi(`/projects/${project.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ ...project, video_url: newUrls })
+            });
+            if (setProject) setProject(updatedProject);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsProcessing(false);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const handleChangeVideo = async (e: any) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setIsProcessing(true);
+        setShowMenu(false);
+        try {
+            const mediaAsset = await uploadMediaPipeline(file, "projects", fetchApi, undefined, project.client_slug || project.client, project.slug, "final video");
+            const newUrl = mediaAsset.url;
+            let currentUrls = (project?.video_url || project?.videoUrl || "").split(",").filter(Boolean);
+            const idx = currentUrls.indexOf(url);
+            if (idx !== -1) {
+                currentUrls[idx] = newUrl;
+            } else {
+                currentUrls.push(newUrl);
+            }
+            const newUrlsStr = currentUrls.join(",");
+            const updatedProject = await fetchApi(`/projects/${project.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ ...project, video_url: newUrlsStr })
+            });
+            if (setProject) setProject(updatedProject);
+            const allMedia = await fetchApi('/media');
+            const targetMedia = allMedia.find((m: any) => m.url === url);
+            if (targetMedia) {
+                await fetchApi(`/media/${targetMedia.id}`, { method: 'DELETE' }).catch(console.error);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        <div className="relative rounded-xl overflow-hidden group bg-black flex-1" style={{ border: "1px solid #2E2020", aspectRatio: "3/2", minHeight: "200px" }}>
+            {embedUrl ? (
                 <iframe src={embedUrl} className="w-full h-full" style={{ border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video" />
-            </div>
-        );
-    }
-    if (isDirectVideo) {
-        return (
-            <div className="mt-3 rounded-xl overflow-hidden bg-black" style={{ border: "1px solid #2E2020", aspectRatio: "3/2" }}>
-                <video src={url} poster={posterUrl || undefined} controls className="w-full h-full object-contain" />
-            </div>
-        );
-    }
-    if (url) {
-        return (
-            <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl transition-all" style={{ background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", textDecoration: "none" }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2E2020"; }}
+            ) : isDirectVideo ? (
+                <video src={url} controls className="w-full h-full object-contain" />
+            ) : (
+                <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center w-full h-full text-[#EEEEEE] hover:text-[#D84040] transition-colors p-4">
+                    <Video size={32} className="mb-2 opacity-50" />
+                    <span className="flex items-center gap-2">View Video Link <ExternalLink size={14} /></span>
+                    <span className="text-[10px] text-[#888] mt-2 truncate w-full text-center">{url}</span>
+                </a>
+            )}
+
+            <button 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(!showMenu); }}
+                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-[#D84040]"
             >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(216,64,64,0.12)" }}>
-                    <Video size={14} color="#D84040" />
+                <MoreVertical size={16} />
+            </button>
+
+            {showMenu && (
+                <div className="absolute top-11 right-2 w-40 bg-[#1D1616] border border-[#3A2A2A] rounded-xl shadow-xl overflow-hidden z-20">
+                    <label className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#EEEEEE] hover:bg-[#2A1F1F] cursor-pointer">
+                        <Edit3 size={14} /> Change Video
+                        <input type="file" accept="video/*" hidden onChange={handleChangeVideo} />
+                    </label>
+                    <button 
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); setShowDeleteModal(true); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#D84040] hover:bg-[#2A1F1F] cursor-pointer text-left"
+                    >
+                        <Trash2 size={14} /> Delete Video
+                    </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                    <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>Video Link</p>
-                    <p style={{ color: "#D84040", fontSize: "11px" }} className="truncate">{url}</p>
+            )}
+
+            {isProcessing && (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-30">
+                    <Loader2 size={24} className="animate-spin mb-2 text-[#D84040]" />
+                    <span className="text-sm font-medium">Processing...</span>
                 </div>
-                <ExternalLink size={13} color="#555" />
-            </a>
-        );
-    }
+            )}
+
+            {showDeleteModal && (
+                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-4 z-40 text-center">
+                    <AlertTriangle size={32} className="text-[#D84040] mb-3" />
+                    <p className="text-white text-sm font-medium mb-4">Are you sure you want to delete this video?</p>
+                    <div className="flex gap-3">
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDeleteModal(false); }} className="px-4 py-1.5 rounded-lg bg-[#2A1F1F] hover:bg-[#3A2A2A] text-white text-sm transition-colors">Cancel</button>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(); }} className="px-4 py-1.5 rounded-lg bg-[#D84040] hover:bg-red-600 text-white text-sm font-medium transition-colors">Delete</button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function VideoViewMode({ project, uploadedVideo, setProject }: { project: any; uploadedVideo: any; setProject?: any }) {
     if (uploadedVideo) {
         return (
             <div className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
@@ -1769,10 +1848,25 @@ function VideoViewMode({ project, uploadedVideo }: { project: any; uploadedVideo
             </div>
         );
     }
+    
+    let rawUrl = project?.video_url || project?.videoUrl || "";
+    if (!rawUrl) {
+        return (
+            <p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }} className="mt-2">
+                No video attached — click <span style={{ color: "#D84040" }}>Edit Project</span> to add one.
+            </p>
+        );
+    }
+
+    const urls = rawUrl.split(",").filter(Boolean);
+    const gridCols = urls.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1";
+    
     return (
-        <p style={{ color: "#444", fontSize: "13px", fontStyle: "italic" }} className="mt-2">
-            No video attached — click <span style={{ color: "#D84040" }}>Edit Project</span> to add one.
-        </p>
+        <div className={`mt-3 grid ${gridCols} gap-3`}>
+            {urls.map((u: string, idx: number) => (
+                <VideoItem key={idx} url={u} project={project} setProject={setProject} />
+            ))}
+        </div>
     );
 }
 
@@ -1921,6 +2015,8 @@ export function ProjectDetailPage() {
 
     const [dragActive, setDragActive] = useState(false);
     const [uploadedVideo, setUploadedVideo] = useState(null);
+    const [uploadedVerticalVideos, setUploadedVerticalVideos] = useState<File[]>([]);
+    const [videoFormat, setVideoFormat] = useState<"horizontal" | "vertical">("horizontal");
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
     const [thumbnailFile, setThumbnailFile] = useState(null);
 
@@ -1931,8 +2027,13 @@ export function ProjectDetailPage() {
     };
     const handleDrop = (e) => {
         e.preventDefault(); e.stopPropagation(); setDragActive(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith("video/")) setUploadedVideo(file);
+        if (videoFormat === "horizontal") {
+            const file = e.dataTransfer.files?.[0];
+            if (file && file.type.startsWith("video/")) setUploadedVideo(file);
+        } else {
+            const files = Array.from(e.dataTransfer.files || []).filter((f: any) => f.type.startsWith("video/"));
+            setUploadedVerticalVideos(prev => [...prev, ...files]);
+        }
     };
 
     const watched = watch();
@@ -1950,10 +2051,26 @@ export function ProjectDetailPage() {
                 coverMediaId = null;
             }
 
-            let finalVideoUrl = data.videoUrl;
-            if (uploadedVideo) {
-                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, project.slug, "final video");
-                finalVideoUrl = mediaAsset.url;
+            let finalVideoUrl = data.videoUrl !== undefined ? data.videoUrl : (project?.video_url || project?.videoUrl);
+            if (videoFormat === "horizontal") {
+                if (uploadedVideo) {
+                    const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, project.slug, "final video");
+                    finalVideoUrl = mediaAsset.url;
+                }
+            } else {
+                if (uploadedVerticalVideos.length > 0) {
+                    if (uploadedVerticalVideos.length < 3) {
+                        throw new Error("Với định dạng dọc, vui lòng upload ít nhất 3 video.");
+                    }
+                    const urls = [];
+                    for (let i = 0; i < uploadedVerticalVideos.length; i++) {
+                        const file = uploadedVerticalVideos[i];
+                        const renamed = new File([file], `Vertical Video ${data.title} ${i + 1}.mp4`, { type: file.type });
+                        const mediaAsset = await uploadMediaPipeline(renamed, "projects", fetchApi, undefined, data.client, project.slug, "final video");
+                        urls.push(mediaAsset.url);
+                    }
+                    finalVideoUrl = urls.join(",");
+                }
             }
 
             const finalGalleryMediaIds = [];
@@ -2500,56 +2617,85 @@ export function ProjectDetailPage() {
                                     <div className="space-y-4 mt-3">
                                         <div>
                                             <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="flex items-center gap-1.5 mb-2">
-                                                <Link2 size={10} color="#D84040"/> Video URL
+                                                <Video size={10} color="#D84040"/> Định dạng Video
                                             </label>
-                                            <div className="relative">
-                                                <Link2 size={13} color="#555" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}/>
-                                                <input {...register("videoUrl")} placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..." className="px-3 py-2 rounded-lg outline-none transition-all" style={{ ...inputStyle, paddingLeft: "36px", paddingRight: "36px" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
-                                                {watch("videoUrl") && (
-                                                    <button type="button" onClick={() => setValue("videoUrl", "")} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center bg-[#2A1F1F] hover:bg-[#3A2A2A] text-white/50 hover:text-white transition-all" title="Clear Video URL">
-                                                        <X size={10}/>
-                                                    </button>
-                                                )}
+                                            <div className="flex gap-2 mb-4">
+                                                <button type="button" onClick={() => setVideoFormat("horizontal")} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={{ background: videoFormat === "horizontal" ? "rgba(216,64,64,0.15)" : "#2A1F1F", color: videoFormat === "horizontal" ? "#D84040" : "#888", border: `1px solid ${videoFormat === "horizontal" ? "rgba(216,64,64,0.3)" : "#3A2A2A"}` }}>
+                                                    Video Ngang (Mặc định)
+                                                </button>
+                                                <button type="button" onClick={() => setVideoFormat("vertical")} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={{ background: videoFormat === "vertical" ? "rgba(216,64,64,0.15)" : "#2A1F1F", color: videoFormat === "vertical" ? "#D84040" : "#888", border: `1px solid ${videoFormat === "vertical" ? "rgba(216,64,64,0.3)" : "#3A2A2A"}` }}>
+                                                    Video Dọc (Tối thiểu 3)
+                                                </button>
                                             </div>
-                                            {watch("videoUrl") && (
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#4CAF50" }}/>
-                                                    <span style={{ color: "#4CAF50", fontSize: "11px" }}>URL detected — will be embedded on the project page</span>
-                                                </div>
-                                            )}
                                         </div>
 
                                         <div>
                                             <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="flex items-center gap-1.5 mb-2">
-                                                <UploadCloud size={10} color="#D84040"/> Upload Video File
+                                                <UploadCloud size={10} color="#D84040"/> Upload Video {videoFormat === "vertical" ? "Files (Ít nhất 3 video)" : "File"}
                                             </label>
-                                            {!uploadedVideo ? (
+                                            {(videoFormat === "horizontal" && !uploadedVideo) || (videoFormat === "vertical" && uploadedVerticalVideos.length === 0) ? (
                                                 <div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => document.getElementById("video-upload-edit")?.click()} className="rounded-xl flex flex-col items-center justify-center py-8 cursor-pointer transition-all select-none" style={{ border: `2px dashed ${dragActive ? "#D84040" : "#3A2A2A"}`, background: dragActive ? "rgba(216,64,64,0.05)" : "rgba(29,22,22,0.4)" }}>
-                                                    <input id="video-upload-edit" type="file" accept="video/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) setUploadedVideo(file); }}/>
+                                                    <input id="video-upload-edit" type="file" accept="video/*" multiple={videoFormat === "vertical"} className="hidden" onChange={(e) => { 
+                                                        if (videoFormat === "horizontal") {
+                                                            const file = e.target.files?.[0]; if (file) setUploadedVideo(file); 
+                                                        } else {
+                                                            const files = Array.from(e.target.files || []);
+                                                            setUploadedVerticalVideos(prev => [...prev, ...files]);
+                                                        }
+                                                    }}/>
                                                     <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: dragActive ? "rgba(216,64,64,0.15)" : "#1D1616", border: `1px solid ${dragActive ? "rgba(216,64,64,0.4)" : "#2E2020"}` }}>
                                                         <UploadCloud size={18} color={dragActive ? "#D84040" : "#555"}/>
                                                     </div>
-                                                    <p style={{ color: dragActive ? "#D84040" : "#888", fontSize: "12px", fontWeight: 500 }}>{dragActive ? "Drop video here" : "Drag & drop a video file"}</p>
+                                                    <p style={{ color: dragActive ? "#D84040" : "#888", fontSize: "12px", fontWeight: 500 }}>{dragActive ? "Drop video here" : (videoFormat === "vertical" ? "Drag & drop multiple videos" : "Drag & drop a video file")}</p>
                                                     <p style={{ color: "#555", fontSize: "11px" }} className="mt-1">or <span style={{ color: "#D84040" }}>browse files</span> · MP4, MOV, WebM — up to 500 MB</p>
                                                 </div>
                                             ) : (
-                                                <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
-                                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(76,175,80,0.15)" }}>
-                                                        <Play size={14} color="#4CAF50" fill="#4CAF50"/>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="truncate">{uploadedVideo.name}</p>
-                                                        <p style={{ color: "#666", fontSize: "11px" }}>{(uploadedVideo.size / 1024 / 1024).toFixed(1)} MB · {uploadedVideo.type || "video"}</p>
-                                                    </div>
-                                                    <button type="button" onClick={() => setUploadedVideo(null)} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all" style={{ background: "#2A1F1F", color: "#666", border: "1px solid #3A2A2A" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#3A2A2A"; }}>
-                                                        <X size={12}/>
-                                                    </button>
+                                                <div className="space-y-2">
+                                                    {videoFormat === "horizontal" && uploadedVideo && (
+                                                        <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
+                                                            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(76,175,80,0.15)" }}>
+                                                                <Play size={14} color="#4CAF50" fill="#4CAF50"/>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="truncate">{uploadedVideo.name}</p>
+                                                                <p style={{ color: "#666", fontSize: "11px" }}>{(uploadedVideo.size / 1024 / 1024).toFixed(1)} MB · {uploadedVideo.type || "video"}</p>
+                                                            </div>
+                                                            <button type="button" onClick={() => setUploadedVideo(null)} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all" style={{ background: "#2A1F1F", color: "#666", border: "1px solid #3A2A2A" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#3A2A2A"; }}>
+                                                                <X size={12}/>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {videoFormat === "vertical" && uploadedVerticalVideos.length > 0 && (
+                                                        <>
+                                                            {uploadedVerticalVideos.map((video, idx) => (
+                                                                <div key={idx} className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
+                                                                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(76,175,80,0.15)" }}>
+                                                                        <Play size={14} color="#4CAF50" fill="#4CAF50"/>
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="truncate">{video.name}</p>
+                                                                        <p style={{ color: "#666", fontSize: "11px" }}>{(video.size / 1024 / 1024).toFixed(1)} MB · {video.type || "video"}</p>
+                                                                    </div>
+                                                                    <button type="button" onClick={() => setUploadedVerticalVideos(prev => prev.filter((_, i) => i !== idx))} className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all" style={{ background: "#2A1F1F", color: "#666", border: "1px solid #3A2A2A" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#3A2A2A"; }}>
+                                                                        <X size={12}/>
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            <div onClick={() => document.getElementById("video-upload-edit")?.click()} className="rounded-xl flex items-center justify-center py-4 cursor-pointer transition-all select-none mt-2" style={{ border: "2px dashed #3A2A2A", background: "rgba(29,22,22,0.4)" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A2A2A"; }}>
+                                                                <input id="video-upload-edit" type="file" accept="video/*" multiple className="hidden" onChange={(e) => { 
+                                                                    const files = Array.from(e.target.files || []);
+                                                                    setUploadedVerticalVideos(prev => [...prev, ...files]);
+                                                                }}/>
+                                                                <span style={{ color: "#888", fontSize: "12px", fontWeight: 500 }}>+ Add more videos</span>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                 ) : (
-                                    <VideoViewMode project={project} uploadedVideo={uploadedVideo} />
+                                    <VideoViewMode project={project} uploadedVideo={uploadedVideo} setProject={setProject} />
                                 )}
 
 
