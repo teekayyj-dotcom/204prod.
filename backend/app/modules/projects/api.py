@@ -2,8 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from sqlalchemy.orm import Session
 from fastapi_pagination import Page
 from fastapi_pagination.customization import CustomizedPage, UseParamsFields
-from fastapi_cache.decorator import cache
-
 from app.db.session import get_db_session
 from app.modules.projects.service import get_project, get_projects, create_project, delete_project, update_project
 from app.modules.projects.schemas import (
@@ -64,7 +62,6 @@ def list_all_projects_route(db: Session = Depends(get_db_session)):
     return [_map_to_detail(p) for p in projects]
 
 @router.get("/clients/all")
-@cache(expire=300)
 def list_clients_route(db: Session = Depends(get_db_session)):
     from app.modules.projects.service import get_clients
     return get_clients(db)
