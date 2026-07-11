@@ -39,7 +39,7 @@ export function AddClientModal({ onClose, onAdd }: Props) {
                 status: "Lead"
             };
 
-            const newClient = await fetchApi("/clients", {
+            const newClient = await fetchApi("/projects/clients", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
@@ -124,9 +124,9 @@ export function AddClientModal({ onClose, onAdd }: Props) {
                                 )}
                             </div>
 
-                            <div>
+                            <div className="mb-4">
                                 <label style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="flex items-center gap-2 mb-1.5">
-                                    <User size={14} color="#D84040"/> Người đại diện
+                                    <User size={14} color="#D84040"/> Người đại diện <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
                                 </label>
                                 <input
                                     {...register("contact")}
@@ -139,7 +139,7 @@ export function AddClientModal({ onClose, onAdd }: Props) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="flex items-center gap-2 mb-1.5">
-                                        <Phone size={14} color="#D84040"/> Số điện thoại
+                                        <Phone size={14} color="#D84040"/> Số điện thoại <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
                                     </label>
                                     <input
                                         {...register("phone")}
@@ -150,7 +150,7 @@ export function AddClientModal({ onClose, onAdd }: Props) {
                                 </div>
                                 <div>
                                     <label style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="flex items-center gap-2 mb-1.5">
-                                        <Mail size={14} color="#D84040"/> Email
+                                        <Mail size={14} color="#D84040"/> Email <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
                                     </label>
                                     <input
                                         {...register("email")}

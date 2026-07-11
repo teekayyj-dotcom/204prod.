@@ -202,14 +202,13 @@ export function AddClientPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <Mail size={13} color="#D84040"/> Email *
+                                    <Mail size={13} color="#D84040"/> Email <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
                                 </label>
-                                <input type="email" {...register("email", { required: "Email is required" })} placeholder="contact@company.com" className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, borderColor: errors.email ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.email ? "#D84040" : "#3A2A2A")}/>
-                                {errors.email && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.email.message}</p>}
+                                <input type="email" {...register("email")} placeholder="contact@company.com" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <Phone size={13} color="#D84040"/> Phone
+                                    <Phone size={13} color="#D84040"/> Phone <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
                                 </label>
                                 <input {...register("phone")} placeholder="+1 (555) 000-0000" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
                             </div>
