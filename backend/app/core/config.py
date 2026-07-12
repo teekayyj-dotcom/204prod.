@@ -29,7 +29,7 @@ class Settings:
     # JWT
     jwt_secret: str = os.getenv("JWT_SECRET", "204prod-jwt-secret-key-change-in-production")
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))  # 24h default
+    jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "43200"))  # 30 days default
 
     # Google OAuth
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
