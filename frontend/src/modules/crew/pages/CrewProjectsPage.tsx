@@ -83,7 +83,14 @@ function GoldBadge({ visible, message }: { visible: boolean; message?: string })
   );
 }
 
-function Countdown({ deadline }: { deadline: Date | null }) {
+function Countdown({ deadline, status }: { deadline: Date | null, status?: string }) {
+  if (status && (status.toLowerCase() === "completed" || status.toLowerCase() === "done")) {
+    return (
+      <span style={{ color: "#10B981", fontSize: "12px", fontWeight: 700, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", padding: "2px 8px", borderRadius: "6px" }}>
+        Đã hoàn thành
+      </span>
+    );
+  }
   if (!deadline || isNaN(deadline.getTime())) {
     return (
       <span style={{ color: "#888", fontSize: "12px", fontWeight: 700, background: "rgba(136,136,136,0.1)", border: "1px solid rgba(136,136,136,0.2)", padding: "2px 8px", borderRadius: "6px" }}>
@@ -584,7 +591,7 @@ export function CrewProjectsPage() {
               <p style={{ color: "#555", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "4px" }}>
                 Deadline
               </p>
-              <Countdown deadline={selectedProject.deadline} />
+              <Countdown deadline={selectedProject.deadline} status={selectedProject.status} />
             </div>
             <div className="text-right">
               <p style={{ color: "#555", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "4px" }}>
