@@ -623,40 +623,51 @@ export function CrewProjectsPage() {
             Bảng Công việc — Kanban
           </h3>
 
-          <div className="flex overflow-x-auto xl:grid xl:grid-cols-4 gap-3 pb-2 snap-x">
-            {columns.map((col) => (
+          <div style={{ display: "flex", gap: "12px", minWidth: "860px", overflowX: "auto", paddingBottom: "8px" }}>
+            {columns.map((col) => {
+              const isOver = dragOver === col.id;
+              return (
               <div
                 key={col.id}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => onDrop(col.id)}
-                className="rounded-xl p-3 min-h-64 min-w-[280px] xl:min-w-0 snap-start"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(col.id);
+                }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={() => {
+                  onDrop(col.id);
+                  setDragOver(null);
+                }}
+                className="flex flex-col"
                 style={{
-                  background: "#141010",
-                  border: `1px solid ${col.id === "done" ? "rgba(16,185,129,0.2)" : "#2A1F1F"}`,
+                  flex: "1", minWidth: "160px",
+                  borderRadius: "14px",
+                  background: isOver ? `${col.color}0F` : "rgba(29,22,22,0.4)",
+                  border: `1.5px solid ${isOver ? col.color + "55" : "rgba(46,32,32,0.5)"}`,
+                  backdropFilter: "blur(12px)",
+                  transition: "all 0.18s ease",
                 }}
               >
                 {/* Column header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: col.color }}
-                    />
-                    <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 700 }}>
+                <div style={{ padding: "12px 12px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                    <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: col.color }} />
+                    <span style={{ color: col.color, fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                       {col.label}
                     </span>
                   </div>
-                  <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: "#1D1616", color: "#666", fontSize: "10px", fontWeight: 700 }}
-                  >
+                  <span style={{ background: col.color + "22", color: col.color, borderRadius: "20px", padding: "1px 7px", fontSize: "11px", fontWeight: 700 }}>
                     {col.tasks.length}
                   </span>
                 </div>
 
                 {/* Task cards */}
-                <div className="space-y-2">
-                  {col.tasks.map((task) => (
+                <div style={{ padding: "0 8px 8px", display: "flex", flexDirection: "column", gap: "7px", minHeight: "60px" }}>
+                  {col.tasks.map((task) => {
+                    const isDone = col.id === "done" || task.status === "done";
+                    const overdue = !isDone && task.deadline && new Date(task.deadline).getTime() < Date.now();
+
+                    return (
                     <div
                       key={task.id}
                       draggable
@@ -667,20 +678,17 @@ export function CrewProjectsPage() {
                           setActiveTaskMenu(activeTaskMenu === task.id ? null : task.id);
                         }
                       }}
-                      className="rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all duration-150 relative"
+                      className="relative rounded-[10px] p-[9px_11px] cursor-grab active:cursor-grabbing transition-all duration-150"
                       style={{
-                        background: col.id === "done" ? "#0D1A14" : "#1D1616",
-                        border: `1px solid ${col.id === "done" ? "rgba(16,185,129,0.2)" : "#2A1F1F"}`,
-                        opacity: col.id === "done" ? 0.7 : 1,
+                        background: "rgba(29,22,22,0.85)",
+                        border: `1px solid ${overdue ? "rgba(216,64,64,0.4)" : "rgba(46,32,32,0.7)"}`,
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                       }}
                       onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.borderColor = col.color + "88";
-                        (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                        (e.currentTarget as HTMLElement).style.borderColor = col.color + "55";
                       }}
                       onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.borderColor =
-                          col.id === "done" ? "rgba(16,185,129,0.2)" : "#2A1F1F";
-                        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                        (e.currentTarget as HTMLElement).style.borderColor = overdue ? "rgba(216,64,64,0.4)" : "rgba(46,32,32,0.7)";
                       }}
                     >
                       {activeTaskMenu === task.id && (
@@ -722,81 +730,73 @@ export function CrewProjectsPage() {
                           </div>
                         </>
                       )}
-                      <div className="flex items-start gap-1.5 mb-2">
-                        <GripVertical size={11} style={{ color: "#333", marginTop: "2px", flexShrink: 0 }} />
-                        <div className="flex-1">
-                          <p style={{ color: col.id === "done" ? "#555" : "#EEEEEE", fontSize: "13px", lineHeight: 1.4, fontWeight: 500 }}>
-                            {task.label}
-                          </p>
-                          {task.deadline && (
-                            <div className="flex items-center gap-1 mt-1 text-[9px] text-[#888]" style={{ fontWeight: 400 }}>
-                              <Clock size={9} />
-                              <span>Hạn: {new Date(task.deadline).toLocaleDateString("vi-VN")}</span>
-                            </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                              <GripVertical size={11} style={{ color: "#444" }} />
+                              {task.tag && (
+                                  <span style={{
+                                      background: "rgba(42,31,31,0.5)",
+                                      color: "#AAA", fontSize: "9px",
+                                      fontWeight: 600, padding: "2px 6px",
+                                      borderRadius: "4px"
+                                  }}>
+                                      {task.tag}
+                                  </span>
+                              )}
+                              <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: task.priority === "high" ? "#D84040" : task.priority === "medium" ? "#E8A838" : "#555" }} />
+                          </div>
+                          {overdue && (
+                              <span style={{ display: "flex", alignItems: "center", gap: "3px", color: "#f87171", fontSize: "9px", fontWeight: 700 }}>
+                                  <AlertCircle size={8} /> TRỄHẠN
+                              </span>
                           )}
-                        </div>
                       </div>
-                      <div className="flex items-center justify-between mt-3 pt-2" style={{ borderTop: "1px dashed rgba(42,31,31,0.5)" }}>
-                        <span
-                          className="px-1.5 py-0.5 rounded"
-                          style={{
-                            background: "#0A0707",
-                            color: "#666",
-                            fontSize: "10px",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          {task.tag}
-                        </span>
-                        {task.assignee ? (
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white"
-                              style={{
-                                background: "#3A2A2A",
-                                fontSize: "9px",
-                                fontWeight: 700,
-                                border: "1px solid #D84040",
-                              }}
-                            >
-                              {task.assignee.substring(0, 1).toUpperCase()}
-                            </div>
-                            <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assignee}</span>
+                      <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500, lineHeight: 1.4, marginBottom: "8px" }}>
+                        {task.label}
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              {task.assignee ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <div
+                                      className="w-5 h-5 rounded-full flex items-center justify-center text-white"
+                                      style={{
+                                        background: "#3A2A2A",
+                                        fontSize: "9px",
+                                        fontWeight: 700,
+                                        border: "1px solid #D84040",
+                                      }}
+                                    >
+                                      {task.assignee.substring(0, 1).toUpperCase()}
+                                    </div>
+                                    <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assignee}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <div
+                                      className="w-5 h-5 rounded-full flex items-center justify-center text-white/50"
+                                      style={{
+                                        background: "#1D1616",
+                                        fontSize: "9px",
+                                        fontWeight: 700,
+                                        border: "1px dashed #2A1F1F",
+                                      }}
+                                    >
+                                      ?
+                                    </div>
+                                    <span style={{ color: "#555", fontSize: "11px", fontWeight: 500, fontStyle: "italic" }}>Chưa giao</span>
+                                  </div>
+                                )}
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white/50"
-                              style={{
-                                background: "#1D1616",
-                                fontSize: "9px",
-                                fontWeight: 700,
-                                border: "1px dashed #2A1F1F",
-                              }}
-                            >
-                              ?
-                            </div>
-                            <span style={{ color: "#555", fontSize: "11px", fontWeight: 500, fontStyle: "italic" }}>Chưa giao việc</span>
-                          </div>
-                        )}
-                        <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ background: priorityColor(task.priority) }}
-                        />
+                          {task.deadline && (
+                              <span style={{ fontSize: "9px", color: isDone ? "#4CAF50" : overdue ? "#f87171" : "#555", fontWeight: overdue || isDone ? 700 : 400 }}>
+                                  {isDone ? "Hoàn thành" : overdue ? `Trễ (${new Date(task.deadline).toLocaleDateString("vi-VN")})` : new Date(task.deadline).toLocaleDateString("vi-VN")}
+                              </span>
+                          )}
                       </div>
 
-                      {/* Gold badge on done cards */}
-                      {col.id === "done" && (
-                        <div className="flex items-center gap-1 mt-2">
-                          <Star size={9} style={{ color: "#D4A843" }} />
-                          <span style={{ color: "#D4A843", fontSize: "9px", fontWeight: 600 }}>
-                            Hoàn thành
-                          </span>
-                        </div>
-                      )}
                     </div>
-                  ))}
+                  )})}
 
                   {col.tasks.length === 0 && (
                     <div
@@ -956,7 +956,8 @@ export function CrewProjectsPage() {
                   </button>
                 )}
               </div>
-            ))}
+            );
+          })}
           </div>
 
           {/* Creative Brief */}
