@@ -307,29 +307,54 @@ function OverviewTab({ liveLog, stats }: OverviewTabProps) {
 
 // ─── Tab: Lịch làm việc ────────────────────────────────────────────────────────
 
-function ScheduleTab() {
+function ScheduleTab({
+  onAddShift
+}: {
+  onAddShift: (employeeName: string, avatar: string, scheduleData: Record<string, string[]>) => void
+}) {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const startOfCurrentWeek = new Date();
-  const day = startOfCurrentWeek.getDay();
-  const diff = startOfCurrentWeek.getDate() - day + (day === 0 ? -6 : 1);
-  startOfCurrentWeek.setDate(diff);
-  startOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + weekOffset * 7);
+  const startOfCurrentWeek = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset);
 
-  const weekDays = Array.from({ length: 6 }).map((_, i) => {
-    const d = new Date(startOfCurrentWeek);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
+  const weekDays = Array.from({ length: 6 }).map((_, i) => addDays(startOfCurrentWeek, i));
 
   useEffect(() => {
     const loadSchedules = async () => {
       setLoading(true);
       try {
-        const data = await fetchApi<any[]>("/hr/work-schedules");
-        setSchedules(data);
+        const weekStartStr = format(startOfCurrentWeek, "yyyy-MM-dd");
+        const [crewData, schedulesData] = await Promise.all([
+          fetchApi<any[]>("/crew"),
+          fetchApi<any[]>(`/hr/work-schedules?week_start_date=${weekStartStr}`)
+        ]);
+
+        // Merge schedules with all crew members
+        const combined = crewData.map(c => {
+          // Check if this crew member has a schedule for the selected week
+          const existingSchedule = schedulesData.find(s => s.employee_name === c.name);
+          return {
+            employee_name: c.name,
+            avatar: c.avatar || c.name.substring(0, 2).toUpperCase(),
+            role: c.role || "Crew",
+            schedule_data: existingSchedule ? existingSchedule.schedule_data : {}
+          };
+        });
+
+        // Also add any schedules for employees that might have been deleted or admin, if not in crewData
+        schedulesData.forEach(s => {
+          if (!combined.find(c => c.employee_name === s.employee_name)) {
+            combined.push({
+              employee_name: s.employee_name,
+              avatar: s.avatar || s.employee_name.substring(0, 2).toUpperCase(),
+              role: s.role || "Admin",
+              schedule_data: s.schedule_data
+            });
+          }
+        });
+
+        setSchedules(combined);
       } catch (err) {
         console.error("Failed to load schedules", err);
       } finally {
@@ -337,7 +362,7 @@ function ScheduleTab() {
       }
     };
     loadSchedules();
-  }, []);
+  }, [weekOffset]);
 
   return (
     <div className="space-y-5">
@@ -422,10 +447,7 @@ function ScheduleTab() {
                         ) : (
                           <button 
                             onClick={() => {
-                              setSelectedScheduleEmployee(s.employee_name);
-                              setSelectedScheduleAvatar(s.avatar);
-                              setSelectedScheduleData(s.schedule_data || {});
-                              setShowScheduleModal(true);
+                              onAddShift(s.employee_name, s.avatar || "", s.schedule_data || {});
                             }}
                             className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 hover:opacity-100 text-[10px] uppercase font-bold tracking-wider"
                           >
@@ -1456,7 +1478,12 @@ export function AttendancePage() {
 
       {/* Tab content */}
       {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
-      {tab === "schedule"  && <ScheduleTab />}
+      {tab === "schedule"  && <ScheduleTab onAddShift={(name, avatar, data) => {
+        setSelectedScheduleEmployee(name);
+        setSelectedScheduleAvatar(avatar);
+        setSelectedScheduleData(data);
+        setShowScheduleModal(true);
+      }} />}
       {tab === "timesheet" && <TimesheetTab />}
       {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}
       {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} onRefresh={loadData} />}
