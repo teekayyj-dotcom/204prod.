@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Calendar, CheckCircle, Info } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -87,19 +88,20 @@ export function WorkScheduleModal({ onClose, employeeId, employeeName, employeeA
   const totalShifts = Object.values(scheduleData).flat().length;
 
   if (isSuccess) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    return createPortal(
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div className="bg-[#1A1515] border border-[#2A1F1F] rounded-2xl p-8 flex flex-col items-center justify-center max-w-sm w-full text-center shadow-2xl">
           <CheckCircle className="text-[#4ade80] mb-4" size={48} />
           <h2 className="text-xl font-bold text-[#E5E5E5] mb-2">Đăng ký thành công!</h2>
           <p className="text-sm text-[#A3A3A3]">Hệ thống đang tải lại dữ liệu...</p>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-6 lg:p-8">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 md:p-6 lg:p-8">
       <div className="bg-[#0A0707] border border-[#2A1F1F] md:rounded-3xl w-full max-w-6xl h-[100dvh] md:h-[90vh] flex flex-col md:flex-row overflow-hidden shadow-2xl relative">
         
         {/* Left Column - Notes & Context */}
@@ -301,6 +303,7 @@ export function WorkScheduleModal({ onClose, employeeId, employeeName, employeeA
           </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
