@@ -195,7 +195,12 @@ def get_project_tasks_route(slug: str, db: Session = Depends(get_db_session)):
 @router.post("/{slug}/tasks", status_code=status.HTTP_201_CREATED)
 def create_project_task_route(slug: str, req: ProjectTaskCreate, db: Session = Depends(get_db_session)):
     from app.modules.projects.service import create_project_task
-    return create_project_task(db, slug, req)
+    try:
+        return create_project_task(db, slug, req)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.put("/tasks/{task_id}")

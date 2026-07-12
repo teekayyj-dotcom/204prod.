@@ -308,11 +308,11 @@ function KanbanTab() {
         const taskData = {
             id: newTaskId,
             title: newTaskTitle.trim(),
-            assignee_name: newTaskAssignees.length > 0 ? newTaskAssignees.map(a => a.name).join(", ") : null,
-            assignee_initials: newTaskAssignees.length > 0 ? newTaskAssignees.map(a => a.initials).join(", ") : null,
+            assignee_name: newTaskAssignees.length > 0 ? newTaskAssignees.map(a => a.name).join(", ") : "",
+            assignee_initials: newTaskAssignees.length > 0 ? newTaskAssignees.map(a => a.initials).join(", ") : "",
             tag: newTaskTag.trim() || "Work",
             created_by: newTaskCreator.trim() || currentUserName,
-            deadline: newTaskDeadline || null,
+            deadline: newTaskDeadline || "",
             status: colId,
             priority: "medium"
         };
