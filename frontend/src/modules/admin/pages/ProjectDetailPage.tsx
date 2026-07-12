@@ -8,7 +8,7 @@ import {
     AlertCircle, Star, Video, Link2, UploadCloud, Play, Camera, MonitorPlay,
     Kanban, TrendingUp, Image, FileText, Plus, AlertTriangle, CheckCheck,
     FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
-    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical, ChevronDown
+    Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical, ChevronDown, List
 } from "lucide-react";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -1652,6 +1652,8 @@ function VaultTab({ project }: { project: any }) {
 
     const docTypeConfig = {
         brief: { label: "Creative Brief", icon: FileCheck, color: "#6B8FD6" },
+        script: { label: "Kịch bản", icon: FileText, color: "#9C27B0" },
+        shotlist: { label: "Shot List", icon: List, color: "#00BCD4" },
         contract: { label: "Hợp đồng", icon: Shield, color: "#4CAF50" },
         quotation: { label: "Báo giá", icon: Coins, color: "#E8A838" },
         invoice: { label: "Hóa đơn", icon: Receipt, color: "#D84040" },
@@ -1661,7 +1663,7 @@ function VaultTab({ project }: { project: any }) {
         setLoading(true);
         fetchApi(`/media?t=${Date.now()}`)
             .then((data: any[]) => {
-                const filtered = data.filter(d => d.project_slug === project?.slug && ["creative brief", "tài liệu hợp đồng", "báo giá", "hoá đơn"].includes(d.folder));
+                const filtered = data.filter(d => d.project_slug === project?.slug && ["creative brief", "kịch bản", "shot list", "tài liệu hợp đồng", "báo giá", "hoá đơn"].includes(d.folder));
                 setDocs(filtered);
                 setLoading(false);
             })
@@ -1740,10 +1742,12 @@ function VaultTab({ project }: { project: any }) {
                     <Loader2 className="animate-spin" size={24} color="#6B8FD6" />
                 </div>
             ) : (
-                (["brief", "contract", "quotation", "invoice"] as const).map(type => {
+                (["brief", "script", "shotlist", "contract", "quotation", "invoice"] as const).map(type => {
                     const cfg = docTypeConfig[type];
                     const folderMap: Record<string, string> = {
                         brief: "creative brief",
+                        script: "kịch bản",
+                        shotlist: "shot list",
                         contract: "tài liệu hợp đồng",
                         quotation: "báo giá",
                         invoice: "hoá đơn"
