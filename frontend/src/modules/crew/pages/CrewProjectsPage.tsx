@@ -324,6 +324,7 @@ export function CrewProjectsPage() {
   const [showBadge, setShowBadge] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(true);
+  const [dragOver, setDragOver] = useState<TaskStatus | null>(null);
   const dragging = useRef<{ colId: TaskStatus; taskId: string } | null>(null);
 
   const userObj = JSON.parse(localStorage.getItem("user") || "{}");
