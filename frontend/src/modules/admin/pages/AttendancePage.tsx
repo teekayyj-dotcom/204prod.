@@ -1507,23 +1507,7 @@ export function AttendancePage() {
       {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} onRefresh={loadData} />}
 
       {/* Modals */}
-      {showScheduleModal && (
-        <WorkScheduleModal 
-          employeeId={selectedScheduleEmployeeId}
-          employeeName={selectedScheduleEmployee || "Admin"}
-          employeeAvatar={selectedScheduleAvatar || undefined}
-          initialScheduleData={selectedScheduleData}
-          isAdminMode={true}
-          defaultWeekStart={selectedWeekStart}
-          onClose={() => {
-            setShowScheduleModal(false);
-            setSelectedScheduleEmployee(null);
-            setSelectedScheduleAvatar(null);
-            setSelectedScheduleData({});
-            setSelectedWeekStart(undefined);
-          }} 
-        />
-      )}
+
     </div>
   );
 }
