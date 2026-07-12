@@ -1810,9 +1810,6 @@ function VaultTab({ project }: { project: any }) {
                         <div key={type} style={{ borderRadius: "12px", overflow: "hidden", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
                             <div style={{ padding: "12px 16px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                                    <div style={{ width: "26px", height: "26px", borderRadius: "6px", background: cfg.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                        <cfg.icon size={12} color={cfg.color} />
-                                    </div>
                                     <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{cfg.label}</span>
                                 </div>
                                 <div style={{ position: "relative" }}>
