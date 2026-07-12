@@ -1822,28 +1822,22 @@ function VaultTab({ project }: { project: any }) {
                                     <button 
                                         onClick={() => setUploadMenuOpen(uploadMenuOpen === type ? null : type)}
                                         disabled={isUploading}
-                                        style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "24px", height: "24px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", cursor: isUploading ? "not-allowed" : "pointer" }}
-                                        onMouseEnter={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#EEEEEE"; e.currentTarget.style.color = "#EEEEEE"; } }}
-                                        onMouseLeave={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; } }}
+                                        className="flex items-center justify-center w-10 h-10 md:w-6 md:h-6 rounded-md border border-dashed border-[#3A2A2A] bg-transparent text-[#666] cursor-pointer disabled:cursor-not-allowed hover:text-white transition-colors"
                                     >
-                                        {isUploading ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
+                                        {isUploading ? <Loader2 className="animate-spin w-5 h-5 md:w-3 md:h-3" /> : <Plus className="w-5 h-5 md:w-3 md:h-3" />}
                                     </button>
                                     
                                     {uploadMenuOpen === type && !isUploading && (
                                         <div style={{ position: "absolute", top: "50%", right: "100%", transform: "translateY(-50%)", marginRight: "8px", background: "#1D1616", border: "1px solid #3A2A2A", borderRadius: "8px", padding: "4px", zIndex: 10, display: "flex", flexDirection: "row", gap: "4px", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
                                             <button 
                                                 onClick={() => { setUploadMenuOpen(null); handleUploadClick(type); }}
-                                                style={{ display: "flex", alignItems: "center", padding: "6px 12px", borderRadius: "6px", border: "none", background: "rgba(107,143,214,0.1)", color: "#6B8FD6", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}
-                                                onMouseEnter={e => e.currentTarget.style.background = "rgba(107,143,214,0.2)"}
-                                                onMouseLeave={e => e.currentTarget.style.background = "rgba(107,143,214,0.1)"}
+                                                className="flex items-center py-2.5 px-4 md:py-1.5 md:px-3 rounded-md border-none bg-[rgba(107,143,214,0.1)] text-[#6B8FD6] text-[13px] md:text-[11px] cursor-pointer whitespace-nowrap hover:bg-[rgba(107,143,214,0.2)] transition-colors"
                                             >
                                                 Upload File
                                             </button>
                                             <button 
                                                 onClick={() => { setUploadMenuOpen(null); setLinkUploadModal({isOpen: true, type}); }}
-                                                style={{ display: "flex", alignItems: "center", padding: "6px 12px", borderRadius: "6px", border: "none", background: "rgba(76,175,80,0.1)", color: "#4CAF50", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}
-                                                onMouseEnter={e => e.currentTarget.style.background = "rgba(76,175,80,0.2)"}
-                                                onMouseLeave={e => e.currentTarget.style.background = "rgba(76,175,80,0.1)"}
+                                                className="flex items-center py-2.5 px-4 md:py-1.5 md:px-3 rounded-md border-none bg-[rgba(76,175,80,0.1)] text-[#4CAF50] text-[13px] md:text-[11px] cursor-pointer whitespace-nowrap hover:bg-[rgba(76,175,80,0.2)] transition-colors"
                                             >
                                                 Upload Link
                                             </button>
@@ -1877,10 +1871,10 @@ function VaultTab({ project }: { project: any }) {
                                         </div>
                                         <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                                             <button 
-                                                onClick={(e) => handleDeleteDoc(doc.id, e)}
-                                                style={{ padding: "4.5px", borderRadius: "6px", border: "1px solid rgba(216,64,64,0.2)", background: "rgba(216,64,64,0.05)", color: "#D84040", cursor: "pointer" }}
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteDoc(doc.id, e); }}
+                                                className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:p-[4.5px] rounded-md border border-[rgba(216,64,64,0.2)] bg-[rgba(216,64,64,0.05)] text-[#D84040] cursor-pointer hover:bg-[rgba(216,64,64,0.1)] transition-colors"
                                             >
-                                                <Trash2 size={9} />
+                                                <Trash2 className="w-4 h-4 md:w-[9px] md:h-[9px]" />
                                             </button>
                                         </div>
                                     </a>
