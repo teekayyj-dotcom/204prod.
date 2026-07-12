@@ -20,7 +20,7 @@ export function MainLayout() {
     // Inject iOS specific tags for Add to Home Screen
     const appleIcon = document.createElement("link");
     appleIcon.rel = "apple-touch-icon";
-    appleIcon.href = "/favicon/icon-192.png?v=3";
+    appleIcon.href = "/favicon/icon.png?v=4";
     appleIcon.id = "admin-apple-icon";
     document.head.appendChild(appleIcon);
 
