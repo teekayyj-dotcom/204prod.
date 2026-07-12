@@ -1733,10 +1733,7 @@ function VaultTab({ project }: { project: any }) {
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ padding: "10px 14px", borderRadius: "9px", background: "rgba(107,143,214,0.08)", border: "1px solid rgba(107,143,214,0.2)", display: "flex", alignItems: "center", gap: "7px" }}>
-                <Lock size={12} color="#6B8FD6" />
-                <span style={{ color: "#6B8FD6", fontSize: "11px" }}>Project Vault — Khu vực lưu trữ nội bộ. Chỉ Admin mới có quyền truy cập.</span>
-            </div>
+
 
             {loading ? (
                 <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px" }}>
