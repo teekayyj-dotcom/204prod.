@@ -1,6 +1,6 @@
 {
-  "name": "Admin Dashboard",
-  "short_name": "Admin",
+  "name": "204PROD.ADMIN",
+  "short_name": "204PROD.ADMIN",
   "start_url": "/admin/",
   "scope": "/admin/",
   "display": "standalone",
@@ -8,12 +8,12 @@
   "theme_color": "#141010",
   "icons": [
     {
-      "src": "/favicon/204-logo.png",
+      "src": "/favicon/icon.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/favicon/204-logo.png",
+      "src": "/favicon/icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }

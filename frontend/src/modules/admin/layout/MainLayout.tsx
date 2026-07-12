@@ -17,6 +17,19 @@ export function MainLayout() {
     link.id = "admin-manifest";
     document.head.appendChild(link);
 
+    // Inject iOS specific tags for Add to Home Screen
+    const appleIcon = document.createElement("link");
+    appleIcon.rel = "apple-touch-icon";
+    appleIcon.href = "/favicon/icon.png";
+    appleIcon.id = "admin-apple-icon";
+    document.head.appendChild(appleIcon);
+
+    const appleTitle = document.createElement("meta");
+    appleTitle.name = "apple-mobile-web-app-title";
+    appleTitle.content = "204PROD.ADMIN";
+    appleTitle.id = "admin-apple-title";
+    document.head.appendChild(appleTitle);
+
     // 2. Register Admin Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -32,9 +45,13 @@ export function MainLayout() {
     // Cleanup when leaving admin section
     return () => {
       const existingLink = document.getElementById("admin-manifest");
-      if (existingLink) {
-        document.head.removeChild(existingLink);
-      }
+      if (existingLink) document.head.removeChild(existingLink);
+
+      const existingAppleIcon = document.getElementById("admin-apple-icon");
+      if (existingAppleIcon) document.head.removeChild(existingAppleIcon);
+
+      const existingAppleTitle = document.getElementById("admin-apple-title");
+      if (existingAppleTitle) document.head.removeChild(existingAppleTitle);
     };
   }, []);
 
