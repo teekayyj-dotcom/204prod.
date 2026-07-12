@@ -616,37 +616,14 @@ export function CrewProjectsPage() {
         </div>
       </div>
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* LEFT: Kanban (3/4 width) */}
-        <div className="xl:col-span-3 min-w-0">
+      {/* Kanban Section (Full Width) */}
+      <div className="mb-6">
           <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>
             Bảng Công việc — Kanban
           </h3>
 
-          <style>{`
-            .kanban-scroll::-webkit-scrollbar {
-              display: block;
-              height: 8px;
-            }
-            .kanban-scroll::-webkit-scrollbar-track {
-              background: rgba(29, 22, 22, 0.4);
-              border-radius: 10px;
-            }
-            .kanban-scroll::-webkit-scrollbar-thumb {
-              background: #2A1F1F;
-              border-radius: 10px;
-            }
-            .kanban-scroll::-webkit-scrollbar-thumb:hover {
-              background: #4A3A3A;
-            }
-            .kanban-scroll {
-              scrollbar-width: thin;
-              scrollbar-color: #2A1F1F rgba(29, 22, 22, 0.4);
-            }
-          `}</style>
-          <div className="kanban-scroll" style={{ overflowX: "auto", paddingBottom: "12px" }}>
-            <div style={{ display: "flex", gap: "12px", minWidth: "860px" }}>
+          <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
+            <div style={{ display: "flex", gap: "12px", minWidth: "100%" }}>
             {columns.map((col) => {
               const isOver = dragOver === col.id;
               return (
@@ -957,7 +934,12 @@ export function CrewProjectsPage() {
           })}
             </div>
           </div>
+      </div>
 
+      {/* Main content grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* LEFT: Creative Brief & Assets (3/4 width) */}
+        <div className="xl:col-span-3 min-w-0">
           {/* Creative Brief */}
           <div className="mt-5 rounded-2xl overflow-hidden" style={{ border: "1px solid #2A1F1F" }}>
             <button
