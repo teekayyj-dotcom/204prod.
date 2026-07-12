@@ -163,7 +163,7 @@ function KanbanTab() {
     const [dragOver, setDragOver] = useState<string | null>(null);
     const [showAddTask, setShowAddTask] = useState<string | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState("");
-    const [newTaskAssignees, setNewTaskAssignees] = useState<{name: string, initials: string}[]>([]);
+    const [newTaskAssignees, setNewTaskAssignees] = useState<{id: string, name: string, initials: string}[]>([]);
     const [newTaskTag, setNewTaskTag] = useState("");
     const [newTaskCreator, setNewTaskCreator] = useState(currentUserName);
     const [newTaskDeadline, setNewTaskDeadline] = useState("");
@@ -222,7 +222,7 @@ function KanbanTab() {
     };
     const [editingTask, setEditingTask] = useState<{ colId: string; task: any } | null>(null);
     const [editTaskTitle, setEditTaskTitle] = useState("");
-    const [editTaskAssignees, setEditTaskAssignees] = useState<{name: string, initials: string}[]>([]);
+    const [editTaskAssignees, setEditTaskAssignees] = useState<{id: string, name: string, initials: string}[]>([]);
     const [editTaskTag, setEditTaskTag] = useState("");
     const [editTaskCreator, setEditTaskCreator] = useState("");
     const [editTaskDeadline, setEditTaskDeadline] = useState("");
@@ -234,7 +234,10 @@ function KanbanTab() {
         setEditTaskTitle(task.title);
         const names = task.assigneeName ? task.assigneeName.split(", ") : [];
         const initials = task.assignee ? task.assignee.split(", ") : [];
-        const assignees = names.map((n: string, i: number) => ({ name: n, initials: initials[i] || "" }));
+        const assignees = names.map((n: string, i: number) => {
+            const crewMatch = crewList.find(c => c.name === n);
+            return { id: crewMatch ? crewMatch.id : n + i, name: n, initials: initials[i] || "" };
+        });
         setEditTaskAssignees(assignees);
         setEditTaskTag(task.tag || "");
         setEditTaskCreator(task.createdBy || "");
@@ -539,8 +542,8 @@ function KanbanTab() {
                                             {newTaskAssignees.length > 0 && (
                                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
                                                     {newTaskAssignees.map(a => (
-                                                        <span key={a.name} style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "10px", padding: "3px 6px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                                                            {a.name} <X size={10} style={{ cursor: "pointer", color: "#888" }} onClick={() => setNewTaskAssignees(prev => prev.filter(x => x.name !== a.name))} />
+                                                        <span key={a.id} style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "10px", padding: "3px 6px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                                            {a.name} <X size={10} style={{ cursor: "pointer", color: "#888" }} onClick={() => setNewTaskAssignees(prev => prev.filter(x => x.id !== a.id))} />
                                                         </span>
                                                     ))}
                                                 </div>
@@ -578,10 +581,10 @@ function KanbanTab() {
                                                                         key={c.id}
                                                                         type="button"
                                                                         onClick={() => {
-                                                                            if (newTaskAssignees.some(x => x.name === c.name)) {
-                                                                                setNewTaskAssignees(prev => prev.filter(x => x.name !== c.name));
+                                                                            if (newTaskAssignees.some(x => x.id === c.id)) {
+                                                                                setNewTaskAssignees(prev => prev.filter(x => x.id !== c.id));
                                                                             } else {
-                                                                                setNewTaskAssignees(prev => [...prev, { name: c.name, initials }]);
+                                                                                setNewTaskAssignees(prev => [...prev, { id: c.id, name: c.name, initials }]);
                                                                             }
                                                                         }}
                                                                         style={{
@@ -603,7 +606,7 @@ function KanbanTab() {
                                                                             )}
                                                                             <span>{c.name}</span>
                                                                         </div>
-                                                                        {newTaskAssignees.some(x => x.name === c.name) && <CheckCircle2 size={12} color="#4CAF50" />}
+                                                                        {newTaskAssignees.some(x => x.id === c.id) && <CheckCircle2 size={12} color="#4CAF50" />}
                                                                     </button>
                                                                 );
                                                             })}
@@ -683,8 +686,8 @@ function KanbanTab() {
                                 {editTaskAssignees.length > 0 && (
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
                                             {editTaskAssignees.map(a => (
-                                                <span key={a.name} style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "10px", padding: "3px 6px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                                                    {a.name} <X size={10} style={{ cursor: "pointer", color: "#888" }} onClick={() => setEditTaskAssignees(prev => prev.filter(x => x.name !== a.name))} />
+                                                <span key={a.id} style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "10px", padding: "3px 6px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                                    {a.name} <X size={10} style={{ cursor: "pointer", color: "#888" }} onClick={() => setEditTaskAssignees(prev => prev.filter(x => x.id !== a.id))} />
                                                 </span>
                                             ))}
                                         </div>
@@ -720,10 +723,10 @@ function KanbanTab() {
                                                                 key={c.id}
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    if (editTaskAssignees.some(x => x.name === c.name)) {
-                                                                        setEditTaskAssignees(prev => prev.filter(x => x.name !== c.name));
+                                                                    if (editTaskAssignees.some(x => x.id === c.id)) {
+                                                                        setEditTaskAssignees(prev => prev.filter(x => x.id !== c.id));
                                                                     } else {
-                                                                        setEditTaskAssignees(prev => [...prev, { name: c.name, initials }]);
+                                                                        setEditTaskAssignees(prev => [...prev, { id: c.id, name: c.name, initials }]);
                                                                     }
                                                                 }}
                                                                 style={{
@@ -745,7 +748,7 @@ function KanbanTab() {
                                                                     )}
                                                                     <span>{c.name}</span>
                                                                 </div>
-                                                                {editTaskAssignees.some(x => x.name === c.name) && <CheckCircle2 size={12} color="#4CAF50" />}
+                                                                {editTaskAssignees.some(x => x.id === c.id) && <CheckCircle2 size={12} color="#4CAF50" />}
                                                             </button>
                                                         );
                                                 })}
