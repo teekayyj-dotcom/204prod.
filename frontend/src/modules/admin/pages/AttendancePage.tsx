@@ -424,22 +424,28 @@ function ScheduleTab({
                     totalShifts += dayShifts.length;
                     
                     return (
-                      <div key={dateStr} className="p-3 border-b border-neutral-800/50 flex flex-col gap-1.5 items-center justify-center relative transition-colors group-hover:bg-[#2A1F1F]/40">
+                      <div 
+                        key={dateStr} 
+                        onClick={() => {
+                          onAddShift(s.employee_id, s.employee_name, s.avatar || "", s.schedule_data || {});
+                        }}
+                        className="p-3 border-b border-neutral-800/50 flex flex-col gap-1.5 items-center justify-center relative transition-colors group-hover:bg-[#2A1F1F]/40 cursor-pointer group/cell"
+                      >
                         {dayShifts.length > 0 ? (
                           <>
                             {dayShifts.includes("morning") && dayShifts.includes("afternoon") ? (
-                              <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 cursor-pointer bg-emerald-950/40 text-emerald-400 border-emerald-900/50 hover:shadow-[0_0_12px_rgba(52,211,153,0.15)]">
+                              <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 bg-emerald-950/40 text-emerald-400 border-emerald-900/50 hover:shadow-[0_0_12px_rgba(52,211,153,0.15)]">
                                 Cả ngày
                               </div>
                             ) : (
                               <>
                                 {dayShifts.includes("morning") && (
-                                  <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 cursor-pointer bg-amber-950/40 text-amber-400 border-amber-900/50 hover:shadow-[0_0_12px_rgba(251,191,36,0.15)]">
+                                  <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 bg-amber-950/40 text-amber-400 border-amber-900/50 hover:shadow-[0_0_12px_rgba(251,191,36,0.15)]">
                                     Sáng
                                   </div>
                                 )}
                                 {dayShifts.includes("afternoon") && (
-                                  <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 cursor-pointer bg-red-950/40 text-red-400 border-red-900/50 hover:shadow-[0_0_12px_rgba(239,68,68,0.15)]">
+                                  <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 bg-red-950/40 text-red-400 border-red-900/50 hover:shadow-[0_0_12px_rgba(239,68,68,0.15)]">
                                     Chiều
                                   </div>
                                 )}
@@ -448,10 +454,7 @@ function ScheduleTab({
                           </>
                         ) : (
                           <button 
-                            onClick={() => {
-                              onAddShift(s.employee_id, s.employee_name, s.avatar || "", s.schedule_data || {});
-                            }}
-                            className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 hover:opacity-100 text-[10px] uppercase font-bold tracking-wider"
+                            className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 group-hover/cell:opacity-100 text-[10px] uppercase font-bold tracking-wider"
                           >
                             + Thêm
                           </button>
