@@ -636,7 +636,7 @@ function KanbanTab() {
                                         />
                                         <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
                                             <button onClick={() => addTask(col.id)} style={{ flex: 1, background: "#D84040", color: "#fff", border: "none", borderRadius: "6px", padding: "5px 0", fontSize: "10px", fontWeight: 600, cursor: "pointer" }}>Thêm</button>
-                                            <button onClick={() => { setShowAddTask(null); setNewTaskTitle(""); setNewTaskAssigneeName(""); setNewTaskAssigneeInitials(""); setNewTaskTag(""); setNewTaskCreator(currentUserName); setNewTaskDeadline(""); }} style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "5px 8px", fontSize: "10px", cursor: "pointer" }}>✕</button>
+                                            <button onClick={() => { setShowAddTask(null); setNewTaskTitle(""); setNewTaskAssignees([]); setNewTaskTag(""); setNewTaskCreator(currentUserName); setNewTaskDeadline(""); }} style={{ background: "#2A1F1F", color: "#888", border: "none", borderRadius: "6px", padding: "5px 8px", fontSize: "10px", cursor: "pointer" }}>✕</button>
                                         </div>
                                     </div>
                                 ) : (
@@ -644,8 +644,7 @@ function KanbanTab() {
                                         onClick={() => {
                                             setShowAddTask(col.id);
                                             setNewTaskTitle("");
-                                            setNewTaskAssigneeName("");
-                                            setNewTaskAssigneeInitials("");
+                                            setNewTaskAssignees([]);
                                             setNewTaskTag("");
                                             setNewTaskCreator(currentUserName);
                                             setNewTaskDeadline("");
