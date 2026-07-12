@@ -336,8 +336,27 @@ function KanbanTab() {
     };
 
     return (
-        <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
+        <div className="kanban-scroll" style={{ overflowX: "auto", paddingBottom: "12px" }}>
             <style>{`
+                .kanban-scroll::-webkit-scrollbar {
+                    display: block;
+                    height: 8px;
+                }
+                .kanban-scroll::-webkit-scrollbar-track {
+                    background: rgba(29, 22, 22, 0.4);
+                    border-radius: 10px;
+                }
+                .kanban-scroll::-webkit-scrollbar-thumb {
+                    background: #2A1F1F;
+                    border-radius: 10px;
+                }
+                .kanban-scroll::-webkit-scrollbar-thumb:hover {
+                    background: #4A3A3A;
+                }
+                .kanban-scroll {
+                    scrollbar-width: thin;
+                    scrollbar-color: #2A1F1F rgba(29, 22, 22, 0.4);
+                }
                 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
                     filter: invert(1);
                     transform: scale(1.2);
