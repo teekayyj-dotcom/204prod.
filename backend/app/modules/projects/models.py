@@ -183,8 +183,8 @@ class ProjectTask(Base):
         index=True,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    assignee_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    assignee_initials: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    assignee_name: Mapped[str | None] = mapped_column(Text, nullable=True)
+    assignee_initials: Mapped[str | None] = mapped_column(Text, nullable=True)
     tag: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_by: Mapped[str] = mapped_column(String(180), nullable=False)
     deadline: Mapped[str | None] = mapped_column(String(50), nullable=True)
