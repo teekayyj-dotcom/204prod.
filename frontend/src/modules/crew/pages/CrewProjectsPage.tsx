@@ -624,7 +624,8 @@ export function CrewProjectsPage() {
             Bảng Công việc — Kanban
           </h3>
 
-          <div style={{ display: "flex", gap: "12px", minWidth: "860px", overflowX: "auto", paddingBottom: "8px" }}>
+          <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
+            <div style={{ display: "flex", gap: "12px", minWidth: "860px" }}>
             {columns.map((col) => {
               const isOver = dragOver === col.id;
               return (
@@ -959,6 +960,7 @@ export function CrewProjectsPage() {
               </div>
             );
           })}
+            </div>
           </div>
 
           {/* Creative Brief */}
