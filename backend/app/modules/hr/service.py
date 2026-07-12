@@ -169,48 +169,83 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     elif has_approved_business:
         resolved_status = "business"
     else:
-        try:
-            hh, mm = map(int, time.split(':'))
-            action_min = hh * 60 + mm
+        # Check WorkSchedule
+        from app.modules.hr.models import WorkSchedule
+        import datetime
+        
+        checkin_dt = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+        start_of_week = checkin_dt - datetime.timedelta(days=checkin_dt.weekday())
+        week_start_str = start_of_week.strftime("%Y-%m-%d")
+        
+        schedule = db.query(WorkSchedule).filter(
+            WorkSchedule.employee_name == resolved_name,
+            WorkSchedule.week_start_date == week_start_str
+        ).first()
+        
+        registered_shifts = []
+        if schedule and schedule.schedule_data:
+            registered_shifts = schedule.schedule_data.get(date, [])
             
-            shifts = db.query(Shift).all()
-            
-            if shifts:
-                if action == "check-in":
-                    closest_shift = None
-                    min_diff = float('inf')
-                    for s in shifts:
-                        s_hh, s_mm = map(int, s.start_time.split(':'))
-                        shift_start_min = s_hh * 60 + s_mm
-                        diff = abs(action_min - shift_start_min)
-                        if diff < min_diff:
-                            min_diff = diff
-                            closest_shift = shift_start_min
-                    
-                    if closest_shift is not None:
-                        if action_min <= closest_shift:
-                            resolved_status = "on-time"
-                        else:
-                            resolved_status = "late"
-                            
-                elif action == "check-out":
-                    closest_shift_end = None
-                    min_diff = float('inf')
-                    for s in shifts:
-                        e_hh, e_mm = map(int, s.end_time.split(':'))
-                        shift_end_min = e_hh * 60 + e_mm
-                        diff = abs(action_min - shift_end_min)
-                        if diff < min_diff:
-                            min_diff = diff
-                            closest_shift_end = shift_end_min
-                    
-                    if closest_shift_end is not None:
-                        if action_min < closest_shift_end:
-                            resolved_status = "early-leave"
-                        else:
-                            resolved_status = "on-time"
-        except Exception:
-            pass
+        if not registered_shifts:
+            resolved_status = "unscheduled"
+        else:
+            try:
+                hh, mm = map(int, time.split(':'))
+                action_min = hh * 60 + mm
+                
+                shifts = db.query(Shift).all()
+                
+                # Filter shifts to only those registered by the user
+                # Assuming Shift name contains 'Sáng' for morning, 'Chiều' for afternoon
+                valid_shifts = []
+                for s in shifts:
+                    s_name_lower = s.name.lower()
+                    if "morning" in registered_shifts and "sáng" in s_name_lower:
+                        valid_shifts.append(s)
+                    elif "afternoon" in registered_shifts and "chiều" in s_name_lower:
+                        valid_shifts.append(s)
+                    # If the shift naming convention doesn't match, we fallback to closest valid shift logic
+                    # To be safe, if we can't map it by name perfectly, we just use all valid shifts if registered
+                
+                if not valid_shifts:
+                    valid_shifts = shifts
+                
+                if valid_shifts:
+                    if action == "check-in":
+                        closest_shift = None
+                        min_diff = float('inf')
+                        for s in valid_shifts:
+                            s_hh, s_mm = map(int, s.start_time.split(':'))
+                            shift_start_min = s_hh * 60 + s_mm
+                            diff = abs(action_min - shift_start_min)
+                            if diff < min_diff:
+                                min_diff = diff
+                                closest_shift = shift_start_min
+                        
+                        if closest_shift is not None:
+                            if action_min <= closest_shift:
+                                resolved_status = "on-time"
+                            else:
+                                resolved_status = "late"
+                                
+                    elif action == "check-out":
+                        closest_shift_end = None
+                        min_diff = float('inf')
+                        for s in valid_shifts:
+                            e_hh, e_mm = map(int, s.end_time.split(':'))
+                            shift_end_min = e_hh * 60 + e_mm
+                            diff = abs(action_min - shift_end_min)
+                            if diff < min_diff:
+                                min_diff = diff
+                                closest_shift_end = shift_end_min
+                        
+                        if closest_shift_end is not None:
+                            if action_min < closest_shift_end:
+                                resolved_status = "early-leave"
+                            else:
+                                resolved_status = "on-time"
+            except Exception:
+                pass
 
     db_log = AttendanceLog(
         employee_name=resolved_name,
