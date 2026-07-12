@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
 import { uploadMediaPipeline } from "../../../utils/imagePipeline";
+import { getDisplayProgress } from "../../../utils/projectProgress";
 
 
 type TaskStatus = "todo" | "inprogress" | "review" | "done";
@@ -82,7 +83,14 @@ function GoldBadge({ visible, message }: { visible: boolean; message?: string })
   );
 }
 
-function Countdown({ deadline }: { deadline: Date }) {
+function Countdown({ deadline }: { deadline: Date | null }) {
+  if (!deadline || isNaN(deadline.getTime())) {
+    return (
+      <span style={{ color: "#888", fontSize: "12px", fontWeight: 700, background: "rgba(136,136,136,0.1)", border: "1px solid rgba(136,136,136,0.2)", padding: "2px 8px", borderRadius: "6px" }}>
+        Chưa xác định
+      </span>
+    );
+  }
   const diff = deadline.getTime() - Date.now();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -142,9 +150,9 @@ export function CrewProjectsPage() {
             id: p.slug,
             name: p.title,
             client: p.client_slug || "Client",
-            status: p.status === "draft" ? "Planning" : p.status === "published" ? "Completed" : "In Progress",
-            deadline: p.dueDate || p.due_date ? new Date(p.dueDate || p.due_date) : new Date(p.created_at || Date.now() + 5 * 24 * 60 * 60 * 1000),
-            progress: progress,
+            status: p.status || "In Progress",
+            deadline: p.dueDate || p.due_date ? new Date(p.dueDate || p.due_date) : null,
+            progress: getDisplayProgress(p.status || "In Progress"),
             brief: p.summary || "Chưa có brief cho dự án này.",
             timelineFiles: [],
             moodboard: [],
