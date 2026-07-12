@@ -24,6 +24,30 @@ from app.modules.hr.service import seed_hr_data
 from app.modules.finance.service import seed_finance_data
 from app.core.firebase_admin_init import init_firebase_admin
 
+import asyncio
+from datetime import datetime, timedelta
+from app.modules.hr.service import check_and_mark_absences
+
+async def daily_absent_check():
+    while True:
+        now = datetime.now()
+        target = now.replace(hour=23, minute=59, second=0, microsecond=0)
+        if now >= target:
+            target += timedelta(days=1)
+        wait_seconds = (target - now).total_seconds()
+        
+        await asyncio.sleep(wait_seconds)
+        
+        # Check and mark absences at 23:59
+        target_date_str = target.strftime("%Y-%m-%d")
+        db = SessionLocal()
+        try:
+            check_and_mark_absences(db, target_date_str)
+        except Exception as e:
+            print("Failed to run daily absent check:", e)
+        finally:
+            db.close()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Auto create tables if not present in dev
@@ -44,7 +68,14 @@ async def lifespan(app: FastAPI):
         seed_finance_data(db)
     finally:
         db.close()
+
+    # Start cron tasks
+    absent_task = asyncio.create_task(daily_absent_check())
+
     yield
+
+    # Cleanup cron tasks
+    absent_task.cancel()
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 

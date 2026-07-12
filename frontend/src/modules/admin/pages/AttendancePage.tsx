@@ -300,6 +300,133 @@ function OverviewTab({ liveLog, stats }: OverviewTabProps) {
 }
 
 
+// ─── Tab: Lịch làm việc ────────────────────────────────────────────────────────
+
+function ScheduleTab() {
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const startOfCurrentWeek = new Date();
+  const day = startOfCurrentWeek.getDay();
+  const diff = startOfCurrentWeek.getDate() - day + (day === 0 ? -6 : 1);
+  startOfCurrentWeek.setDate(diff);
+  startOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + weekOffset * 7);
+
+  const weekDays = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date(startOfCurrentWeek);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchApi<any[]>("/hr/work-schedules");
+        setSchedules(data);
+      } catch (err) {
+        console.error("Failed to load schedules", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSchedules();
+  }, []);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div
+          className="flex items-center gap-3 px-4 py-2 rounded-lg"
+          style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+        >
+          <button onClick={() => setWeekOffset(prev => prev - 1)} className="text-[#666] hover:text-[#EEEEEE]">
+            <ChevronLeft size={16} />
+          </button>
+          <span style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>
+            Tuần từ {weekDays[0].toLocaleDateString("vi-VN")} đến {weekDays[5].toLocaleDateString("vi-VN")}
+          </span>
+          <button onClick={() => setWeekOffset(prev => prev + 1)} className="text-[#666] hover:text-[#EEEEEE]">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl overflow-auto" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+        <table className="w-full text-left" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid #2A1F1F" }}>
+              <th className="px-4 py-3 text-left sticky left-0 z-10" style={{ background: "rgba(29, 22, 22, 0.4)", color: "#666", fontSize: "11px", fontWeight: 600, minWidth: "150px" }}>
+                NHÂN VIÊN
+              </th>
+              {weekDays.map(d => (
+                <th key={d.toISOString()} className="py-3 px-2 text-center" style={{ color: "#666", fontSize: "11px", fontWeight: 600, minWidth: "80px" }}>
+                  <div>{d.toLocaleDateString("vi-VN", { weekday: 'short' })}</div>
+                  <div>{d.getDate()}/{d.getMonth()+1}</div>
+                </th>
+              ))}
+              <th className="px-4 py-3 text-center" style={{ color: "#666", fontSize: "11px", fontWeight: 600 }}>SỐ CA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={8} className="py-8 text-center"><Loader2 className="animate-spin inline-block text-[#D84040]" size={20} /></td></tr>
+            ) : schedules.length === 0 ? (
+              <tr><td colSpan={8} className="py-8 text-center text-[#666]">Chưa có lịch đăng ký nào</td></tr>
+            ) : (
+              schedules.map((s, idx) => {
+                let totalShifts = 0;
+                return (
+                  <tr key={idx} style={{ borderBottom: idx < schedules.length - 1 ? "1px solid #2A1F1F" : undefined }}>
+                    <td className="px-4 py-3 sticky left-0 z-10" style={{ background: "rgba(29, 22, 22, 0.4)" }}>
+                      <div className="flex items-center gap-2">
+                        <img src={s.avatar || "https://i.pravatar.cc/150"} alt={s.employee_name} className="w-6 h-6 rounded-full" />
+                        <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{s.employee_name}</span>
+                      </div>
+                    </td>
+                    {weekDays.map(d => {
+                      const dateStr = d.toISOString().split("T")[0];
+                      const dayShifts = s.schedule_data?.[dateStr] || [];
+                      totalShifts += dayShifts.length;
+                      return (
+                        <td key={d.toISOString()} className="py-3 px-2 text-center">
+                          {dayShifts.includes("morning") && <div className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-[#D4A843] text-black font-semibold mx-0.5">Sáng</div>}
+                          {dayShifts.includes("afternoon") && <div className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-[#D84040] text-white font-semibold mx-0.5">Chiều</div>}
+                          {dayShifts.length === 0 && <span className="text-[#444]">-</span>}
+                        </td>
+                      );
+                    })}
+                    <td className="py-3 text-center text-[#EEEEEE] font-bold">{totalShifts}</td>
+                  </tr>
+                );
+              })
+            )}
+            {!loading && schedules.length > 0 && (
+              <tr style={{ background: "rgba(212, 168, 67, 0.1)" }}>
+                <td className="px-4 py-3 sticky left-0 z-10" style={{ background: "#2A2312", color: "#D4A843", fontSize: "11px", fontWeight: 700 }}>
+                  TỔNG SỐ CA (DỰ KIẾN)
+                </td>
+                {weekDays.map(d => {
+                  const dateStr = d.toISOString().split("T")[0];
+                  const total = schedules.reduce((acc, s) => acc + (s.schedule_data?.[dateStr]?.length || 0), 0);
+                  return (
+                    <td key={d.toISOString()} className="py-3 px-2 text-center text-[#D4A843] font-bold text-sm">
+                      {total > 0 ? total : "-"}
+                    </td>
+                  );
+                })}
+                <td className="py-3"></td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── Tab: Bảng chấm công ───────────────────────────────────────────────────────
 
 function TimesheetTab() {
@@ -1195,6 +1322,7 @@ export function AttendancePage() {
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "overview",   label: "Tổng quan",     icon: TrendingUp },
+    { key: "schedule",   label: "Lịch làm việc",  icon: Calendar },
     { key: "timesheet",  label: "Bảng chấm công", icon: Calendar },
     { key: "requests",   label: "Đơn từ",         icon: FileText },
     { key: "settings",   label: "Cài đặt",        icon: Settings },
@@ -1282,6 +1410,7 @@ export function AttendancePage() {
 
       {/* Tab content */}
       {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
+      {tab === "schedule"  && <ScheduleTab />}
       {tab === "timesheet" && <TimesheetTab />}
       {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}
       {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} onRefresh={loadData} />}

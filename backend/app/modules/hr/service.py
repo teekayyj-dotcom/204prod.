@@ -547,3 +547,37 @@ def get_work_schedules(db: Session, week_start_date: str = None):
     if week_start_date:
         query = query.filter(WorkSchedule.week_start_date == week_start_date)
     return query.all()
+
+def check_and_mark_absences(db: Session, target_date: str):
+    """
+    Checks if there are registered shifts for the target_date.
+    If an employee hasn't checked in, marks them as absent.
+    """
+    from app.modules.hr.models import WorkSchedule, AttendanceLog
+    from datetime import datetime
+    
+    schedules = db.query(WorkSchedule).all()
+    
+    for s in schedules:
+        shifts = s.schedule_data.get(target_date, [])
+        if shifts:
+            # Check if this person checked in today
+            logs = db.query(AttendanceLog).filter(
+                AttendanceLog.employee_id == s.employee_name,
+                AttendanceLog.date == target_date
+            ).all()
+            
+            if not logs:
+                # Add an absent log
+                absent_log = AttendanceLog(
+                    employee_id=s.employee_name,
+                    date=target_date,
+                    time_in="00:00",
+                    time_out="00:00",
+                    status="vắng",
+                    work_mode="office",
+                    project="N/A",
+                    overtime=False
+                )
+                db.add(absent_log)
+    db.commit()
