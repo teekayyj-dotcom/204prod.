@@ -182,8 +182,12 @@ export function CrewWorkspacePage() {
 
   useEffect(() => {
     fetchApi("/projects/tasks/all").then(data => {
-      // Keep all tasks or filter by user
-      const mappedTasks = Array.isArray(data) ? data : [];
+      const allTasks = Array.isArray(data) ? data : [];
+      const currentUserName = getUserName();
+      const mappedTasks = allTasks.filter((t: any) => 
+        (t.assignee_name && t.assignee_name.includes(currentUserName)) ||
+        (t.assignee && t.assignee.includes(currentUserName))
+      );
       setTasks(mappedTasks);
       
       const now = Date.now();
@@ -419,7 +423,7 @@ export function CrewWorkspacePage() {
                   <p style={{ color: "#D84040", fontSize: "10px", maxWidth: "100%", textAlign: "right", marginTop: "4px" }}>
                     {locationError}
                   </p>
-
+                )}
               </div>
             </div>
           </div>
