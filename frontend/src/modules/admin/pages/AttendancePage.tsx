@@ -310,7 +310,7 @@ function OverviewTab({ liveLog, stats }: OverviewTabProps) {
 function ScheduleTab({
   onAddShift
 }: {
-  onAddShift: (employeeId: number | undefined, employeeName: string, avatar: string, scheduleData: Record<string, string[]>) => void
+  onAddShift: (employeeId: number | undefined, employeeName: string, avatar: string, scheduleData: Record<string, string[]>, weekStart: Date) => void
 }) {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -333,7 +333,11 @@ function ScheduleTab({
         // Merge schedules with all crew members
         const combined = crewData.map(c => {
           // Check if this crew member has a schedule for the selected week
-          const existingSchedule = schedulesData.find(s => s.employee_id === c.id || (!s.employee_id && s.employee_name === c.name));
+          let existingSchedule = schedulesData.find(s => s.employee_id === c.id);
+          if (!existingSchedule) {
+            existingSchedule = schedulesData.find(s => !s.employee_id && s.employee_name === c.name);
+          }
+          
           return {
             employee_id: c.id,
             employee_name: c.name,
@@ -345,7 +349,15 @@ function ScheduleTab({
 
         // Also add any schedules for employees that might have been deleted or admin, if not in crewData
         schedulesData.forEach(s => {
-          if (!combined.find(c => (c.employee_id === s.employee_id && s.employee_id) || (!s.employee_id && c.employee_name === s.employee_name))) {
+          // Check if already in combined
+          let alreadyIn = false;
+          if (s.employee_id) {
+            alreadyIn = combined.some(c => c.employee_id === s.employee_id);
+          } else {
+            alreadyIn = combined.some(c => c.employee_name === s.employee_name && c.schedule_data === s.schedule_data);
+          }
+          
+          if (!alreadyIn) {
             combined.push({
               employee_id: s.employee_id,
               employee_name: s.employee_name,
@@ -427,7 +439,7 @@ function ScheduleTab({
                       <div 
                         key={dateStr} 
                         onClick={() => {
-                          onAddShift(s.employee_id, s.employee_name, s.avatar || "", s.schedule_data || {});
+                          onAddShift(s.employee_id, s.employee_name, s.avatar || "", s.schedule_data || {}, startOfCurrentWeek);
                         }}
                         className="p-3 border-b border-neutral-800/50 flex flex-col gap-1.5 items-center justify-center relative transition-colors group-hover:bg-[#2A1F1F]/40 cursor-pointer group/cell"
                       >
@@ -1391,6 +1403,7 @@ export function AttendancePage() {
   const [selectedScheduleEmployee, setSelectedScheduleEmployee] = useState<string | null>(null);
   const [selectedScheduleAvatar, setSelectedScheduleAvatar] = useState<string | null>(null);
   const [selectedScheduleData, setSelectedScheduleData] = useState<Record<string, string[]>>({});
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date | undefined>(undefined);
   
   const [showAssignModal, setShowAssignModal] = useState(false);
 
@@ -1484,11 +1497,12 @@ export function AttendancePage() {
 
       {/* Tab content */}
       {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
-      {tab === "schedule"  && <ScheduleTab onAddShift={(empId, name, avatar, data) => {
+      {tab === "schedule"  && <ScheduleTab onAddShift={(empId, name, avatar, data, weekStart) => {
         setSelectedScheduleEmployeeId(empId);
         setSelectedScheduleEmployee(name);
         setSelectedScheduleAvatar(avatar);
         setSelectedScheduleData(data);
+        setSelectedWeekStart(weekStart);
         setShowScheduleModal(true);
       }} />}
       {tab === "timesheet" && <TimesheetTab />}
@@ -1503,11 +1517,13 @@ export function AttendancePage() {
           employeeAvatar={selectedScheduleAvatar || undefined}
           initialScheduleData={selectedScheduleData}
           isAdminMode={true}
+          defaultWeekStart={selectedWeekStart}
           onClose={() => {
             setShowScheduleModal(false);
             setSelectedScheduleEmployee(null);
             setSelectedScheduleAvatar(null);
             setSelectedScheduleData({});
+            setSelectedWeekStart(undefined);
           }} 
         />
       )}
