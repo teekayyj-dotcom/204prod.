@@ -271,6 +271,7 @@ export function CrewHRPage() {
     if (type === "wfh") return { bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", color: "#8B5CF6" };
     if (type === "late") return { bg: "rgba(212,168,67,0.12)", border: "rgba(212,168,67,0.3)", color: "#D4A843" };
     if (type === "leave") return { bg: "rgba(216,64,64,0.12)", border: "rgba(216,64,64,0.3)", color: "#D84040" };
+    if (type === "unscheduled") return { bg: "rgba(161,161,170,0.12)", border: "rgba(161,161,170,0.3)", color: "#A1A1AA" };
     return { bg: "#141010", border: "#2A1F1F", color: "#333" };
   };
 
@@ -411,6 +412,7 @@ export function CrewHRPage() {
                   { label: "Đúng giờ", color: "#10B981" },
                   { label: "WFH", color: "#8B5CF6" },
                   { label: "Đi muộn", color: "#D4A843" },
+                  { label: "Ngoài lịch", color: "#A1A1AA" },
                   { label: "Nghỉ phép", color: "#D84040" },
                 ].map((l) => (
                   <div key={l.label} className="flex items-center gap-1.5">

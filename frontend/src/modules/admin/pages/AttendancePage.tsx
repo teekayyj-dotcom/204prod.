@@ -41,7 +41,7 @@ import { BusinessTripAssignModal } from "../components/BusinessTripAssignModal";
 
 // Mock data removed
 
-type LogStatus = "on-time" | "late" | "absent" | "wfh";
+type LogStatus = "on-time" | "late" | "absent" | "wfh" | "unscheduled";
 
 interface CheckInLog {
   id: number;
@@ -111,6 +111,7 @@ function StatusBadge({ status }: { status: LogStatus | RequestStatus | RequestTy
     late:       { label: "Đi muộn",   bg: "#78350f33", color: "#fbbf24" },
     absent:     { label: "Vắng mặt",  bg: "#7f1d1d33", color: "#f87171" },
     wfh:        { label: "WFH",       bg: "#1e3a5f33", color: "#60a5fa" },
+    unscheduled:{ label: "Ngoài lịch",bg: "#3f3f4633", color: "#a1a1aa" },
     pending:    { label: "Chờ duyệt", bg: "#78350f33", color: "#fbbf24" },
     approved:   { label: "Đã duyệt",  bg: "#14532d22", color: "#4ade80" },
     rejected:   { label: "Từ chối",   bg: "#7f1d1d33", color: "#f87171" },
@@ -136,6 +137,7 @@ function DayCell({ status }: { status: DayStatus }) {
     absent:    { bg: "#f8717144", title: "Vắng mặt" },
     wfh:       { bg: "#60a5fa44", title: "WFH" },
     business:  { bg: "#f9731644", title: "Công tác" },
+    unscheduled:{bg: "#52525b44", title: "Ngoài lịch"},
     holiday:   { bg: "#c084fc44", title: "Lễ" },
     weekend:   { bg: "#2A1F1F",   title: "Cuối tuần" },
     "-":       { bg: "transparent", title: "" },
