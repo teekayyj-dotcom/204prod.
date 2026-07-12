@@ -1797,7 +1797,7 @@ function VaultTab({ project }: { project: any }) {
                     <Loader2 className="animate-spin" size={24} color="#6B8FD6" />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
                     {(["brief", "script", "shotlist", "contract", "quotation", "invoice"] as const).map(type => {
                     const cfg = docTypeConfig[type];
                     const folderMap: Record<string, string> = {
@@ -1813,7 +1813,7 @@ function VaultTab({ project }: { project: any }) {
                     const isUploading = uploadingType === type;
 
                     return (
-                        <div key={type} style={{ borderRadius: "12px", overflow: "hidden", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)" }}>
+                        <div key={type} style={{ borderRadius: "12px", overflow: "hidden", background: "rgba(29,22,22,0.4)", border: "1px solid rgba(46,32,32,0.6)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", height: "100%" }}>
                             <div style={{ padding: "12px 16px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                                     <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{cfg.label}</span>
@@ -1852,9 +1852,10 @@ function VaultTab({ project }: { project: any }) {
                                 </div>
                             </div>
                             {typeDocs.length === 0 ? (
-                                <div style={{ padding: "16px", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
+                                <div style={{ flex: 1, padding: "16px", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
                             ) : (
-                                typeDocs.map((doc, i) => (
+                                <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                                {typeDocs.map((doc, i) => (
                                     <a 
                                         key={doc.id} 
                                         href={doc.url.match(/^https?:\/\//i) ? doc.url : `https://${doc.url}`}
@@ -1883,7 +1884,8 @@ function VaultTab({ project }: { project: any }) {
                                             </button>
                                         </div>
                                     </a>
-                                ))
+                                ))}
+                                </div>
                             )}
                         </div>
                     );
