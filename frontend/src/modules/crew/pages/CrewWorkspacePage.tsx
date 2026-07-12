@@ -630,7 +630,12 @@ export function CrewWorkspacePage() {
                 const tag = isToday ? "Deadline" : "Upcoming";
                 const time = isToday ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : d.toLocaleDateString("vi-VN");
                 return (
-                  <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: "1px solid #1D1616" }}>
+                  <div 
+                    key={i} 
+                    onClick={() => navigate(`/crew-dashboard/projects?project=${t.project_slug || ''}`)}
+                    className="flex items-center gap-3 py-2.5 cursor-pointer group hover:bg-white/5 px-2 -mx-2 rounded-lg transition-colors" 
+                    style={{ borderBottom: "1px solid #1D1616" }}
+                  >
                     <span style={{ color: "#555", fontSize: "11px", minWidth: "36px", fontFamily: "monospace" }}>
                       {time}
                     </span>
