@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { format, startOfWeek, addDays } from "date-fns";
 import { vi } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -14,8 +14,12 @@ export function CrewScheduleTab({ employeeId, employeeName }: CrewScheduleTabPro
   const [loading, setLoading] = useState(false);
   const [scheduleData, setScheduleData] = useState<Record<string, string[]>>({});
 
-  const startOfCurrentWeek = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset * 7);
-  const weekDays = Array.from({ length: 6 }).map((_, i) => addDays(startOfCurrentWeek, i));
+  const startOfCurrentWeek = React.useMemo(() => 
+    addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset * 7),
+  [weekOffset]);
+  const weekDays = React.useMemo(() => 
+    Array.from({ length: 6 }).map((_, i) => addDays(startOfCurrentWeek, i)),
+  [startOfCurrentWeek]);
 
   useEffect(() => {
     const loadSchedule = async () => {
