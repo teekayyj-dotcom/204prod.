@@ -13,14 +13,14 @@ export function MainLayout() {
     // 1. Inject Admin Manifest dynamically
     const link = document.createElement("link");
     link.rel = "manifest";
-    link.href = "/admin/manifest.json";
+    link.href = "/manifest-admin.json";
     link.id = "admin-manifest";
     document.head.appendChild(link);
 
     // 2. Register Admin Service Worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/admin/sw.js", { scope: "/admin/" })
+        .register("/sw-admin.js", { scope: "/admin/" })
         .then(function (registration) {
           console.log("Admin Service Worker registered with scope:", registration.scope);
         })
