@@ -941,7 +941,7 @@ export function CrewProjectsPage() {
         {/* LEFT: Creative Brief & Assets (3/4 width) */}
         <div className="xl:col-span-3 min-w-0">
           {/* Creative Brief */}
-          <div className="mt-5 rounded-2xl overflow-hidden" style={{ border: "1px solid #2A1F1F" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid #2A1F1F" }}>
             <button
               onClick={() => setBriefOpen((v) => !v)}
               className="w-full flex items-center justify-between px-5 py-4"
