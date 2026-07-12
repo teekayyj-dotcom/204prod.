@@ -467,22 +467,10 @@ def update_project_task(db: Session, task_id: str, task_update: ProjectTaskUpdat
     db_task = db.query(ProjectTask).filter(ProjectTask.id == task_id).first()
     if not db_task:
         return None
-    if task_update.title is not None:
-        db_task.title = task_update.title
-    if task_update.assignee_name is not None:
-        db_task.assignee_name = task_update.assignee_name
-    if task_update.assignee_initials is not None:
-        db_task.assignee_initials = task_update.assignee_initials
-    if task_update.tag is not None:
-        db_task.tag = task_update.tag
-    if task_update.created_by is not None:
-        db_task.created_by = task_update.created_by
-    if task_update.deadline is not None:
-        db_task.deadline = task_update.deadline
-    if task_update.status is not None:
-        db_task.status = task_update.status
-    if task_update.priority is not None:
-        db_task.priority = task_update.priority
+    update_data = task_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_task, key, value)
+    
     db.commit()
     db.refresh(db_task)
     return db_task

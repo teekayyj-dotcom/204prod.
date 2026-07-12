@@ -163,8 +163,7 @@ function KanbanTab() {
     const [dragOver, setDragOver] = useState<string | null>(null);
     const [showAddTask, setShowAddTask] = useState<string | null>(null);
     const [newTaskTitle, setNewTaskTitle] = useState("");
-    const [newTaskAssigneeName, setNewTaskAssigneeName] = useState("");
-    const [newTaskAssigneeInitials, setNewTaskAssigneeInitials] = useState("");
+    const [newTaskAssignees, setNewTaskAssignees] = useState<{name: string, initials: string}[]>([]);
     const [newTaskTag, setNewTaskTag] = useState("");
     const [newTaskCreator, setNewTaskCreator] = useState(currentUserName);
     const [newTaskDeadline, setNewTaskDeadline] = useState("");
@@ -223,8 +222,7 @@ function KanbanTab() {
     };
     const [editingTask, setEditingTask] = useState<{ colId: string; task: any } | null>(null);
     const [editTaskTitle, setEditTaskTitle] = useState("");
-    const [editTaskAssigneeName, setEditTaskAssigneeName] = useState("");
-    const [editTaskAssigneeInitials, setEditTaskAssigneeInitials] = useState("");
+    const [editTaskAssignees, setEditTaskAssignees] = useState<{name: string, initials: string}[]>([]);
     const [editTaskTag, setEditTaskTag] = useState("");
     const [editTaskCreator, setEditTaskCreator] = useState("");
     const [editTaskDeadline, setEditTaskDeadline] = useState("");
@@ -234,8 +232,10 @@ function KanbanTab() {
     const handleEditTaskClick = (colId: string, task: any) => {
         setEditingTask({ colId, task });
         setEditTaskTitle(task.title);
-        setEditTaskAssigneeName(task.assigneeName || "");
-        setEditTaskAssigneeInitials(task.assignee || "");
+        const names = task.assigneeName ? task.assigneeName.split(", ") : [];
+        const initials = task.assignee ? task.assignee.split(", ") : [];
+        const assignees = names.map((n: string, i: number) => ({ name: n, initials: initials[i] || "" }));
+        setEditTaskAssignees(assignees);
         setEditTaskTag(task.tag || "");
         setEditTaskCreator(task.createdBy || "");
         setEditTaskDeadline(task.deadline || "");
@@ -245,8 +245,8 @@ function KanbanTab() {
         if (!editingTask || !editTaskTitle.trim()) return;
         const taskUpdate = {
             title: editTaskTitle.trim(),
-            assignee_name: editTaskAssigneeName.trim() || null,
-            assignee_initials: editTaskAssigneeInitials.trim() || null,
+            assignee_name: editTaskAssignees.length > 0 ? editTaskAssignees.map(a => a.name).join(", ") : null,
+            assignee_initials: editTaskAssignees.length > 0 ? editTaskAssignees.map(a => a.initials).join(", ") : null,
             tag: editTaskTag.trim() || "Work",
             created_by: editTaskCreator.trim() || currentUserName,
             deadline: editTaskDeadline || null,
@@ -302,12 +302,11 @@ function KanbanTab() {
     const addTask = (colId: string) => {
         if (!newTaskTitle.trim()) return;
         const newTaskId = `t${Date.now()}`;
-        const initials = newTaskAssigneeInitials.trim() || null;
         const taskData = {
             id: newTaskId,
             title: newTaskTitle.trim(),
-            assignee_name: newTaskAssigneeName.trim() || null,
-            assignee_initials: initials,
+            assignee_name: newTaskAssignees.length > 0 ? newTaskAssignees.map(a => a.name).join(", ") : null,
+            assignee_initials: newTaskAssignees.length > 0 ? newTaskAssignees.map(a => a.initials).join(", ") : null,
             tag: newTaskTag.trim() || "Work",
             created_by: newTaskCreator.trim() || currentUserName,
             deadline: newTaskDeadline || null,
@@ -325,8 +324,8 @@ function KanbanTab() {
             .catch(err => console.error("Error creating task:", err));
 
         setNewTaskTitle("");
-        setNewTaskAssigneeName("");
-        setNewTaskAssigneeInitials("");
+        setNewTaskAssignees([]);
+        setSearchAssigneeQuery("");
         setNewTaskTag("");
         setNewTaskCreator(currentUserName);
         setNewTaskDeadline("");
@@ -512,10 +511,9 @@ function KanbanTab() {
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                                     {task.assigneeName && (
-                                                        <>
-                                                            <AvatarBubble initials={task.assignee} size={22} color={avatarColor(task.assigneeName)} />
-                                                            <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assigneeName}</span>
-                                                        </>
+                                                        <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>
+                                                            {task.assigneeName}
+                                                        </span>
                                                     )}
                                                 </div>
                                                 {task.deadline && (
@@ -538,18 +536,25 @@ function KanbanTab() {
                                             style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "12px", width: "100%", paddingBottom: "3px" }}
                                         />
                                         <div style={{ position: "relative" }}>
+                                            {newTaskAssignees.length > 0 && (
+                                                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
+                                                    {newTaskAssignees.map(a => (
+                                                        <span key={a.name} style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "10px", padding: "3px 6px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                                            {a.name} <X size={10} style={{ cursor: "pointer", color: "#888" }} onClick={() => setNewTaskAssignees(prev => prev.filter(x => x.name !== a.name))} />
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <input
-                                                value={newTaskAssigneeName}
+                                                value={searchAssigneeQuery}
                                                 onChange={e => {
-                                                    setNewTaskAssigneeName(e.target.value);
                                                     setSearchAssigneeQuery(e.target.value);
                                                     setShowAssigneeDropdown(true);
                                                 }}
                                                 onFocus={() => {
                                                     setShowAssigneeDropdown(true);
-                                                    setSearchAssigneeQuery(newTaskAssigneeName);
                                                 }}
-                                                placeholder="Chọn người thực hiện..."
+                                                placeholder={newTaskAssignees.length ? "Thêm người..." : "Chọn người thực hiện..."}
                                                 style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
                                             />
                                             {showAssigneeDropdown && (
@@ -573,27 +578,32 @@ function KanbanTab() {
                                                                         key={c.id}
                                                                         type="button"
                                                                         onClick={() => {
-                                                                            setNewTaskAssigneeName(c.name);
-                                                                            setNewTaskAssigneeInitials(initials);
-                                                                            setShowAssigneeDropdown(false);
+                                                                            if (newTaskAssignees.some(x => x.name === c.name)) {
+                                                                                setNewTaskAssignees(prev => prev.filter(x => x.name !== c.name));
+                                                                            } else {
+                                                                                setNewTaskAssignees(prev => [...prev, { name: c.name, initials }]);
+                                                                            }
                                                                         }}
                                                                         style={{
                                                                             width: "100%", textAlign: "left", padding: "6px 10px",
                                                                             borderRadius: "4px", fontSize: "11px", display: "flex",
-                                                                            alignItems: "center", gap: "6px", background: "transparent",
+                                                                            alignItems: "center", justifyContent: "space-between", background: "transparent",
                                                                             border: "none", color: "#EEEEEE", cursor: "pointer"
                                                                         }}
                                                                         onMouseEnter={e => { e.currentTarget.style.background = "rgba(216, 64, 64, 0.1)"; e.currentTarget.style.color = "#D84040"; }}
                                                                         onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#EEEEEE"; }}
                                                                     >
-                                                                        {c.avatar ? (
-                                                                            <img src={c.avatar} alt={c.name} style={{ width: "14px", height: "14px", borderRadius: "50%", objectFit: "cover" }} />
-                                                                        ) : (
-                                                                            <div style={{ width: "14px", height: "14px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", color: "white", background: "#2A1F1F" }}>
-                                                                                {c.name.substring(0, 1).toUpperCase()}
-                                                                            </div>
-                                                                        )}
-                                                                        <span>{c.name}</span>
+                                                                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                                            {c.avatar ? (
+                                                                                <img src={c.avatar} alt={c.name} style={{ width: "14px", height: "14px", borderRadius: "50%", objectFit: "cover" }} />
+                                                                            ) : (
+                                                                                <div style={{ width: "14px", height: "14px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", color: "white", background: "#2A1F1F" }}>
+                                                                                    {c.name.substring(0, 1).toUpperCase()}
+                                                                                </div>
+                                                                            )}
+                                                                            <span>{c.name}</span>
+                                                                        </div>
+                                                                        {newTaskAssignees.some(x => x.name === c.name) && <CheckCircle2 size={12} color="#4CAF50" />}
                                                                     </button>
                                                                 );
                                                             })}
@@ -671,61 +681,74 @@ function KanbanTab() {
                             
                             <div style={{ position: "relative" }}>
                                 <label style={{ display: "block", fontSize: "10px", color: "#888", marginBottom: "4px" }}>Người thực hiện</label>
-                                <input
-                                    type="text"
-                                    value={editTaskAssigneeName}
-                                    onChange={e => {
-                                        setEditTaskAssigneeName(e.target.value);
-                                        setSearchEditAssigneeQuery(e.target.value);
-                                        setShowEditAssigneeDropdown(true);
-                                    }}
-                                    onFocus={() => {
-                                        setShowEditAssigneeDropdown(true);
-                                        setSearchEditAssigneeQuery(editTaskAssigneeName);
-                                    }}
-                                    style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
-                                />
-                                {showEditAssigneeDropdown && (
-                                    <>
-                                        <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setShowEditAssigneeDropdown(false)} />
-                                        <div style={{
-                                            position: "absolute", left: 0, right: 0, marginTop: "4px",
-                                            maxHeight: "120px", overflowY: "auto", borderRadius: "4px",
-                                            border: "1px solid #2A1F1F", zIndex: 20, padding: "4px",
-                                            background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
-                                        }}>
-                                            {crewList
-                                                .filter(c => c.name.toLowerCase().includes(searchEditAssigneeQuery.toLowerCase()))
-                                                .map(c => {
-                                                    const initials = c.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
-                                                    return (
-                                                        <button
-                                                            key={c.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setEditTaskAssigneeName(c.name);
-                                                                setEditTaskAssigneeInitials(initials);
-                                                                setShowEditAssigneeDropdown(false);
-                                                            }}
-                                                            style={{
-                                                                width: "100%", textAlign: "left", padding: "6px 10px",
-                                                                borderRadius: "4px", fontSize: "11px", display: "flex",
-                                                                alignItems: "center", gap: "6px", background: "transparent",
-                                                                border: "none", color: "#EEEEEE", cursor: "pointer"
-                                                            }}
-                                                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(216, 64, 64, 0.1)"; e.currentTarget.style.color = "#D84040"; }}
-                                                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#EEEEEE"; }}
-                                                        >
-                                                            {c.avatar ? (
-                                                                <img src={c.avatar} alt={c.name} style={{ width: "14px", height: "14px", borderRadius: "50%", objectFit: "cover" }} />
-                                                            ) : (
-                                                                <div style={{ width: "14px", height: "14px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", color: "white", background: "#2A1F1F" }}>
-                                                                    {c.name.substring(0, 1).toUpperCase()}
+                                {editTaskAssignees.length > 0 && (
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
+                                            {editTaskAssignees.map(a => (
+                                                <span key={a.name} style={{ background: "#2A1F1F", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "10px", padding: "3px 6px", borderRadius: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                                    {a.name} <X size={10} style={{ cursor: "pointer", color: "#888" }} onClick={() => setEditTaskAssignees(prev => prev.filter(x => x.name !== a.name))} />
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <input
+                                        type="text"
+                                        value={searchEditAssigneeQuery}
+                                        onChange={e => {
+                                            setSearchEditAssigneeQuery(e.target.value);
+                                            setShowEditAssigneeDropdown(true);
+                                        }}
+                                        onFocus={() => {
+                                            setShowEditAssigneeDropdown(true);
+                                        }}
+                                        placeholder={editTaskAssignees.length ? "Thêm người..." : "Chọn người thực hiện..."}
+                                        style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
+                                    />
+                                    {showEditAssigneeDropdown && (
+                                        <>
+                                            <div style={{ position: "fixed", inset: 0, zIndex: 10 }} onClick={() => setShowEditAssigneeDropdown(false)} />
+                                            <div style={{
+                                                position: "absolute", left: 0, right: 0, marginTop: "4px",
+                                                maxHeight: "120px", overflowY: "auto", borderRadius: "4px",
+                                                border: "1px solid #2A1F1F", zIndex: 20, padding: "4px",
+                                                background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
+                                            }}>
+                                                {crewList
+                                                    .filter(c => c.name.toLowerCase().includes(searchEditAssigneeQuery.toLowerCase()))
+                                                    .map(c => {
+                                                        const initials = c.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
+                                                        return (
+                                                            <button
+                                                                key={c.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (editTaskAssignees.some(x => x.name === c.name)) {
+                                                                        setEditTaskAssignees(prev => prev.filter(x => x.name !== c.name));
+                                                                    } else {
+                                                                        setEditTaskAssignees(prev => [...prev, { name: c.name, initials }]);
+                                                                    }
+                                                                }}
+                                                                style={{
+                                                                    width: "100%", textAlign: "left", padding: "6px 10px",
+                                                                    borderRadius: "4px", fontSize: "11px", display: "flex",
+                                                                    alignItems: "center", justifyContent: "space-between", background: "transparent",
+                                                                    border: "none", color: "#EEEEEE", cursor: "pointer"
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.background = "rgba(216, 64, 64, 0.1)"; e.currentTarget.style.color = "#D84040"; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#EEEEEE"; }}
+                                                            >
+                                                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                                    {c.avatar ? (
+                                                                        <img src={c.avatar} alt={c.name} style={{ width: "14px", height: "14px", borderRadius: "50%", objectFit: "cover" }} />
+                                                                    ) : (
+                                                                        <div style={{ width: "14px", height: "14px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "8px", fontWeight: "bold", color: "white", background: "#2A1F1F" }}>
+                                                                            {c.name.substring(0, 1).toUpperCase()}
+                                                                        </div>
+                                                                    )}
+                                                                    <span>{c.name}</span>
                                                                 </div>
-                                                            )}
-                                                            <span>{c.name}</span>
-                                                        </button>
-                                                    );
+                                                                {editTaskAssignees.some(x => x.name === c.name) && <CheckCircle2 size={12} color="#4CAF50" />}
+                                                            </button>
+                                                        );
                                                 })}
                                             {crewList.filter(c => c.name.toLowerCase().includes(searchEditAssigneeQuery.toLowerCase())).length === 0 && (
                                                 <p style={{ fontSize: "10px", color: "#555", padding: "6px", fontStyle: "italic", textAlign: "center", margin: 0 }}>
