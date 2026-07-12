@@ -14,20 +14,25 @@ import {
   Circle,
   Wifi,
   Calendar,
-  MapPin,
-  Shield,
-  Sunrise,
-  Coffee,
+  Settings,
+  MoreVertical,
+  Edit2,
+  Trash2,
   FileText,
+  User,
+  MapPin,
   Plane,
   Home,
   PenLine,
   Plus,
-  Settings,
+  Loader2,
   Check,
   X,
-  Loader2
+  Sunrise,
+  Coffee,
+  Shield
 } from "lucide-react";
+import { format } from "date-fns";
 import { fetchApi } from "../utils/apiClient";
 import { WorkScheduleModal } from "../../../shared/components/WorkScheduleModal";
 import { BusinessTripAssignModal } from "../components/BusinessTripAssignModal";
@@ -353,74 +358,102 @@ function ScheduleTab() {
         </div>
       </div>
 
-      <div className="rounded-xl overflow-auto" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-        <table className="w-full text-left" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid #2A1F1F" }}>
-              <th className="px-4 py-3 text-left sticky left-0 z-10" style={{ background: "rgba(29, 22, 22, 0.4)", color: "#666", fontSize: "11px", fontWeight: 600, minWidth: "150px" }}>
-                NHÂN VIÊN
-              </th>
-              {weekDays.map(d => (
-                <th key={d.toISOString()} className="py-3 px-2 text-center" style={{ color: "#666", fontSize: "11px", fontWeight: 600, minWidth: "80px" }}>
-                  <div>{d.toLocaleDateString("vi-VN", { weekday: 'short' })}</div>
-                  <div>{d.getDate()}/{d.getMonth()+1}</div>
-                </th>
-              ))}
-              <th className="px-4 py-3 text-center" style={{ color: "#666", fontSize: "11px", fontWeight: 600 }}>SỐ CA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} className="py-8 text-center"><Loader2 className="animate-spin inline-block text-[#D84040]" size={20} /></td></tr>
-            ) : schedules.length === 0 ? (
-              <tr><td colSpan={8} className="py-8 text-center text-[#666]">Chưa có lịch đăng ký nào</td></tr>
-            ) : (
-              schedules.map((s, idx) => {
-                let totalShifts = 0;
-                return (
-                  <tr key={idx} style={{ borderBottom: idx < schedules.length - 1 ? "1px solid #2A1F1F" : undefined }}>
-                    <td className="px-4 py-3 sticky left-0 z-10" style={{ background: "rgba(29, 22, 22, 0.4)" }}>
-                      <div className="flex items-center gap-2">
-                        <img src={s.avatar || "https://i.pravatar.cc/150"} alt={s.employee_name} className="w-6 h-6 rounded-full" />
-                        <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{s.employee_name}</span>
+      <div className="w-full overflow-x-auto rounded-xl shadow-2xl" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+        <div className="min-w-[1000px] grid grid-cols-[250px_repeat(6,minmax(100px,1fr))_80px] text-sm text-neutral-300">
+          
+          {/* --- HEADER ROW --- */}
+          <div className="contents font-medium text-neutral-500 uppercase text-xs">
+            <div className="p-4 border-b border-neutral-800/50 sticky left-0 z-10" style={{ background: "rgba(25, 18, 18, 1)" }}>Nhân Viên</div>
+            {weekDays.map(d => (
+              <div key={d.toISOString()} className="p-4 border-b border-neutral-800/50 text-center">
+                <div>{d.toLocaleDateString("vi-VN", { weekday: 'short' })}</div>
+                <div>{d.getDate()}/{d.getMonth()+1}</div>
+              </div>
+            ))}
+            <div className="p-4 border-b border-neutral-800/50 text-center">Số Ca</div>
+          </div>
+
+          {/* --- CREW ROWS --- */}
+          {loading ? (
+             <div className="col-span-8 py-8 flex justify-center"><Loader2 className="animate-spin text-[#D84040]" size={20} /></div>
+          ) : schedules.length === 0 ? (
+             <div className="col-span-8 py-8 text-center text-[#666]">Chưa có lịch đăng ký nào</div>
+          ) : (
+            schedules.map((s, idx) => {
+              let totalShifts = 0;
+              return (
+                <div key={idx} className="contents group">
+                  <div className="p-4 border-b border-neutral-800/50 flex items-center gap-3 transition-colors group-hover:bg-neutral-900/50 sticky left-0 z-10" style={{ background: "rgba(25, 18, 18, 1)" }}>
+                    <Avatar initials={s.avatar || (s.employee_name ? s.employee_name.substring(0,2).toUpperCase() : "NV")} size={8} />
+                    <div>
+                      <div className="font-semibold text-neutral-100">{s.employee_name}</div>
+                      <div className="text-[10px] text-neutral-500">{s.role || "Crew"}</div>
+                    </div>
+                  </div>
+
+                  {weekDays.map(d => {
+                    const dateStr = format(d, "yyyy-MM-dd");
+                    const dayShifts = s.schedule_data?.[dateStr] || [];
+                    totalShifts += dayShifts.length;
+                    
+                    return (
+                      <div key={dateStr} className="p-3 border-b border-neutral-800/50 flex flex-col gap-1.5 items-center justify-center relative transition-colors group-hover:bg-[#2A1F1F]/40">
+                        {dayShifts.length > 0 ? (
+                          <>
+                            {dayShifts.includes("morning") && dayShifts.includes("afternoon") ? (
+                              <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 cursor-pointer bg-emerald-950/40 text-emerald-400 border-emerald-900/50 hover:shadow-[0_0_12px_rgba(52,211,153,0.15)]">
+                                Cả ngày
+                              </div>
+                            ) : (
+                              <>
+                                {dayShifts.includes("morning") && (
+                                  <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 cursor-pointer bg-amber-950/40 text-amber-400 border-amber-900/50 hover:shadow-[0_0_12px_rgba(251,191,36,0.15)]">
+                                    Sáng
+                                  </div>
+                                )}
+                                {dayShifts.includes("afternoon") && (
+                                  <div className="w-full py-1.5 px-2 rounded-md text-center text-xs font-medium border backdrop-blur-sm transition-all hover:scale-105 cursor-pointer bg-red-950/40 text-red-400 border-red-900/50 hover:shadow-[0_0_12px_rgba(239,68,68,0.15)]">
+                                    Chiều
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <button className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 hover:opacity-100 text-[10px] uppercase font-bold tracking-wider">
+                            + Thêm
+                          </button>
+                        )}
                       </div>
-                    </td>
-                    {weekDays.map(d => {
-                      const dateStr = d.toISOString().split("T")[0];
-                      const dayShifts = s.schedule_data?.[dateStr] || [];
-                      totalShifts += dayShifts.length;
-                      return (
-                        <td key={d.toISOString()} className="py-3 px-2 text-center">
-                          {dayShifts.includes("morning") && <div className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-[#D4A843] text-black font-semibold mx-0.5">Sáng</div>}
-                          {dayShifts.includes("afternoon") && <div className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-[#D84040] text-white font-semibold mx-0.5">Chiều</div>}
-                          {dayShifts.length === 0 && <span className="text-[#444]">-</span>}
-                        </td>
-                      );
-                    })}
-                    <td className="py-3 text-center text-[#EEEEEE] font-bold">{totalShifts}</td>
-                  </tr>
+                    );
+                  })}
+
+                  <div className="p-4 border-b border-neutral-800/50 flex items-center justify-center font-bold text-neutral-100 transition-colors group-hover:bg-[#2A1F1F]/40">
+                    {totalShifts}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* --- FOOTER ROW --- */}
+          {!loading && schedules.length > 0 && (
+            <div className="contents font-semibold text-amber-500/90 text-xs">
+              <div className="p-4 bg-gradient-to-r from-amber-950/20 to-transparent uppercase tracking-wider sticky left-0 z-10 border-t border-neutral-800/50" style={{ background: "rgba(25, 18, 18, 1)" }}>
+                Tổng số ca (Dự kiến)
+              </div>
+              {weekDays.map(d => {
+                const dateStr = format(d, "yyyy-MM-dd");
+                const total = schedules.reduce((acc, s) => acc + (s.schedule_data?.[dateStr]?.length || 0), 0);
+                return (
+                  <div key={dateStr} className="p-4 text-center bg-neutral-900/30 border-t border-neutral-800/50 text-amber-500">{total > 0 ? total : "-"}</div>
                 );
-              })
-            )}
-            {!loading && schedules.length > 0 && (
-              <tr style={{ background: "rgba(212, 168, 67, 0.1)" }}>
-                <td className="px-4 py-3 sticky left-0 z-10" style={{ background: "#2A2312", color: "#D4A843", fontSize: "11px", fontWeight: 700 }}>
-                  TỔNG SỐ CA (DỰ KIẾN)
-                </td>
-                {weekDays.map(d => {
-                  const dateStr = d.toISOString().split("T")[0];
-                  const total = schedules.reduce((acc, s) => acc + (s.schedule_data?.[dateStr]?.length || 0), 0);
-                  return (
-                    <td key={d.toISOString()} className="py-3 px-2 text-center text-[#D4A843] font-bold text-sm">
-                      {total > 0 ? total : "-"}
-                    </td>
-                  );
-                })}
-                <td className="py-3"></td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              })}
+              <div className="p-4 bg-neutral-900/30 text-center border-t border-neutral-800/50"></div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
