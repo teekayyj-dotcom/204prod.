@@ -19,6 +19,7 @@ import {
   HardHat,
   ClipboardCheck,
   Network,
+  Download,
 } from "lucide-react";
 
 const navItems = [
@@ -146,7 +147,17 @@ function DropdownSection({
   );
 }
 
-export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
+export function Sidebar({ 
+  isOpen, 
+  onClose,
+  installPrompt,
+  onInstallClick
+}: { 
+  isOpen?: boolean; 
+  onClose?: () => void;
+  installPrompt?: any;
+  onInstallClick?: () => void;
+}) {
   const location = useLocation();
 
   const isCrmActive =
@@ -291,6 +302,19 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
             </NavLink>
           );
         })}
+
+        {/* Install App Button (Mobile Only) */}
+        {installPrompt && (
+          <div className="lg:hidden mt-4 pt-4 px-2 border-t border-[#2A1F1F]">
+            <button
+              onClick={onInstallClick}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#D84040] text-white text-sm font-semibold hover:bg-[#8E1616] transition-colors shadow-lg shadow-[#D84040]/20"
+            >
+              <Download size={16} />
+              Cài đặt app
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* User Profile */}

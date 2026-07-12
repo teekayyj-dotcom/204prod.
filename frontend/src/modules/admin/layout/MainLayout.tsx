@@ -1,12 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
-import { Menu, Bell } from "lucide-react";
+import { Menu, Bell, Download } from "lucide-react";
 
 export function MainLayout() {
   const location = useLocation();
   const isPlaybackPage = location.pathname.endsWith("/playback");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    // 1. Inject Admin Manifest dynamically
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = "/admin/manifest.json";
+    link.id = "admin-manifest";
+    document.head.appendChild(link);
+
+    // 2. Register Admin Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/admin/sw.js", { scope: "/admin/" })
+        .then(function (registration) {
+          console.log("Admin Service Worker registered with scope:", registration.scope);
+        })
+        .catch(function (error) {
+          console.error("Admin Service Worker registration failed:", error);
+        });
+    }
+
+    // Cleanup when leaving admin section
+    return () => {
+      const existingLink = document.getElementById("admin-manifest");
+      if (existingLink) {
+        document.head.removeChild(existingLink);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    
+    if (outcome === "accepted") {
+      setInstallPrompt(null);
+    }
+  };
 
   return (
     <div className="flex min-h-screen relative overflow-hidden bg-[#0A0707]">
@@ -26,7 +80,12 @@ export function MainLayout() {
               onClick={() => setSidebarOpen(false)}
             />
           )}
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar 
+            isOpen={sidebarOpen} 
+            onClose={() => setSidebarOpen(false)} 
+            installPrompt={installPrompt}
+            onInstallClick={handleInstallClick}
+          />
         </>
       )}
       <div className={`flex-1 flex flex-col min-w-0 min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>

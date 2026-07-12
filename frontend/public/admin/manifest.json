@@ -1,0 +1,21 @@
+{
+  "name": "Admin Dashboard",
+  "short_name": "Admin",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#0A0707",
+  "theme_color": "#141010",
+  "icons": [
+    {
+      "src": "/favicon/204-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon/204-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
