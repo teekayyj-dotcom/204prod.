@@ -83,6 +83,22 @@ function formatDueDate(dateStr?: string | null): string {
     return dateStr;
 }
 
+function formatTaskDeadline(dateStr: string | null | undefined): string {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    if (dateStr.includes('T')) {
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return `${hours}:${mins} ${day}/${month}`;
+    }
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
+}
+
 function fmtVND(n: number) {
     if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B ₫`;
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}M ₫`;
@@ -286,11 +302,11 @@ function KanbanTab() {
     const addTask = (colId: string) => {
         if (!newTaskTitle.trim()) return;
         const newTaskId = `t${Date.now()}`;
-        const initials = newTaskAssigneeInitials.trim() || "AY";
+        const initials = newTaskAssigneeInitials.trim() || null;
         const taskData = {
             id: newTaskId,
             title: newTaskTitle.trim(),
-            assignee_name: newTaskAssigneeName.trim() || "Alex (Admin)",
+            assignee_name: newTaskAssigneeName.trim() || null,
             assignee_initials: initials,
             tag: newTaskTag.trim() || "Work",
             created_by: newTaskCreator.trim() || currentUserName,
@@ -319,6 +335,13 @@ function KanbanTab() {
 
     return (
         <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
+            <style>{`
+                input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                    filter: invert(1);
+                    transform: scale(1.2);
+                    cursor: pointer;
+                }
+            `}</style>
             {/* Approval Requests list */}
             {approvalRequests.length > 0 && (
                 <div style={{ background: "rgba(212,168,67,0.08)", border: "1px solid #D4A843", borderRadius: "12px", padding: "12px 16px", marginBottom: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -488,12 +511,16 @@ function KanbanTab() {
                                             <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500, lineHeight: 1.4, marginBottom: "8px" }}>{task.title}</p>
                                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                    <AvatarBubble initials={task.assignee} size={22} color={avatarColor(task.assigneeName)} />
-                                                    <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assigneeName}</span>
+                                                    {task.assigneeName && (
+                                                        <>
+                                                            <AvatarBubble initials={task.assignee} size={22} color={avatarColor(task.assigneeName)} />
+                                                            <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assigneeName}</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                                 {task.deadline && (
                                                     <span style={{ fontSize: "9px", color: isDone ? "#4CAF50" : overdue ? "#f87171" : daysLeft !== null && daysLeft <= 2 ? "#E8A838" : "#555", fontWeight: overdue || isDone ? 700 : 400 }}>
-                                                        {isDone ? "Hoàn thành" : overdue ? `${Math.abs(daysLeft!)}d trễ` : daysLeft === 0 ? "Hôm nay" : `${daysLeft}d`}
+                                                        {isDone ? "Hoàn thành" : overdue ? `Trễ (${formatTaskDeadline(task.deadline)})` : formatTaskDeadline(task.deadline)}
                                                     </span>
                                                 )}
                                             </div>
@@ -592,10 +619,10 @@ function KanbanTab() {
                                             style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#EEEEEE", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
                                         />
                                         <input
-                                            type="date"
+                                            type="datetime-local"
                                             value={newTaskDeadline}
                                             onChange={e => setNewTaskDeadline(e.target.value)}
-                                            style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: "#666", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
+                                            style={{ background: "transparent", border: "none", borderBottom: "1px solid #2A1F1F", outline: "none", color: newTaskDeadline ? "#EEEEEE" : "#666", fontSize: "11px", width: "100%", paddingBottom: "3px" }}
                                         />
                                         <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
                                             <button onClick={() => addTask(col.id)} style={{ flex: 1, background: "#D84040", color: "#fff", border: "none", borderRadius: "6px", padding: "5px 0", fontSize: "10px", fontWeight: 600, cursor: "pointer" }}>Thêm</button>
@@ -727,6 +754,16 @@ function KanbanTab() {
                                     value={editTaskCreator}
                                     onChange={e => setEditTaskCreator(e.target.value)}
                                     style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: "#fff", outline: "none" }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: "block", fontSize: "10px", color: "#888", marginBottom: "4px" }}>Thời hạn (Deadline)</label>
+                                <input
+                                    type="datetime-local"
+                                    value={editTaskDeadline}
+                                    onChange={e => setEditTaskDeadline(e.target.value)}
+                                    style={{ width: "100%", boxSizing: "border-box", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "4px", padding: "6px 10px", fontSize: "12px", color: editTaskDeadline ? "#fff" : "#666", outline: "none" }}
                                 />
                             </div>
                         </div>
