@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
 import { allProjects } from "../../admin/data/mockData";
+import { WorkScheduleModal } from "../../../shared/components/WorkScheduleModal";
 
 // ─── Mock attendance data ─────────────────────────────────────────────────────
 const currentMonth = new Date().getMonth();
@@ -78,6 +79,7 @@ const mapDbToFrontendRequest = (r: any) => {
 export function CrewHRPage() {
   const [activeTab, setActiveTab] = useState<"attendance" | "requests" | "settings">("attendance");
   const [showForm, setShowForm] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [form, setForm] = useState({ type: "leave", from: "", to: "", reason: "" });
   const [requests, setRequests] = useState<any[]>([]);
 
@@ -319,15 +321,26 @@ export function CrewHRPage() {
             Quản lý chấm công và đơn từ nhân sự của bạn
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all"
-          style={{ background: "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}
-        >
-          <Plus size={15} /> Tạo đơn mới
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border border-[#2A1F1F]"
+            style={{ background: "#1A1515", color: "#D4A843", fontSize: "13px", fontWeight: 600 }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#2A1F1F"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#1A1515"; }}
+          >
+            <Calendar size={15} /> Đăng ký ca làm
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all"
+            style={{ background: "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}
+          >
+            <Plus size={15} /> Tạo đơn mới
+          </button>
+        </div>
       </div>
 
       {/* Summary row */}
@@ -944,6 +957,13 @@ export function CrewHRPage() {
             </div>
           )}
         </div>
+      )}
+
+      {showScheduleModal && (
+        <WorkScheduleModal 
+          employeeName={user?.name || "Crew Member"}
+          onClose={() => setShowScheduleModal(false)}
+        />
       )}
     </div>
   );

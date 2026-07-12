@@ -280,3 +280,28 @@ def get_hr_overview(db: Session = Depends(get_db_session)):
         "alerts": hr_alerts,
         "open_roles": open_roles
     }
+
+# Work Schedules
+from app.modules.hr.schemas import WorkScheduleCreate, WorkScheduleResponse
+from app.modules.hr.service import create_work_schedule, get_work_schedules
+from typing import Optional
+
+@router.post("/work-schedules", response_model=WorkScheduleResponse)
+def add_work_schedule(
+    schedule: WorkScheduleCreate,
+    db: Session = Depends(get_db_session)
+):
+    return create_work_schedule(
+        db=db,
+        employee_name=schedule.employee_name,
+        avatar=schedule.avatar,
+        week_start_date=schedule.week_start_date,
+        schedule_data=schedule.schedule_data
+    )
+
+@router.get("/work-schedules", response_model=list[WorkScheduleResponse])
+def fetch_work_schedules(
+    week_start_date: Optional[str] = None,
+    db: Session = Depends(get_db_session)
+):
+    return get_work_schedules(db, week_start_date=week_start_date)

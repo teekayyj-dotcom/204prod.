@@ -74,3 +74,13 @@ class Holiday(Base):
     id = Column(Integer, primary_key=True, index=True)
     date = Column(String(50), nullable=False)
     name = Column(String(255), nullable=False)
+
+class WorkSchedule(Base):
+    __tablename__ = "work_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_name = Column(String(255), nullable=False)
+    avatar = Column(String(500), nullable=True)
+    week_start_date = Column(String(50), nullable=False)  # e.g., "2026-07-13" (Monday)
+    schedule_data = Column(JSON, nullable=False) # {"YYYY-MM-DD": ["morning", "afternoon"]}
+    created_at = Column(DateTime, default=datetime.utcnow)

@@ -517,3 +517,33 @@ def get_attendance_stats(db: Session) -> dict:
 def seed_hr_data(db: Session) -> None:
     # No mock freelancers, shifts, or holidays are seeded. All configs and profiles must be created directly by the user in the database.
     pass
+
+def create_work_schedule(db: Session, schedule_data: dict, employee_name: str, avatar: str, week_start_date: str):
+    from app.modules.hr.models import WorkSchedule
+    # Check if a schedule already exists for this week
+    existing = db.query(WorkSchedule).filter(
+        WorkSchedule.employee_name == employee_name,
+        WorkSchedule.week_start_date == week_start_date
+    ).first()
+
+    if existing:
+        existing.schedule_data = schedule_data
+        existing.avatar = avatar
+    else:
+        new_schedule = WorkSchedule(
+            employee_name=employee_name,
+            avatar=avatar,
+            week_start_date=week_start_date,
+            schedule_data=schedule_data
+        )
+        db.add(new_schedule)
+    
+    db.commit()
+    return existing if existing else new_schedule
+
+def get_work_schedules(db: Session, week_start_date: str = None):
+    from app.modules.hr.models import WorkSchedule
+    query = db.query(WorkSchedule)
+    if week_start_date:
+        query = query.filter(WorkSchedule.week_start_date == week_start_date)
+    return query.all()

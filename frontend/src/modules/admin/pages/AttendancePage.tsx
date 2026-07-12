@@ -29,6 +29,7 @@ import {
   Loader2
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { WorkScheduleModal } from "../../../shared/components/WorkScheduleModal";
 import { BusinessTripAssignModal } from "../components/BusinessTripAssignModal";
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
@@ -1190,6 +1191,7 @@ export function AttendancePage() {
   const [holidays, setHolidays] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "overview",   label: "Tổng quan",     icon: TrendingUp },
@@ -1234,15 +1236,25 @@ export function AttendancePage() {
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-7">
-        <div>
-          <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>
-            HR
-          </p>
-          <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>
-            Chấm Công
-          </h1>
+      <div className="flex items-center justify-between mb-7">
+        <div className="flex items-center gap-4">
+          <div>
+            <p style={{ color: "#8E1616", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em" }}>
+              HR
+            </p>
+            <h1 style={{ color: "#EEEEEE", fontSize: "26px", fontWeight: 700, lineHeight: 1.2 }}>
+              Chấm Công
+            </h1>
+          </div>
         </div>
+        <button
+          onClick={() => setShowScheduleModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
+          style={{ background: "#D4A843", color: "#000", fontSize: "13px", fontWeight: 600 }}
+        >
+          <Calendar size={14} />
+          Đăng ký ca làm
+        </button>
       </div>
 
       {/* Tab bar */}
@@ -1273,6 +1285,13 @@ export function AttendancePage() {
       {tab === "timesheet" && <TimesheetTab />}
       {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}
       {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} onRefresh={loadData} />}
+
+      {showScheduleModal && (
+        <WorkScheduleModal 
+          employeeName="Admin"
+          onClose={() => setShowScheduleModal(false)}
+        />
+      )}
     </div>
   );
 }

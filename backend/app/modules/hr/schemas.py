@@ -151,3 +151,19 @@ class AttendanceStats(BaseModel):
     absentCount: int
     totalEmployees: int
     attendanceRate: str
+
+class WorkScheduleBase(BaseModel):
+    employee_name: str
+    avatar: str | None = None
+    week_start_date: str
+    schedule_data: dict
+
+class WorkScheduleCreate(WorkScheduleBase):
+    pass
+
+class WorkScheduleResponse(WorkScheduleBase):
+    id: int
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
