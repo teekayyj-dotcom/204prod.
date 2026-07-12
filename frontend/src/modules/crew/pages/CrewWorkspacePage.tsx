@@ -416,7 +416,7 @@ export function CrewWorkspacePage() {
                   )}
                 </button>
                 {locationError && (
-                  <p style={{ color: "#D84040", fontSize: "11px", maxWidth: "200px", textAlign: "right", marginTop: "4px" }}>
+                  <p style={{ color: "#D84040", fontSize: "11px", maxWidth: "100%", textAlign: "right", marginTop: "4px" }}>
                     {locationError}
                   </p>
 
