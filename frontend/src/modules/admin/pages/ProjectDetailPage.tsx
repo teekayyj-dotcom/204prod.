@@ -1792,7 +1792,7 @@ function VaultTab({ project }: { project: any }) {
                     <Loader2 className="animate-spin" size={24} color="#6B8FD6" />
                 </div>
             ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", alignItems: "start" }}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
                     {(["brief", "script", "shotlist", "contract", "quotation", "invoice"] as const).map(type => {
                     const cfg = docTypeConfig[type];
                     const folderMap: Record<string, string> = {
