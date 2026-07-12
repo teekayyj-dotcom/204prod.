@@ -26,6 +26,7 @@ import {
   Camera,
 } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
+import { CrewScheduleTab } from "../components/CrewScheduleTab";
 import { allProjects } from "../../admin/data/mockData";
 
 // ─── Mock attendance data ─────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ const mapDbToFrontendRequest = (r: any) => {
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewHRPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"attendance" | "requests" | "settings">("attendance");
+  const [activeTab, setActiveTab] = useState<"schedule" | "attendance" | "requests" | "settings">("schedule");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ type: "leave", from: "", to: "", reason: "" });
   const [requests, setRequests] = useState<any[]>([]);
@@ -372,7 +373,7 @@ export function CrewHRPage() {
         className="flex overflow-x-auto gap-1 p-1 mb-6 w-full md:w-fit rounded-xl"
         style={{ background: "#141010", border: "1px solid #2A1F1F" }}
       >
-        {(["attendance", "requests", "settings"] as const).map((tab) => (
+        {(["schedule", "attendance", "requests", "settings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -384,10 +385,17 @@ export function CrewHRPage() {
               fontWeight: activeTab === tab ? 600 : 400,
             }}
           >
-            {tab === "attendance" ? "Lịch sử Chấm công" : tab === "requests" ? "Quản lý Đơn từ" : "Thiết lập & Dự án"}
+            {tab === "schedule" ? "Lịch làm việc" : tab === "attendance" ? "Lịch sử Chấm công" : tab === "requests" ? "Quản lý Đơn từ" : "Thiết lập & Dự án"}
           </button>
         ))}
       </div>
+
+      {activeTab === "schedule" && (
+        <CrewScheduleTab 
+          employeeId={member?.id} 
+          employeeName={member?.name || userObj?.display_name || "Crew Member"} 
+        />
+      )}
 
       {/* TAB: Attendance calendar */}
       {activeTab === "attendance" && (
