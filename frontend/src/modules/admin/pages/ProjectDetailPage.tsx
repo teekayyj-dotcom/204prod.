@@ -1792,7 +1792,8 @@ function VaultTab({ project }: { project: any }) {
                     <Loader2 className="animate-spin" size={24} color="#6B8FD6" />
                 </div>
             ) : (
-                (["brief", "script", "shotlist", "contract", "quotation", "invoice"] as const).map(type => {
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", alignItems: "start" }}>
+                    {(["brief", "script", "shotlist", "contract", "quotation", "invoice"] as const).map(type => {
                     const cfg = docTypeConfig[type];
                     const folderMap: Record<string, string> = {
                         brief: "creative brief",
@@ -1883,7 +1884,8 @@ function VaultTab({ project }: { project: any }) {
                             )}
                         </div>
                     );
-                })
+                })}
+                </div>
             )}
 
             {/* Link Upload Modal */}
