@@ -1820,7 +1820,7 @@ function VaultTab({ project }: { project: any }) {
                                         onClick={() => setUploadMenuOpen(uploadMenuOpen === type ? null : type)}
                                         disabled={isUploading}
                                         style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "24px", height: "24px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", cursor: isUploading ? "not-allowed" : "pointer" }}
-                                        onMouseEnter={e => { if (!isUploading) { e.currentTarget.style.borderColor = cfg.color; e.currentTarget.style.color = cfg.color; } }}
+                                        onMouseEnter={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#EEEEEE"; e.currentTarget.style.color = "#EEEEEE"; } }}
                                         onMouseLeave={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; } }}
                                     >
                                         {isUploading ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
@@ -1830,19 +1830,19 @@ function VaultTab({ project }: { project: any }) {
                                         <div style={{ position: "absolute", top: "50%", right: "100%", transform: "translateY(-50%)", marginRight: "8px", background: "#1D1616", border: "1px solid #3A2A2A", borderRadius: "8px", padding: "4px", zIndex: 10, display: "flex", flexDirection: "row", gap: "4px", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
                                             <button 
                                                 onClick={() => { setUploadMenuOpen(null); handleUploadClick(type); }}
-                                                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "6px", border: "none", background: "rgba(107,143,214,0.1)", color: "#6B8FD6", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}
+                                                style={{ display: "flex", alignItems: "center", padding: "6px 12px", borderRadius: "6px", border: "none", background: "rgba(107,143,214,0.1)", color: "#6B8FD6", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}
                                                 onMouseEnter={e => e.currentTarget.style.background = "rgba(107,143,214,0.2)"}
                                                 onMouseLeave={e => e.currentTarget.style.background = "rgba(107,143,214,0.1)"}
                                             >
-                                                <UploadCloud size={12} /> Upload File
+                                                Upload File
                                             </button>
                                             <button 
                                                 onClick={() => { setUploadMenuOpen(null); setLinkUploadModal({isOpen: true, type}); }}
-                                                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderRadius: "6px", border: "none", background: "rgba(76,175,80,0.1)", color: "#4CAF50", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}
+                                                style={{ display: "flex", alignItems: "center", padding: "6px 12px", borderRadius: "6px", border: "none", background: "rgba(76,175,80,0.1)", color: "#4CAF50", fontSize: "11px", cursor: "pointer", whiteSpace: "nowrap" }}
                                                 onMouseEnter={e => e.currentTarget.style.background = "rgba(76,175,80,0.2)"}
                                                 onMouseLeave={e => e.currentTarget.style.background = "rgba(76,175,80,0.1)"}
                                             >
-                                                <Link2 size={12} /> Upload Link
+                                                Upload Link
                                             </button>
                                         </div>
                                     )}
