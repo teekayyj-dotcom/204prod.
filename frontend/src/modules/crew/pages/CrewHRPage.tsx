@@ -126,7 +126,7 @@ export function CrewHRPage() {
         setLoadingMember(false);
 
         // 2. Fetch Attendance Logs sequentially
-        return fetchApi<any[]>("/hr/attendance-logs")
+        fetchApi<any[]>("/hr/attendance-logs")
           .then((logs) => {
             const userName = userObj.display_name || userObj.username || "Crew";
             const myLogs = logs.filter((l) => {
@@ -495,53 +495,63 @@ export function CrewHRPage() {
       {/* TAB: Leave Requests */}
       {activeTab === "requests" && (
         <div className="space-y-4">
-          {requests.map((req) => {
-            const sc = statusConfig[req.status as keyof typeof statusConfig] || { label: req.status || "Chờ duyệt", color: "#D4A843", icon: AlertCircle };
-            const lt = leaveTypes.find((t) => t.id === req.type || t.label === req.type);
-            return (
-              <div
-                key={req.id}
-                className="rounded-2xl p-5 flex items-center gap-5"
-                style={{ background: "#141010", border: "1px solid #2A1F1F" }}
-              >
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: (lt?.color || "#555") + "18",
-                    border: `1px solid ${(lt?.color || "#555")}33`,
-                  }}
-                >
-                  {lt ? <lt.icon size={18} style={{ color: lt.color }} /> : <Calendar size={18} style={{ color: "#555" }} />}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{lt ? lt.label : req.type}</p>
-                    <span
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-                      style={{
-                        background: sc.color + "15",
-                        border: `1px solid ${sc.color}33`,
-                        color: sc.color,
-                        fontSize: "10px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      <sc.icon size={9} /> {sc.label}
-                    </span>
-                  </div>
-                  <p style={{ color: "#666", fontSize: "12px", marginTop: "3px" }}>
-                    {req.from === req.to ? req.from : `${req.from} → ${req.to}`} · {req.reason}
-                  </p>
-                </div>
-
-                <div className="text-right flex-shrink-0">
-                  <p style={{ color: "#444", fontSize: "11px" }}>Tạo lúc</p>
-                  <p style={{ color: "#666", fontSize: "12px", fontWeight: 500 }}>{req.created}</p>
-                </div>
+          {requests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center" style={{ background: "#141010", border: "1px solid #2A1F1F", borderRadius: "16px" }}>
+              <div className="w-12 h-12 rounded-full bg-[#1D1616] flex items-center justify-center mb-3">
+                <Calendar size={20} className="text-[#555]" />
               </div>
-            );
-          })}
+              <p style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>Bạn chưa có đơn từ nào</p>
+              <p style={{ color: "#666", fontSize: "13px", marginTop: "4px" }}>Bấm vào nút "Tạo đơn mới" ở góc phải để xin nghỉ phép hoặc WFH.</p>
+            </div>
+          ) : (
+            requests.map((req) => {
+              const sc = statusConfig[req.status as keyof typeof statusConfig] || { label: req.status || "Chờ duyệt", color: "#D4A843", icon: AlertCircle };
+              const lt = leaveTypes.find((t) => t.id === req.type || t.label === req.type);
+              return (
+                <div
+                  key={req.id}
+                  className="rounded-2xl p-5 flex items-center gap-5"
+                  style={{ background: "#141010", border: "1px solid #2A1F1F" }}
+                >
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: (lt?.color || "#555") + "18",
+                      border: `1px solid ${(lt?.color || "#555")}33`,
+                    }}
+                  >
+                    {lt ? <lt.icon size={18} style={{ color: lt.color }} /> : <Calendar size={18} style={{ color: "#555" }} />}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{lt ? lt.label : req.type}</p>
+                      <span
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+                        style={{
+                          background: sc.color + "15",
+                          border: `1px solid ${sc.color}33`,
+                          color: sc.color,
+                          fontSize: "10px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <sc.icon size={9} /> {sc.label}
+                      </span>
+                    </div>
+                    <p style={{ color: "#666", fontSize: "12px", marginTop: "3px" }}>
+                      {req.from === req.to ? req.from : `${req.from} → ${req.to}`} · {req.reason}
+                    </p>
+                  </div>
+
+                  <div className="text-right flex-shrink-0">
+                    <p style={{ color: "#444", fontSize: "11px" }}>Tạo lúc</p>
+                    <p style={{ color: "#666", fontSize: "12px", fontWeight: 500 }}>{req.created}</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
