@@ -28,6 +28,7 @@ export const crewRoute = {
     { path: "projects/:id/playback", lazy: () => import("../client-view/pages/ClientPlaybackPage").then(m => ({ Component: m.ClientPlaybackPage })) },
     { path: "media", lazy: () => import("./pages/CrewMediaLibraryPage").then(m => ({ Component: m.CrewMediaLibraryPage })) },
     { path: "hr", lazy: () => import("./pages/CrewHRPage").then(m => ({ Component: m.CrewHRPage })) },
+    { path: "hr/attendance/edit", lazy: () => import("./pages/EditSchedulePage").then(m => ({ Component: m.EditSchedulePage })) },
     { path: "*", Component: CrewNotFound },
   ],
 };

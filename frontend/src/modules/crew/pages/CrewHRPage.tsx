@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   UserCircle2,
   Calendar,
@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
 import { allProjects } from "../../admin/data/mockData";
-import { WorkScheduleModal } from "../../../shared/components/WorkScheduleModal";
 
 // ─── Mock attendance data ─────────────────────────────────────────────────────
 const currentMonth = new Date().getMonth();
@@ -77,9 +76,9 @@ const mapDbToFrontendRequest = (r: any) => {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewHRPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"attendance" | "requests" | "settings">("attendance");
   const [showForm, setShowForm] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [form, setForm] = useState({ type: "leave", from: "", to: "", reason: "" });
   const [requests, setRequests] = useState<any[]>([]);
 
@@ -323,7 +322,13 @@ export function CrewHRPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowScheduleModal(true)}
+            onClick={() => navigate("/crew-dashboard/hr/attendance/edit", {
+              state: {
+                employeeId: member?.id,
+                employeeName: member?.name || userObj?.display_name || "Crew Member",
+                isAdminMode: false
+              }
+            })}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all border border-[#2A1F1F]"
             style={{ background: "#1A1515", color: "#D4A843", fontSize: "13px", fontWeight: 600 }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "#2A1F1F"; }}
@@ -957,14 +962,6 @@ export function CrewHRPage() {
             </div>
           )}
         </div>
-      )}
-
-      {showScheduleModal && (
-        <WorkScheduleModal 
-          employeeId={member?.id}
-          employeeName={member?.name || userObj?.display_name || "Crew Member"}
-          onClose={() => setShowScheduleModal(false)}
-        />
       )}
     </div>
   );
