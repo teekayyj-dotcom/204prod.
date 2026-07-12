@@ -1691,6 +1691,8 @@ function VaultTab({ project }: { project: any }) {
                 const clientSlug = project?.client_slug || project?.client;
                 const folderMap: Record<string, string> = {
                     brief: "creative brief",
+                    script: "kịch bản",
+                    shotlist: "shot list",
                     contract: "tài liệu hợp đồng",
                     quotation: "báo giá",
                     invoice: "hoá đơn"
