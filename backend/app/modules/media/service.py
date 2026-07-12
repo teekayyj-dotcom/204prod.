@@ -204,11 +204,15 @@ def delete_media_asset(db: Session, id: str):
     # Clear any project video_url references to this media asset (DEPRECATED - we now prevent deletion)
     try:
         from app.modules.projects.models import Project, ProjectGalleryImage
-        projects_with_video = db.query(Project).filter(
-            (Project.video_url == media_asset.url) | 
-            (Project.video_url == media_asset.thumbnail_url) |
-            (Project.cover_media_id == media_asset.id)
-        ).first()
+        from sqlalchemy import or_
+        
+        conditions = [Project.cover_media_id == media_asset.id]
+        if media_asset.url:
+            conditions.append(Project.video_url == media_asset.url)
+        if media_asset.thumbnail_url:
+            conditions.append(Project.video_url == media_asset.thumbnail_url)
+            
+        projects_with_video = db.query(Project).filter(or_(*conditions)).first()
         
         if projects_with_video:
             raise ValueError(f"Không thể xóa media này vì đang được sử dụng trong dự án '{projects_with_video.title}'")
