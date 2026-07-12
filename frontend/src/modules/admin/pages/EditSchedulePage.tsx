@@ -121,13 +121,18 @@ export function EditSchedulePage() {
             
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-[#2A1F1F] gap-6">
               <div className="flex items-center gap-4">
-                {state?.avatar ? (
-                  <img src={state.avatar} alt={state.employeeName} className="w-14 h-14 rounded-full object-cover border-2 border-[#2A1F1F]" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-[#2A1F1F] flex items-center justify-center text-[#E5E5E5] font-bold text-xl border-2 border-[#3A2F2F]">
-                    {state?.employeeName?.substring(0,2).toUpperCase() || "UN"}
-                  </div>
-                )}
+                {(() => {
+                  const avatar = state?.avatar || "";
+                  const isUrl = avatar && (avatar.startsWith("http") || avatar.startsWith("/") || avatar.includes(".") || avatar.includes("uploads"));
+                  if (isUrl) {
+                    return <img src={avatar} alt={state?.employeeName} className="w-14 h-14 rounded-full object-cover border-2 border-[#2A1F1F]" />;
+                  }
+                  return (
+                    <div className="w-14 h-14 rounded-full bg-[#2A1F1F] flex items-center justify-center text-[#E5E5E5] font-bold text-xl border-2 border-[#3A2F2F]">
+                      {avatar || state?.employeeName?.substring(0,2).toUpperCase() || "UN"}
+                    </div>
+                  );
+                })()}
                 <div>
                   <div className="text-xs text-[#A3A3A3] font-medium tracking-wide uppercase mb-1">Nhân sự</div>
                   <div className="font-bold text-[#E5E5E5] text-xl">{state?.employeeName || "Unknown"}</div>

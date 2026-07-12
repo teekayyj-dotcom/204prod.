@@ -326,6 +326,7 @@ export function CrewHRPage() {
               state: {
                 employeeId: member?.id,
                 employeeName: member?.name || userObj?.display_name || "Crew Member",
+                avatar: member?.avatar || userObj?.avatar,
                 isAdminMode: false
               }
             })}
