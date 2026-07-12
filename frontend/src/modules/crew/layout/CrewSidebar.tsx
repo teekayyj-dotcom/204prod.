@@ -26,17 +26,17 @@ const navItems = [
     exact: false,
   },
   {
-    label: "Thư viện Tài nguyên",
-    sublabel: "Media Library",
-    icon: Library,
-    path: "/crew-dashboard/media",
-    exact: false,
-  },
-  {
     label: "Cá nhân & HR",
     sublabel: "My HR",
     icon: UserCircle2,
     path: "/crew-dashboard/hr",
+    exact: false,
+  },
+  {
+    label: "Thư viện Tài nguyên",
+    sublabel: "Media Library",
+    icon: Library,
+    path: "/crew-dashboard/media",
     exact: false,
   },
 ];
