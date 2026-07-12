@@ -13,7 +13,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Add custom caching strategy for admin routes here if needed
-  // Currently falling back to network
-  event.respondWith(fetch(event.request));
+  // Ignore cross-origin requests (like Google Tag Manager, Analytics, APIs)
+  // This prevents adblockers from causing Uncaught TypeErrors in the Service Worker
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request).catch((error) => {
+      console.warn('[SW] Fetch failed (network error or offline):', error);
+      throw error;
+    })
+  );
 });
