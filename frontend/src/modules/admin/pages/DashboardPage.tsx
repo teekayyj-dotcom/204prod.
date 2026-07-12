@@ -7,6 +7,8 @@ import { TopActiveProjects } from "../dashboard/TopActiveProjects";
 import { ActionCenter } from "../dashboard/ActionCenter";
 import { CrewRadar } from "../dashboard/CrewRadar";
 
+import { CheckinWidget } from "../dashboard/CheckinWidget";
+
 export function DashboardPage() {
     const navigate = useNavigate();
     return (
@@ -48,6 +50,11 @@ export function DashboardPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Admin Check-in */}
+            <section className="mb-7">
+                <CheckinWidget />
+            </section>
 
             {/* Overview KPIs */}
             <section className="mb-7">
