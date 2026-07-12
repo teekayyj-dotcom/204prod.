@@ -759,35 +759,9 @@ export function CrewProjectsPage() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               {task.assignee ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <div
-                                      className="w-5 h-5 rounded-full flex items-center justify-center text-white"
-                                      style={{
-                                        background: "#3A2A2A",
-                                        fontSize: "9px",
-                                        fontWeight: 700,
-                                        border: "1px solid #D84040",
-                                      }}
-                                    >
-                                      {task.assignee.substring(0, 1).toUpperCase()}
-                                    </div>
-                                    <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assignee}</span>
-                                  </div>
+                                  <span style={{ color: "#888", fontSize: "11px", fontWeight: 500 }}>{task.assignee}</span>
                                 ) : (
-                                  <div className="flex items-center gap-1.5">
-                                    <div
-                                      className="w-5 h-5 rounded-full flex items-center justify-center text-white/50"
-                                      style={{
-                                        background: "#1D1616",
-                                        fontSize: "9px",
-                                        fontWeight: 700,
-                                        border: "1px dashed #2A1F1F",
-                                      }}
-                                    >
-                                      ?
-                                    </div>
-                                    <span style={{ color: "#555", fontSize: "11px", fontWeight: 500, fontStyle: "italic" }}>Chưa giao</span>
-                                  </div>
+                                  <span style={{ color: "#555", fontSize: "11px", fontWeight: 500, fontStyle: "italic" }}>Chưa giao việc</span>
                                 )}
                           </div>
                           {task.deadline && (
