@@ -332,8 +332,11 @@ function ScheduleTab({
           fetchApi<any[]>(`/hr/work-schedules?week_start_date=${weekStartStr}`)
         ]);
 
-        // Merge schedules with all crew members
-        const combined = crewData.map(c => {
+        // Filter crew members who are "onsite"
+        const onsiteCrew = crewData.filter(c => c.work_mode && c.work_mode.toLowerCase() === "onsite");
+
+        // Merge schedules with all onsite crew members
+        const combined = onsiteCrew.map(c => {
           // Check if this crew member has a schedule for the selected week
           let existingSchedule = schedulesData.find(s => s.employee_id === c.id);
           if (!existingSchedule) {
@@ -347,27 +350,6 @@ function ScheduleTab({
             role: c.role || "Crew",
             schedule_data: existingSchedule ? existingSchedule.schedule_data : {}
           };
-        });
-
-        // Also add any schedules for employees that might have been deleted or admin, if not in crewData
-        schedulesData.forEach(s => {
-          // Check if already in combined
-          let alreadyIn = false;
-          if (s.employee_id) {
-            alreadyIn = combined.some(c => c.employee_id === s.employee_id);
-          } else {
-            alreadyIn = combined.some(c => c.employee_name === s.employee_name);
-          }
-          
-          if (!alreadyIn) {
-            combined.push({
-              employee_id: s.employee_id,
-              employee_name: s.employee_name,
-              avatar: s.avatar || s.employee_name.substring(0, 2).toUpperCase(),
-              role: s.role || "Admin",
-              schedule_data: s.schedule_data
-            });
-          }
         });
 
         setSchedules(combined);
@@ -526,8 +508,12 @@ function TimesheetTab() {
     const fetchTimesheet = async () => {
       setLoading(true);
       try {
-        const data = await fetchApi<TimesheetData[]>(`/hr/timesheet?year=${year}&month=${month + 1}`);
-        setTimesheetData(data);
+        const [data, crewData] = await Promise.all([
+          fetchApi<TimesheetData[]>(`/hr/timesheet?year=${year}&month=${month + 1}`),
+          fetchApi<any[]>("/crew").catch(() => [])
+        ]);
+        const onsiteCrewNames = crewData.filter(c => c.work_mode && c.work_mode.toLowerCase() === "onsite").map(c => c.name);
+        setTimesheetData(data.filter(d => onsiteCrewNames.includes(d.employee.name)));
       } catch (err) {
         console.error("Failed to load timesheet", err);
       } finally {
