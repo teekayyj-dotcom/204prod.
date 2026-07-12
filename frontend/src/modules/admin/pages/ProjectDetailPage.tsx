@@ -1739,11 +1739,16 @@ function VaultTab({ project }: { project: any }) {
             const targetFolder = folderMap[linkUploadModal.type] || linkUploadModal.type;
             const captionName = linkName.trim() ? linkName.trim() : linkUrl.substring(0, 50);
             
+            let formattedUrl = linkUrl.trim();
+            if (!/^https?:\/\//i.test(formattedUrl)) {
+                formattedUrl = 'https://' + formattedUrl;
+            }
+
             await fetchApi("/media/finalize", {
                 method: "POST",
                 body: JSON.stringify({
                     asset_id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
-                    url: linkUrl,
+                    url: formattedUrl,
                     thumbnail_url: null,
                     alt: captionName,
                     caption: captionName,
@@ -1863,7 +1868,7 @@ function VaultTab({ project }: { project: any }) {
                                         </div>
                                         <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                                             <a 
-                                                href={doc.url} 
+                                                href={doc.url.match(/^https?:\/\//i) ? doc.url : `https://${doc.url}`} 
                                                 target="_blank" 
                                                 rel="noreferrer" 
                                                 style={{ textDecoration: "none", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(46,32,32,0.6)", background: "transparent", color: "#666", fontSize: "9px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
