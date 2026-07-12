@@ -1,19 +1,25 @@
 import { useState, useEffect } from "react";
-import { X, Calendar } from "lucide-react";
+import { X, Calendar, CheckCircle } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { vi } from "date-fns/locale";
+import { fetchApi } from "../../modules/admin/utils/apiClient";
 
 interface WorkScheduleModalProps {
   onClose: () => void;
   employeeName: string;
+  employeeAvatar?: string;
+  initialScheduleData?: Record<string, string[]>;
+  isAdminMode?: boolean;
 }
 
-export function WorkScheduleModal({ onClose, employeeName }: WorkScheduleModalProps) {
+export function WorkScheduleModal({ onClose, employeeName, employeeAvatar, initialScheduleData, isAdminMode = false }: WorkScheduleModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 }));
   
   // Create schedule data state
-  const [scheduleData, setScheduleData] = useState<Record<string, string[]>>({});
+  const [scheduleData, setScheduleData] = useState<Record<string, string[]>>(initialScheduleData || {});
 
   useEffect(() => {
     // We could fetch existing data for this week here from API
@@ -23,6 +29,7 @@ export function WorkScheduleModal({ onClose, employeeName }: WorkScheduleModalPr
   const daysOfWeek = Array.from({ length: 6 }).map((_, i) => addDays(selectedWeekStart, i));
 
   const handleToggle = (dateStr: string, shift: string) => {
+    setErrorMsg("");
     setScheduleData(prev => {
       const dayShifts = prev[dateStr] || [];
       if (dayShifts.includes(shift)) {
@@ -35,11 +42,20 @@ export function WorkScheduleModal({ onClose, employeeName }: WorkScheduleModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const totalShifts = Object.values(scheduleData).flat().length;
+    if (!isAdminMode && totalShifts < 6) {
+      setErrorMsg(`Bạn mới chọn ${totalShifts} ca. Vui lòng chọn tối thiểu 6 ca làm việc trong tuần.`);
+      return;
+    }
+
     setIsSubmitting(true);
+    setErrorMsg("");
     
     // Default avatar handling
     const userJson = localStorage.getItem("user");
-    const avatar = userJson ? JSON.parse(userJson).avatar : "https://i.pravatar.cc/150?u=crew";
+    const defaultAvatar = userJson ? JSON.parse(userJson).avatar : "https://i.pravatar.cc/150?u=crew";
+    const avatar = employeeAvatar || defaultAvatar;
 
     const payload = {
       employee_name: employeeName,
@@ -49,23 +65,33 @@ export function WorkScheduleModal({ onClose, employeeName }: WorkScheduleModalPr
     };
 
     try {
-      const res = await fetch("http://localhost:8000/hr/work-schedules", {
+      await fetchApi("/hr/work-schedules", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        onClose();
-        // Option to show success toast
-      } else {
-        console.error("Failed to submit schedule");
-      }
+      setIsSuccess(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       console.error(error);
+      setErrorMsg("Đã xảy ra lỗi khi đăng ký ca làm. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-[#1A1515] border border-[#2A1F1F] rounded-2xl p-8 flex flex-col items-center justify-center max-w-sm w-full text-center">
+          <CheckCircle className="text-[#4ade80] mb-4" size={48} />
+          <h2 className="text-xl font-bold text-[#E5E5E5] mb-2">Đăng ký thành công!</h2>
+          <p className="text-sm text-[#A3A3A3]">Hệ thống đang tải lại dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -176,6 +202,12 @@ export function WorkScheduleModal({ onClose, employeeName }: WorkScheduleModalPr
               <p>• Nếu không check-in vào ca đã đăng ký sẽ tính là vắng mặt.</p>
             </div>
           </div>
+
+          {errorMsg && (
+            <div className="text-[#D84040] text-sm text-center">
+              {errorMsg}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#2A1F1F]">
             <button

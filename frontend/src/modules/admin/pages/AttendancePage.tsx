@@ -420,7 +420,15 @@ function ScheduleTab() {
                             )}
                           </>
                         ) : (
-                          <button className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 hover:opacity-100 text-[10px] uppercase font-bold tracking-wider">
+                          <button 
+                            onClick={() => {
+                              setSelectedScheduleEmployee(s.employee_name);
+                              setSelectedScheduleAvatar(s.avatar);
+                              setSelectedScheduleData(s.schedule_data || {});
+                              setShowScheduleModal(true);
+                            }}
+                            className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 hover:opacity-100 text-[10px] uppercase font-bold tracking-wider"
+                          >
                             + Thêm
                           </button>
                         )}
@@ -1352,6 +1360,11 @@ export function AttendancePage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedScheduleEmployee, setSelectedScheduleEmployee] = useState<string | null>(null);
+  const [selectedScheduleAvatar, setSelectedScheduleAvatar] = useState<string | null>(null);
+  const [selectedScheduleData, setSelectedScheduleData] = useState<Record<string, string[]>>({});
+  
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "overview",   label: "Tổng quan",     icon: TrendingUp },
@@ -1448,10 +1461,19 @@ export function AttendancePage() {
       {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}
       {tab === "settings"  && <SettingsTab shifts={shifts} holidays={holidays} onRefresh={loadData} />}
 
+      {/* Modals */}
       {showScheduleModal && (
         <WorkScheduleModal 
-          employeeName="Admin"
-          onClose={() => setShowScheduleModal(false)}
+          employeeName={selectedScheduleEmployee || "Admin"}
+          employeeAvatar={selectedScheduleAvatar || undefined}
+          initialScheduleData={selectedScheduleData}
+          isAdminMode={true}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setSelectedScheduleEmployee(null);
+            setSelectedScheduleAvatar(null);
+            setSelectedScheduleData({});
+          }} 
         />
       )}
     </div>
