@@ -78,7 +78,7 @@ const mapDbToFrontendRequest = (r: any) => {
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CrewHRPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"schedule" | "attendance" | "requests" | "settings">("schedule");
+  const [activeTab, setActiveTab] = useState<"attendance" | "requests" | "settings">("attendance");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ type: "leave", from: "", to: "", reason: "" });
   const [requests, setRequests] = useState<any[]>([]);
@@ -373,7 +373,7 @@ export function CrewHRPage() {
         className="flex overflow-x-auto gap-1 p-1 mb-6 w-full md:w-fit rounded-xl"
         style={{ background: "#141010", border: "1px solid #2A1F1F" }}
       >
-        {(["schedule", "attendance", "requests", "settings"] as const).map((tab) => (
+        {(["attendance", "requests", "settings"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -385,22 +385,21 @@ export function CrewHRPage() {
               fontWeight: activeTab === tab ? 600 : 400,
             }}
           >
-            {tab === "schedule" ? "Lịch làm việc" : tab === "attendance" ? "Lịch sử Chấm công" : tab === "requests" ? "Quản lý Đơn từ" : "Thiết lập & Dự án"}
+            {tab === "attendance" ? "Lịch sử Chấm công" : tab === "requests" ? "Quản lý Đơn từ" : "Thiết lập & Dự án"}
           </button>
         ))}
       </div>
 
-      {activeTab === "schedule" && (
-        <CrewScheduleTab 
-          employeeId={member?.id} 
-          employeeName={member?.name || userObj?.display_name || "Crew Member"} 
-        />
-      )}
-
-      {/* TAB: Attendance calendar */}
+      {/* TAB: Attendance calendar & Schedule */}
       {activeTab === "attendance" && (
-        <div className="rounded-2xl p-4 sm:p-6 overflow-x-auto" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
-          <div className="min-w-[500px]">
+        <div className="space-y-8">
+          <CrewScheduleTab 
+            employeeId={member?.id} 
+            employeeName={member?.name || userObj?.display_name || "Crew Member"} 
+          />
+
+          <div className="rounded-2xl p-4 sm:p-6 overflow-x-auto" style={{ background: "#141010", border: "1px solid #2A1F1F" }}>
+            <div className="min-w-[500px]">
             {/* Month header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
               <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700 }}>
@@ -487,6 +486,7 @@ export function CrewHRPage() {
               })}
             </div>
           </div>
+        </div>
         </div>
       )}
 
