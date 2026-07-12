@@ -171,9 +171,7 @@ export function CheckinWidget() {
                   animation: "pulse 2s infinite",
                 }}
               />
-            ) : (
-              <Coffee size={14} style={{ color: "#555" }} />
-            )}
+            ) : null}
             <span
               style={{
                 color: isCheckedIn ? "#10B981" : "#555",
