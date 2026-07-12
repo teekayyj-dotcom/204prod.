@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   Clock,
@@ -34,7 +35,6 @@ import {
 } from "lucide-react";
 import { format, addWeeks, startOfWeek, addDays } from "date-fns";
 import { fetchApi } from "../utils/apiClient";
-import { WorkScheduleModal } from "../../../shared/components/WorkScheduleModal";
 import { BusinessTripAssignModal } from "../components/BusinessTripAssignModal";
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
@@ -354,7 +354,7 @@ function ScheduleTab({
           if (s.employee_id) {
             alreadyIn = combined.some(c => c.employee_id === s.employee_id);
           } else {
-            alreadyIn = combined.some(c => c.employee_name === s.employee_name && c.schedule_data === s.schedule_data);
+            alreadyIn = combined.some(c => c.employee_name === s.employee_name);
           }
           
           if (!alreadyIn) {
@@ -1388,9 +1388,10 @@ function SettingsTab({ shifts, holidays, onRefresh }: SettingsTabProps) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "timesheet" | "requests" | "settings";
+type Tab = "overview" | "timesheet" | "requests" | "settings" | "schedule";
 
 export function AttendancePage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
   const [liveLog, setLiveLog] = useState<CheckInLog[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
@@ -1398,15 +1399,7 @@ export function AttendancePage() {
   const [holidays, setHolidays] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [selectedScheduleEmployeeId, setSelectedScheduleEmployeeId] = useState<number | undefined>(undefined);
-  const [selectedScheduleEmployee, setSelectedScheduleEmployee] = useState<string | null>(null);
-  const [selectedScheduleAvatar, setSelectedScheduleAvatar] = useState<string | null>(null);
-  const [selectedScheduleData, setSelectedScheduleData] = useState<Record<string, string[]>>({});
-  const [selectedWeekStart, setSelectedWeekStart] = useState<Date | undefined>(undefined);
   
-  const [showAssignModal, setShowAssignModal] = useState(false);
-
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "overview",   label: "Tổng quan",     icon: TrendingUp },
     { key: "schedule",   label: "Lịch làm việc",  icon: Calendar },
@@ -1463,7 +1456,7 @@ export function AttendancePage() {
           </div>
         </div>
         <button
-          onClick={() => setShowScheduleModal(true)}
+          onClick={() => navigate("/admin/hr/attendance/edit")}
           className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
           style={{ background: "#D4A843", color: "#000", fontSize: "13px", fontWeight: 600 }}
         >
@@ -1498,12 +1491,16 @@ export function AttendancePage() {
       {/* Tab content */}
       {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
       {tab === "schedule"  && <ScheduleTab onAddShift={(empId, name, avatar, data, weekStart) => {
-        setSelectedScheduleEmployeeId(empId);
-        setSelectedScheduleEmployee(name);
-        setSelectedScheduleAvatar(avatar);
-        setSelectedScheduleData(data);
-        setSelectedWeekStart(weekStart);
-        setShowScheduleModal(true);
+        navigate("/admin/hr/attendance/edit", {
+          state: {
+            employeeId: empId,
+            employeeName: name,
+            avatar,
+            scheduleData: data,
+            weekStart: weekStart.toISOString(),
+            isAdminMode: true
+          }
+        });
       }} />}
       {tab === "timesheet" && <TimesheetTab />}
       {tab === "requests"  && <RequestsTab requests={requests} onRefresh={loadData} />}

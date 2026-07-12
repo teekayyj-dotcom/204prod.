@@ -40,6 +40,7 @@ export const adminRoute = {
         { path: "crm/overview", lazy: () => import("./pages/CRMOverviewPage").then(m => ({ Component: m.CRMOverviewPage })) },
         { path: "hr/overview", lazy: () => import("./pages/HROverviewPage").then(m => ({ Component: m.HROverviewPage })) },
         { path: "hr/attendance", lazy: () => import("./pages/AttendancePage").then(m => ({ Component: m.AttendancePage })) },
+        { path: "hr/attendance/edit", lazy: () => import("./pages/EditSchedulePage").then(m => ({ Component: m.EditSchedulePage })) },
         { path: "finance/overview", lazy: () => import("./pages/FinanceOverviewPage").then(m => ({ Component: m.FinanceOverviewPage })) },
         { path: "finance/goals", lazy: () => import("./pages/FinanceGoalsPage").then(m => ({ Component: m.FinanceGoalsPage })) },
         { path: "finance/revenue", lazy: () => import("./pages/FinanceRevenuePage").then(m => ({ Component: m.FinanceRevenuePage })) },
