@@ -32,7 +32,7 @@ import {
   Coffee,
   Shield
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addWeeks, startOfWeek, addDays } from "date-fns";
 import { fetchApi } from "../utils/apiClient";
 import { WorkScheduleModal } from "../../../shared/components/WorkScheduleModal";
 import { BusinessTripAssignModal } from "../components/BusinessTripAssignModal";
@@ -310,7 +310,7 @@ function OverviewTab({ liveLog, stats }: OverviewTabProps) {
 function ScheduleTab({
   onAddShift
 }: {
-  onAddShift: (employeeName: string, avatar: string, scheduleData: Record<string, string[]>) => void
+  onAddShift: (employeeId: number | undefined, employeeName: string, avatar: string, scheduleData: Record<string, string[]>) => void
 }) {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -333,8 +333,9 @@ function ScheduleTab({
         // Merge schedules with all crew members
         const combined = crewData.map(c => {
           // Check if this crew member has a schedule for the selected week
-          const existingSchedule = schedulesData.find(s => s.employee_name === c.name);
+          const existingSchedule = schedulesData.find(s => s.employee_id === c.id || (!s.employee_id && s.employee_name === c.name));
           return {
+            employee_id: c.id,
             employee_name: c.name,
             avatar: c.avatar || c.name.substring(0, 2).toUpperCase(),
             role: c.role || "Crew",
@@ -344,8 +345,9 @@ function ScheduleTab({
 
         // Also add any schedules for employees that might have been deleted or admin, if not in crewData
         schedulesData.forEach(s => {
-          if (!combined.find(c => c.employee_name === s.employee_name)) {
+          if (!combined.find(c => (c.employee_id === s.employee_id && s.employee_id) || (!s.employee_id && c.employee_name === s.employee_name))) {
             combined.push({
+              employee_id: s.employee_id,
               employee_name: s.employee_name,
               avatar: s.avatar || s.employee_name.substring(0, 2).toUpperCase(),
               role: s.role || "Admin",
@@ -447,7 +449,7 @@ function ScheduleTab({
                         ) : (
                           <button 
                             onClick={() => {
-                              onAddShift(s.employee_name, s.avatar || "", s.schedule_data || {});
+                              onAddShift(s.employee_id, s.employee_name, s.avatar || "", s.schedule_data || {});
                             }}
                             className="w-full h-full min-h-[30px] rounded border border-dashed border-transparent hover:border-neutral-700 hover:bg-neutral-800/50 text-neutral-600 flex items-center justify-center transition-all opacity-0 hover:opacity-100 text-[10px] uppercase font-bold tracking-wider"
                           >
@@ -1382,6 +1384,7 @@ export function AttendancePage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedScheduleEmployeeId, setSelectedScheduleEmployeeId] = useState<number | undefined>(undefined);
   const [selectedScheduleEmployee, setSelectedScheduleEmployee] = useState<string | null>(null);
   const [selectedScheduleAvatar, setSelectedScheduleAvatar] = useState<string | null>(null);
   const [selectedScheduleData, setSelectedScheduleData] = useState<Record<string, string[]>>({});
@@ -1478,7 +1481,8 @@ export function AttendancePage() {
 
       {/* Tab content */}
       {tab === "overview"  && <OverviewTab liveLog={liveLog} stats={stats} />}
-      {tab === "schedule"  && <ScheduleTab onAddShift={(name, avatar, data) => {
+      {tab === "schedule"  && <ScheduleTab onAddShift={(empId, name, avatar, data) => {
+        setSelectedScheduleEmployeeId(empId);
         setSelectedScheduleEmployee(name);
         setSelectedScheduleAvatar(avatar);
         setSelectedScheduleData(data);
@@ -1491,6 +1495,7 @@ export function AttendancePage() {
       {/* Modals */}
       {showScheduleModal && (
         <WorkScheduleModal 
+          employeeId={selectedScheduleEmployeeId}
           employeeName={selectedScheduleEmployee || "Admin"}
           employeeAvatar={selectedScheduleAvatar || undefined}
           initialScheduleData={selectedScheduleData}

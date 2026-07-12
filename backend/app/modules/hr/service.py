@@ -518,19 +518,24 @@ def seed_hr_data(db: Session) -> None:
     # No mock freelancers, shifts, or holidays are seeded. All configs and profiles must be created directly by the user in the database.
     pass
 
-def create_work_schedule(db: Session, schedule_data: dict, employee_name: str, avatar: str, week_start_date: str):
+def create_work_schedule(db: Session, schedule_data: dict, employee_name: str, avatar: str, week_start_date: str, employee_id: int | None = None):
     from app.modules.hr.models import WorkSchedule
     # Check if a schedule already exists for this week
-    existing = db.query(WorkSchedule).filter(
-        WorkSchedule.employee_name == employee_name,
-        WorkSchedule.week_start_date == week_start_date
-    ).first()
+    query = db.query(WorkSchedule).filter(WorkSchedule.week_start_date == week_start_date)
+    if employee_id is not None:
+        query = query.filter(WorkSchedule.employee_id == employee_id)
+    else:
+        query = query.filter(WorkSchedule.employee_name == employee_name)
+    existing = query.first()
 
     if existing:
         existing.schedule_data = schedule_data
         existing.avatar = avatar
+        if employee_id is not None and existing.employee_id is None:
+            existing.employee_id = employee_id
     else:
         new_schedule = WorkSchedule(
+            employee_id=employee_id,
             employee_name=employee_name,
             avatar=avatar,
             week_start_date=week_start_date,

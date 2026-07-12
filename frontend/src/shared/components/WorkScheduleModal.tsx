@@ -6,13 +6,14 @@ import { fetchApi } from "../../modules/admin/utils/apiClient";
 
 interface WorkScheduleModalProps {
   onClose: () => void;
+  employeeId?: number;
   employeeName: string;
   employeeAvatar?: string;
   initialScheduleData?: Record<string, string[]>;
   isAdminMode?: boolean;
 }
 
-export function WorkScheduleModal({ onClose, employeeName, employeeAvatar, initialScheduleData, isAdminMode = false }: WorkScheduleModalProps) {
+export function WorkScheduleModal({ onClose, employeeId, employeeName, employeeAvatar, initialScheduleData, isAdminMode = false }: WorkScheduleModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -58,6 +59,7 @@ export function WorkScheduleModal({ onClose, employeeName, employeeAvatar, initi
     const avatar = employeeAvatar || defaultAvatar;
 
     const payload = {
+      employee_id: employeeId,
       employee_name: employeeName,
       avatar: avatar,
       week_start_date: format(selectedWeekStart, "yyyy-MM-dd"),

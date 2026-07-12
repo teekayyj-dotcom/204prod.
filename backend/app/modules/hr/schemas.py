@@ -153,6 +153,7 @@ class AttendanceStats(BaseModel):
     attendanceRate: str
 
 class WorkScheduleBase(BaseModel):
+    employee_id: int | None = None
     employee_name: str
     avatar: str | None = None
     week_start_date: str

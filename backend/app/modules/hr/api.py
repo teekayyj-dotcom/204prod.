@@ -293,6 +293,7 @@ def add_work_schedule(
 ):
     return create_work_schedule(
         db=db,
+        employee_id=schedule.employee_id,
         employee_name=schedule.employee_name,
         avatar=schedule.avatar,
         week_start_date=schedule.week_start_date,

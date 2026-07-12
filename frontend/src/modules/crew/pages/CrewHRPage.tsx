@@ -961,7 +961,8 @@ export function CrewHRPage() {
 
       {showScheduleModal && (
         <WorkScheduleModal 
-          employeeName={user?.name || "Crew Member"}
+          employeeId={member?.id}
+          employeeName={member?.name || userObj?.display_name || "Crew Member"}
           onClose={() => setShowScheduleModal(false)}
         />
       )}
