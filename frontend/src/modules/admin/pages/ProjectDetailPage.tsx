@@ -572,6 +572,26 @@ function KanbanTab() {
                                                         border: "1px solid #2A1F1F", zIndex: 20, padding: "4px",
                                                         background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
                                                     }}>
+                                                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", borderBottom: "1px solid #2A1F1F", marginBottom: "4px" }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (newTaskAssignees.length === crewList.length) {
+                                                                        setNewTaskAssignees([]);
+                                                                    } else {
+                                                                        setNewTaskAssignees(crewList.map(c => ({
+                                                                            id: c.id,
+                                                                            name: c.name,
+                                                                            initials: c.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
+                                                                        })));
+                                                                    }
+                                                                }}
+                                                                style={{ background: "transparent", border: "none", color: "#D84040", fontSize: "10px", cursor: "pointer", padding: "2px 0", fontWeight: "bold" }}
+                                                            >
+                                                                {newTaskAssignees.length === crewList.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                                                            </button>
+                                                        </div>
                                                         {crewList
                                                             .filter(c => c.name.toLowerCase().includes(searchAssigneeQuery.toLowerCase()))
                                                             .map(c => {
@@ -714,6 +734,26 @@ function KanbanTab() {
                                                 border: "1px solid #2A1F1F", zIndex: 20, padding: "4px",
                                                 background: "#141010", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)"
                                             }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", borderBottom: "1px solid #2A1F1F", marginBottom: "4px" }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (editTaskAssignees.length === crewList.length) {
+                                                                setEditTaskAssignees([]);
+                                                            } else {
+                                                                setEditTaskAssignees(crewList.map(c => ({
+                                                                    id: c.id,
+                                                                    name: c.name,
+                                                                    initials: c.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase()
+                                                                })));
+                                                            }
+                                                        }}
+                                                        style={{ background: "transparent", border: "none", color: "#D84040", fontSize: "10px", cursor: "pointer", padding: "2px 0", fontWeight: "bold" }}
+                                                    >
+                                                        {editTaskAssignees.length === crewList.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                                                    </button>
+                                                </div>
                                                 {crewList
                                                     .filter(c => c.name.toLowerCase().includes(searchEditAssigneeQuery.toLowerCase()))
                                                     .map(c => {
