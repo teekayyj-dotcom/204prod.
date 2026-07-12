@@ -419,18 +419,7 @@ export function CrewWorkspacePage() {
                   <p style={{ color: "#D84040", fontSize: "11px", maxWidth: "200px", textAlign: "right", marginTop: "4px" }}>
                     {locationError}
                   </p>
-                )}
-                {isCheckedIn && !locationError && (
-                  <div
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-                    style={{ background: "#0A0707", border: "1px solid #2A1F1F" }}
-                  >
-                    <Flame size={12} style={{ color: "#D4A843" }} />
-                    <span style={{ color: "#D4A843", fontSize: "11px", fontWeight: 600 }}>
-                      Focus Mode ON
-                    </span>
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
