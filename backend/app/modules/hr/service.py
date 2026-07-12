@@ -159,7 +159,7 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
         distance = haversine_distance(lat, lng, OFFICE_LAT, OFFICE_LNG)
         if distance > ALLOWED_RADIUS_METERS:
             if not has_approved_wfh and not has_approved_business and not is_remote_or_business:
-                raise HTTPException(status_code=400, detail=f"Cảnh báo: Vị trí của bạn quá xa công ty ({int(distance)}m). Vui lòng check-in tại văn phòng. Đối với trường hợp WFH/Công tác, vui lòng nộp đơn trên hệ thống để Admin xét duyệt.")
+                raise HTTPException(status_code=400, detail=f"Bạn cách công ty {int(distance)}m. Vui lòng check-in tại văn phòng hoặc nộp đơn WFH/Công tác.")
     else:
         if not has_approved_wfh and not has_approved_business and not is_remote_or_business:
             raise HTTPException(status_code=400, detail="Không thể xác định vị trí của bạn. Vui lòng bật chia sẻ vị trí trên trình duyệt.")
