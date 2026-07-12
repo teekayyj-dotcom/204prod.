@@ -1649,6 +1649,11 @@ function VaultTab({ project }: { project: any }) {
     const [docs, setDocs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploadingType, setUploadingType] = useState<string | null>(null);
+    const [uploadMenuOpen, setUploadMenuOpen] = useState<string | null>(null);
+    const [linkUploadModal, setLinkUploadModal] = useState<{isOpen: boolean, type: string}>({isOpen: false, type: ""});
+    const [linkUrl, setLinkUrl] = useState("");
+    const [linkName, setLinkName] = useState("");
+    const [isUploadingLink, setIsUploadingLink] = useState(false);
 
     const docTypeConfig = {
         brief: { label: "Creative Brief", icon: FileCheck, color: "#6B8FD6" },
@@ -1718,6 +1723,49 @@ function VaultTab({ project }: { project: any }) {
         input.click();
     };
 
+    const handleUploadLinkSubmit = async () => {
+        if (!linkUrl) return;
+        setIsUploadingLink(true);
+        try {
+            const clientSlug = project?.client_slug || project?.client;
+            const folderMap: Record<string, string> = {
+                brief: "creative brief",
+                script: "kịch bản",
+                shotlist: "shot list",
+                contract: "tài liệu hợp đồng",
+                quotation: "báo giá",
+                invoice: "hoá đơn"
+            };
+            const targetFolder = folderMap[linkUploadModal.type] || linkUploadModal.type;
+            const captionName = linkName.trim() ? linkName.trim() : linkUrl.substring(0, 50);
+            
+            await fetchApi("/media/finalize", {
+                method: "POST",
+                body: JSON.stringify({
+                    asset_id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
+                    url: linkUrl,
+                    thumbnail_url: null,
+                    alt: captionName,
+                    caption: captionName,
+                    mime_type: "text/uri-list",
+                    file_size: 0,
+                    client_slug: clientSlug || null,
+                    project_slug: project?.slug || null,
+                    folder: targetFolder
+                })
+            });
+            fetchDocs();
+            setLinkUploadModal({isOpen: false, type: ""});
+            setLinkUrl("");
+            setLinkName("");
+        } catch (err) {
+            console.error("Failed to upload link:", err);
+            alert("Lưu link thất bại: " + (err instanceof Error ? err.message : "Lỗi không xác định"));
+        } finally {
+            setIsUploadingLink(false);
+        }
+    };
+
     const handleDeleteDoc = async (docId: string, e?: React.MouseEvent) => {
         if (e) {
             e.preventDefault();
@@ -1767,16 +1815,38 @@ function VaultTab({ project }: { project: any }) {
                                     </div>
                                     <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>{cfg.label}</span>
                                 </div>
-                                <button 
-                                    onClick={() => handleUploadClick(type)}
-                                    disabled={isUploading}
-                                    style={{ display: "flex", alignItems: "center", gap: "4px", padding: "4px 8px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", fontSize: "10px", cursor: isUploading ? "not-allowed" : "pointer" }}
-                                    onMouseEnter={e => { if (!isUploading) { e.currentTarget.style.borderColor = cfg.color; e.currentTarget.style.color = cfg.color; } }}
-                                    onMouseLeave={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; } }}
-                                >
-                                    {isUploading ? <Loader2 className="animate-spin" size={10} /> : <FilePlus size={10} />}
-                                    {isUploading ? "Uploading..." : "Upload"}
-                                </button>
+                                <div style={{ position: "relative" }}>
+                                    <button 
+                                        onClick={() => setUploadMenuOpen(uploadMenuOpen === type ? null : type)}
+                                        disabled={isUploading}
+                                        style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "24px", height: "24px", borderRadius: "6px", border: "1px dashed #3A2A2A", background: "transparent", color: "#666", cursor: isUploading ? "not-allowed" : "pointer" }}
+                                        onMouseEnter={e => { if (!isUploading) { e.currentTarget.style.borderColor = cfg.color; e.currentTarget.style.color = cfg.color; } }}
+                                        onMouseLeave={e => { if (!isUploading) { e.currentTarget.style.borderColor = "#3A2A2A"; e.currentTarget.style.color = "#666"; } }}
+                                    >
+                                        {isUploading ? <Loader2 className="animate-spin" size={12} /> : <Plus size={12} />}
+                                    </button>
+                                    
+                                    {uploadMenuOpen === type && !isUploading && (
+                                        <div style={{ position: "absolute", top: "100%", right: 0, marginTop: "4px", background: "#1D1616", border: "1px solid #3A2A2A", borderRadius: "8px", padding: "4px", zIndex: 10, display: "flex", flexDirection: "column", minWidth: "120px", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
+                                            <button 
+                                                onClick={() => { setUploadMenuOpen(null); handleUploadClick(type); }}
+                                                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", borderRadius: "4px", border: "none", background: "transparent", color: "#EEEEEE", fontSize: "11px", cursor: "pointer", textAlign: "left", width: "100%" }}
+                                                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                                                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                            >
+                                                <UploadCloud size={12} color="#6B8FD6" /> Upload File
+                                            </button>
+                                            <button 
+                                                onClick={() => { setUploadMenuOpen(null); setLinkUploadModal({isOpen: true, type}); }}
+                                                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 10px", borderRadius: "4px", border: "none", background: "transparent", color: "#EEEEEE", fontSize: "11px", cursor: "pointer", textAlign: "left", width: "100%" }}
+                                                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                                                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                            >
+                                                <Link2 size={12} color="#4CAF50" /> Upload Link
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             {typeDocs.length === 0 ? (
                                 <div style={{ padding: "16px", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
@@ -1817,6 +1887,58 @@ function VaultTab({ project }: { project: any }) {
                         </div>
                     );
                 })
+            )}
+
+            {/* Link Upload Modal */}
+            {linkUploadModal.isOpen && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ background: "#1D1616", border: "1px solid #3A2A2A", borderRadius: "12px", width: "100%", maxWidth: "400px", padding: "24px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <h3 style={{ margin: 0, fontSize: "16px", color: "#EEEEEE" }}>Upload Link</h3>
+                            <button onClick={() => setLinkUploadModal({isOpen: false, type: ""})} style={{ background: "transparent", border: "none", color: "#666", cursor: "pointer" }}><X size={16} /></button>
+                        </div>
+                        
+                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                            <div>
+                                <label style={{ display: "block", color: "#999", fontSize: "12px", marginBottom: "6px" }}>Tên tài liệu (tuỳ chọn)</label>
+                                <input 
+                                    type="text" 
+                                    value={linkName}
+                                    onChange={e => setLinkName(e.target.value)}
+                                    placeholder="Ví dụ: Tài liệu hướng dẫn"
+                                    style={{ width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.03)", border: "1px solid #3A2A2A", borderRadius: "8px", color: "#EEE", fontSize: "13px" }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", color: "#999", fontSize: "12px", marginBottom: "6px" }}>Đường dẫn (Link)</label>
+                                <input 
+                                    type="url" 
+                                    value={linkUrl}
+                                    onChange={e => setLinkUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    style={{ width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.03)", border: "1px solid #3A2A2A", borderRadius: "8px", color: "#EEE", fontSize: "13px" }}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "24px" }}>
+                            <button 
+                                onClick={() => setLinkUploadModal({isOpen: false, type: ""})}
+                                style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid #3A2A2A", background: "transparent", color: "#CCC", cursor: "pointer", fontSize: "13px" }}
+                            >
+                                Hủy
+                            </button>
+                            <button 
+                                onClick={handleUploadLinkSubmit}
+                                disabled={isUploadingLink || !linkUrl}
+                                style={{ padding: "8px 16px", borderRadius: "8px", border: "none", background: "#6B8FD6", color: "#FFF", cursor: isUploadingLink || !linkUrl ? "not-allowed" : "pointer", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", opacity: (!linkUrl || isUploadingLink) ? 0.6 : 1 }}
+                            >
+                                {isUploadingLink && <Loader2 className="animate-spin" size={14} />}
+                                Lưu Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
