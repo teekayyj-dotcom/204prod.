@@ -1855,7 +1855,15 @@ function VaultTab({ project }: { project: any }) {
                                 <div style={{ padding: "16px", textAlign: "center", color: "#444", fontSize: "11px" }}>Chưa có tài liệu</div>
                             ) : (
                                 typeDocs.map((doc, i) => (
-                                    <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: i < typeDocs.length - 1 ? "1px solid #2A1F1F" : "none" }}>
+                                    <a 
+                                        key={doc.id} 
+                                        href={doc.url.match(/^https?:\/\//i) ? doc.url : `https://${doc.url}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: i < typeDocs.length - 1 ? "1px solid #2A1F1F" : "none", textDecoration: "none", cursor: "pointer", transition: "background 0.2s" }}
+                                        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.02)"}
+                                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                                    >
                                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                             <FileText size={13} color="#555" />
                                             <div>
@@ -1867,16 +1875,6 @@ function VaultTab({ project }: { project: any }) {
                                             </div>
                                         </div>
                                         <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-                                            <a 
-                                                href={doc.url.match(/^https?:\/\//i) ? doc.url : `https://${doc.url}`} 
-                                                target="_blank" 
-                                                rel="noreferrer" 
-                                                style={{ textDecoration: "none", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(46,32,32,0.6)", background: "transparent", color: "#666", fontSize: "9px", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px" }}
-                                                onMouseEnter={e => e.currentTarget.style.color = "#EEEEEE"}
-                                                onMouseLeave={e => e.currentTarget.style.color = "#666"}
-                                            >
-                                                <Eye size={9} /> Xem / Tải
-                                            </a>
                                             <button 
                                                 onClick={(e) => handleDeleteDoc(doc.id, e)}
                                                 style={{ padding: "4.5px", borderRadius: "6px", border: "1px solid rgba(216,64,64,0.2)", background: "rgba(216,64,64,0.05)", color: "#D84040", cursor: "pointer" }}
@@ -1884,7 +1882,7 @@ function VaultTab({ project }: { project: any }) {
                                                 <Trash2 size={9} />
                                             </button>
                                         </div>
-                                    </div>
+                                    </a>
                                 ))
                             )}
                         </div>
