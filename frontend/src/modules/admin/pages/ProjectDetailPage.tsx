@@ -3320,17 +3320,17 @@ export function ProjectDetailPage() {
                         ) : (
                             <div className="space-y-3">
                                 {Object.values(assignedCrew.reduce((acc, current) => {
-                                    const key = current.name.toLowerCase();
-                                    if (!acc[key]) acc[key] = { name: current.name, roles: [] };
+                                    const key = current.crewId ? `id-${current.crewId}` : current.name.toLowerCase();
+                                    if (!acc[key]) acc[key] = { name: current.name, crewId: current.crewId, roles: [] };
                                     acc[key].roles.push(current.role);
                                     return acc;
-                                }, {} as Record<string, { name: string, roles: string[] }>)).map((c) => {
-                                    const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
+                                }, {} as Record<string, { name: string, crewId?: number, roles: string[] }>)).map((c) => {
+                                    const realMember = c.crewId ? dbCrew.find(m => m.id === c.crewId) : dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                     const avatarUrl = realMember?.avatar || null;
                                     const status = realMember?.status || "Active";
                                     const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
                                     return (
-                                        <div key={c.name} className="flex items-start gap-3">
+                                        <div key={c.crewId ? `id-${c.crewId}` : c.name} className="flex items-start gap-3">
                                             {avatarUrl ? (
                                                 <img src={avatarUrl} alt={realMember?.name || c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5" style={{ border: "2px solid #2A1F1F" }}/>
                                             ) : (
