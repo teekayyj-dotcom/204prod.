@@ -2166,6 +2166,88 @@ const mockComments = [
     { id: 2, user: "Jake Torres", text: "Main components are all wired up. Need final copy from Emma before we can close the homepage.", time: "1 day ago", avatar: "JT" },
 ];
 
+
+function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, inputStyle }: any) {
+    const [searchTerm, setSearchTerm] = useState("");
+    const [role, setRole] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
+
+    const filteredCrew = dbCrew.filter((m: any) => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const handleAdd = () => {
+        const nameVal = searchTerm.trim();
+        const roleVal = role.trim();
+        if (nameVal && roleVal) {
+            const selectedMember = dbCrew.find((m: any) => m.name.toLowerCase() === nameVal.toLowerCase());
+            if (selectedMember) {
+                const exists = assignedCrew.some((ac: any) => ac.name === selectedMember.name && ac.role === roleVal);
+                if (exists) {
+                    alert("Thành viên này đã được gán vai trò này.");
+                    return;
+                }
+                setAssignedCrew((prev: any) => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: roleVal }]);
+                setSearchTerm("");
+                setRole("");
+            } else {
+                alert("Không tìm thấy nhân sự có tên này trong hệ thống. Vui lòng chọn từ danh sách hoặc dùng phần Add Custom Credit.");
+            }
+        } else {
+            alert("Vui lòng chọn nhân sự và nhập/chọn chức vụ (Role).");
+        }
+    };
+
+    return (
+        <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+                <input 
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setIsOpen(true); }}
+                    onFocus={() => setIsOpen(true)}
+                    onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+                    placeholder="Select or type crew name..." 
+                    className="px-2 py-1.5 rounded-lg outline-none w-full text-xs" 
+                    style={inputStyle} 
+                    autoComplete="off"
+                />
+                {isOpen && filteredCrew.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 rounded-lg z-50 max-h-48 overflow-y-auto shadow-xl" style={{ background: "#1A1A1A", border: "1px solid #333" }}>
+                    {filteredCrew.map((m: any) => (
+                        <div 
+                        key={m.id} 
+                        className="flex items-center gap-2 p-2 cursor-pointer hover:bg-white/10 transition-colors"
+                        onClick={() => {
+                            setSearchTerm(m.name);
+                            setIsOpen(false);
+                        }}
+                        >
+                        {m.avatar ? (
+                            <img src={m.avatar} alt={m.name} className="w-5 h-5 rounded-full object-cover" />
+                        ) : (
+                            <div className="w-5 h-5 rounded-full bg-red-900 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                            {m.name.substring(0, 2).toUpperCase()}
+                            </div>
+                        )}
+                        <span className="text-xs text-gray-200">{m.name}</span>
+                        </div>
+                    ))}
+                    </div>
+                )}
+            </div>
+            <div className="flex gap-2 flex-1">
+                <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Role (e.g. Director)" list="common-roles" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs w-full" style={inputStyle} />
+                <datalist id="common-roles">
+                    {dbCategories.filter((c: any) => c.type === 'hr_role').map((c: any) => (
+                        <option key={c.slug} value={c.name} />
+                    ))}
+                </datalist>
+                <button type="button" onClick={handleAdd} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-[#EEEEEE]" style={{ background: "#D84040" }}>
+                    Add
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export function ProjectDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -3187,50 +3269,13 @@ export function ProjectDetailPage() {
 
                                 <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">
                                     <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Assign Crew Member</label>
-                                    <div className="flex flex-col sm:flex-row gap-2">
-                                        <div className="flex-1">
-                                            <input id="assign-crew-select" list="registered-crew" placeholder="Select or type crew name..." className="px-2 py-1.5 rounded-lg outline-none w-full text-xs" style={inputStyle} />
-                                            <datalist id="registered-crew">
-                                                {dbCrew.map((m) => (
-                                                    <option key={m.id} value={m.name} />
-                                                ))}
-                                            </datalist>
-                                        </div>
-                                        <div className="flex gap-2 flex-1">
-                                            <input id="assign-crew-role" placeholder="Role (e.g. Director)" list="common-roles" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs w-full" style={inputStyle} />
-                                            <datalist id="common-roles">
-                                                {dbCategories.filter((c: any) => c.type === 'hr_role').map((c: any) => (
-                                                    <option key={c.slug} value={c.name} />
-                                                ))}
-                                            </datalist>
-                                            <button type="button" onClick={() => {
-                                                const selectEl = document.getElementById("assign-crew-select") as HTMLInputElement;
-                                                const roleEl = document.getElementById("assign-crew-role") as HTMLInputElement;
-                                                const nameVal = selectEl?.value?.trim();
-                                                const roleVal = roleEl?.value?.trim();
-                                                
-                                                if (nameVal && roleVal) {
-                                                    const selectedMember = dbCrew.find(m => m.name.toLowerCase() === nameVal.toLowerCase());
-                                                    if (selectedMember) {
-                                                        const exists = assignedCrew.some(ac => ac.name === selectedMember.name && ac.role === roleVal);
-                                                        if (exists) {
-                                                            alert("Thành viên này đã được gán vai trò này.");
-                                                            return;
-                                                        }
-                                                        setAssignedCrew(prev => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: roleVal }]);
-                                                        selectEl.value = "";
-                                                        roleEl.value = "";
-                                                    } else {
-                                                        alert("Không tìm thấy nhân sự có tên này trong hệ thống. Vui lòng chọn từ danh sách hoặc dùng phần Add Custom Credit.");
-                                                    }
-                                                } else {
-                                                    alert("Vui lòng chọn nhân sự và nhập/chọn chức vụ (Role).");
-                                                }
-                                            }} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-[#EEEEEE]" style={{ background: "#D84040" }}>
-                                                Add
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <AssignCrewRow 
+                                        dbCrew={dbCrew} 
+                                        dbCategories={dbCategories} 
+                                        assignedCrew={assignedCrew} 
+                                        setAssignedCrew={setAssignedCrew} 
+                                        inputStyle={inputStyle} 
+                                    />
                                 </div>
 
                                 <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">
