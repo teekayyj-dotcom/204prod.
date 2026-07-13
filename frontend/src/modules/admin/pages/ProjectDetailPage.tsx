@@ -3188,12 +3188,14 @@ export function ProjectDetailPage() {
                                 <div className="mt-3 pt-3 border-t border-[#2A1F1F] space-y-2">
                                     <label style={{ color: "#888", fontSize: "11px", display: "block" }} className="mb-1">Assign Crew Member</label>
                                     <div className="flex flex-col sm:flex-row gap-2">
-                                        <select id="assign-crew-select" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs" style={inputStyle}>
-                                            <option value="">Select registered crew...</option>
-                                            {dbCrew.map((m) => (
-                                                <option key={m.id} value={m.id}>{m.name}</option>
-                                            ))}
-                                        </select>
+                                        <div className="flex-1">
+                                            <input id="assign-crew-select" list="registered-crew" placeholder="Select or type crew name..." className="px-2 py-1.5 rounded-lg outline-none w-full text-xs" style={inputStyle} />
+                                            <datalist id="registered-crew">
+                                                {dbCrew.map((m) => (
+                                                    <option key={m.id} value={m.name} />
+                                                ))}
+                                            </datalist>
+                                        </div>
                                         <div className="flex gap-2 flex-1">
                                             <input id="assign-crew-role" placeholder="Role (e.g. Director)" list="common-roles" className="px-2 py-1.5 rounded-lg outline-none flex-1 text-xs w-full" style={inputStyle} />
                                             <datalist id="common-roles">
@@ -3202,12 +3204,13 @@ export function ProjectDetailPage() {
                                                 ))}
                                             </datalist>
                                             <button type="button" onClick={() => {
-                                                const selectEl = document.getElementById("assign-crew-select") as HTMLSelectElement;
+                                                const selectEl = document.getElementById("assign-crew-select") as HTMLInputElement;
                                                 const roleEl = document.getElementById("assign-crew-role") as HTMLInputElement;
-                                                const selectedId = selectEl?.value;
-                                                const roleVal = roleEl?.value.trim();
-                                                if (selectedId && roleVal) {
-                                                    const selectedMember = dbCrew.find(m => m.id.toString() === selectedId);
+                                                const nameVal = selectEl?.value?.trim();
+                                                const roleVal = roleEl?.value?.trim();
+                                                
+                                                if (nameVal && roleVal) {
+                                                    const selectedMember = dbCrew.find(m => m.name.toLowerCase() === nameVal.toLowerCase());
                                                     if (selectedMember) {
                                                         const exists = assignedCrew.some(ac => ac.name === selectedMember.name && ac.role === roleVal);
                                                         if (exists) {
@@ -3217,6 +3220,8 @@ export function ProjectDetailPage() {
                                                         setAssignedCrew(prev => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: roleVal }]);
                                                         selectEl.value = "";
                                                         roleEl.value = "";
+                                                    } else {
+                                                        alert("Không tìm thấy nhân sự có tên này trong hệ thống. Vui lòng chọn từ danh sách hoặc dùng phần Add Custom Credit.");
                                                     }
                                                 } else {
                                                     alert("Vui lòng chọn nhân sự và nhập/chọn chức vụ (Role).");
