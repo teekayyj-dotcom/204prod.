@@ -22,7 +22,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request).catch((error) => {
       console.warn('[SW] Fetch failed (network error or offline):', error);
-      throw error;
+      return Response.error();
     })
   );
 });

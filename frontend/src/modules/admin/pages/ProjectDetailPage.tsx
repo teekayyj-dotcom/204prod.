@@ -2236,7 +2236,7 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
                             {m.name.substring(0, 2).toUpperCase()}
                             </div>
                         )}
-                        <span className="text-xs text-gray-200">{m.name} {m.email ? `(${m.email})` : ''}</span>
+                        <span className="text-xs text-gray-200">{m.name}</span>
                         </div>
                     ))}
                     </div>
