@@ -62,8 +62,8 @@ export function TopActiveProjects() {
               const isTop1 = idx === 0;
               return (
                 <tr 
-                  key={p.id} 
-                  onClick={() => navigate(`/admin/projects/${p.id}`)}
+                  key={p.slug || p.id} 
+                  onClick={() => navigate(`/admin/projects/${p.slug || p.id}`)}
                   className="cursor-pointer transition-colors"
                   style={{ borderBottom: "1px solid rgba(46,32,32,0.3)" }}
                   onMouseEnter={(e) => e.currentTarget.style.background = "rgba(42,31,31,0.6)"}
@@ -72,14 +72,14 @@ export function TopActiveProjects() {
                   <td className="py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-md overflow-hidden bg-[#2A1F1F]">
-                        <img src={p.thumbnailUrl || "/favicon/204-logo.png"} alt={p.name} className={`w-full h-full ${!p.thumbnailUrl ? "p-0 opacity-20 grayscale object-contain" : "object-cover"}`} />
+                        <img src={p.cover_image || "/favicon/204-logo.png"} alt={p.title} className={`w-full h-full ${!p.cover_image ? "p-0 opacity-20 grayscale object-contain" : "object-cover"}`} />
                       </div>
                       <span style={{ color: isTop1 ? "#fbbf24" : "#EEEEEE", fontSize: "14px", fontWeight: 500 }}>
-                        {p.name}
+                        {p.title}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3" style={{ color: "#bbb", fontSize: "13px" }}>{p.client_name || "N/A"}</td>
+                  <td className="py-3" style={{ color: "#bbb", fontSize: "13px" }}>{p.client || "N/A"}</td>
                   <td className="py-3">
                     <div className="flex items-center gap-1.5">
                       <span style={{ color: isTop1 ? "#fbbf24" : "#4ade80", fontSize: "13px", fontWeight: 600 }}>
