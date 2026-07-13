@@ -112,6 +112,7 @@ class ProjectCredit(Base):
     role: Mapped[str] = mapped_column(String(120), nullable=False)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    crew_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     project: Mapped[Project] = relationship(back_populates="credits")
 
@@ -135,6 +136,7 @@ class ProjectGalleryImage(Base):
     caption: Mapped[str | None] = mapped_column(String(255))
     alt: Mapped[str | None] = mapped_column(String(255))
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    crew_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 

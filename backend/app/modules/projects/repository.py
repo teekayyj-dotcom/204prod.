@@ -31,6 +31,7 @@ def _map_to_detail(p: Project) -> ProjectDetail:
         dueDate=p.due_date.isoformat() if p.due_date else None,
         summary=p.summary or "",
         credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
+        structured_credits=[{"role": c.role, "name": c.name, "crew_id": c.crew_id} for c in p.credits] if getattr(p, "credits", None) else [],
         gallery=[
             {
                 "id": g.media_asset_id,

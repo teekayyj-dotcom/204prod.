@@ -2187,7 +2187,10 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
             }
 
             if (selectedMember) {
-                const exists = assignedCrew.some((ac: any) => (ac.crewId === selectedMember.id || ac.name === selectedMember.name) && ac.role === roleVal);
+                const exists = assignedCrew.some((ac: any) => {
+                    if (ac.crewId) return ac.crewId === selectedMember.id && ac.role === roleVal;
+                    return ac.name === selectedMember.name && ac.role === roleVal && !selectedMember.id;
+                });
                 if (exists) {
                     alert("Thành viên này đã được gán vai trò này.");
                     return;
@@ -2352,13 +2355,17 @@ export function ProjectDetailPage() {
                 videoUrl: projData.videoUrl || "",
             });
 
-            const loadedCredits = projData.credits || [];
+            const loadedCredits = projData.structured_credits || projData.credits || [];
             if (loadedCredits.length > 0) {
-                const parsedCrew = loadedCredits.map((credStr, idx) => {
-                    const parts = credStr.split(":");
-                    const role = parts[0]?.trim() || "";
-                    const name = parts[1]?.trim() || "";
-                    return { id: `cred-${idx}-${Date.now()}`, name, role };
+                const parsedCrew = loadedCredits.map((cred, idx) => {
+                    if (typeof cred === 'string') {
+                        const parts = cred.split(":");
+                        const role = parts[0]?.trim() || "";
+                        const name = parts[1]?.trim() || "";
+                        return { id: `cred-${idx}-${Date.now()}`, name, role };
+                    } else {
+                        return { id: `cred-${idx}-${Date.now()}`, name: cred.name, role: cred.role, crewId: cred.crew_id };
+                    }
                 });
                 setAssignedCrew(parsedCrew);
             } else {
@@ -3249,7 +3256,7 @@ export function ProjectDetailPage() {
                                         const realMember = c.crewId ? dbCrew.find(m => m.id === c.crewId) : dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                         const avatarUrl = realMember?.avatar || null;
                                         return (
-                                            <div key={c.name} className="flex items-start justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                                            <div key={c.crewId ? `id-${c.crewId}` : c.name} className="flex items-start justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                                                 <div className="flex items-start gap-2 min-w-0 w-full">
                                                     {avatarUrl ? (
                                                         <img src={avatarUrl} alt={c.name} className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />

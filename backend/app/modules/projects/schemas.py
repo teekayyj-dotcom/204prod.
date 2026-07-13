@@ -2,6 +2,12 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
+class ProjectCreditDetail(BaseModel):
+    role: str
+    name: str
+    crew_id: int | None = None
+
+
 class ProjectSummary(BaseModel):
     title: str
     slug: str
@@ -41,6 +47,7 @@ class GalleryImageDetail(BaseModel):
 class ProjectDetail(ProjectSummary):
     summary: str
     credits: list[str]
+    structured_credits: list[ProjectCreditDetail] | None = None
     gallery: list[GalleryImageDetail]
 
 
@@ -59,9 +66,12 @@ class ProjectCreate(BaseModel):
     seo_title: str | None = None
     seo_description: str | None = None
     video_url: str | None = None
+    structured_credits: list[ProjectCreditDetail] | None = None
+
     due_date: str | None = None
     dueDate: str | None = None
     credits: list[str] | None = None
+    structured_credits: list[ProjectCreditDetail] | None = None
     gallery_media_ids: list[str] | None = None
     budget: str | None = None
 
@@ -81,9 +91,12 @@ class ProjectUpdate(BaseModel):
     seo_title: str | None = None
     seo_description: str | None = None
     video_url: str | None = None
+    structured_credits: list[ProjectCreditDetail] | None = None
+
     due_date: str | None = None
     dueDate: str | None = None
     credits: list[str] | None = None
+    structured_credits: list[ProjectCreditDetail] | None = None
     gallery_media_ids: list[str] | None = None
     budget: str | None = None
 
