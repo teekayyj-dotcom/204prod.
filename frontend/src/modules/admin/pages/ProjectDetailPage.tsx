@@ -2169,6 +2169,7 @@ const mockComments = [
 
 function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, inputStyle }: any) {
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCrewId, setSelectedCrewId] = useState<number | null>(null);
     const [role, setRole] = useState("");
     const [isOpen, setIsOpen] = useState(false);
 
@@ -2178,15 +2179,22 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
         const nameVal = searchTerm.trim();
         const roleVal = role.trim();
         if (nameVal && roleVal) {
-            const selectedMember = dbCrew.find((m: any) => m.name.toLowerCase() === nameVal.toLowerCase());
+            let selectedMember = null;
+            if (selectedCrewId) {
+                selectedMember = dbCrew.find((m: any) => m.id === selectedCrewId);
+            } else {
+                selectedMember = dbCrew.find((m: any) => m.name.toLowerCase() === nameVal.toLowerCase());
+            }
+
             if (selectedMember) {
-                const exists = assignedCrew.some((ac: any) => ac.name === selectedMember.name && ac.role === roleVal);
+                const exists = assignedCrew.some((ac: any) => (ac.crewId === selectedMember.id || ac.name === selectedMember.name) && ac.role === roleVal);
                 if (exists) {
                     alert("Thành viên này đã được gán vai trò này.");
                     return;
                 }
-                setAssignedCrew((prev: any) => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, name: selectedMember.name, role: roleVal }]);
+                setAssignedCrew((prev: any) => [...prev, { id: `crew-${selectedMember.id}-${Date.now()}`, crewId: selectedMember.id, name: selectedMember.name, role: roleVal }]);
                 setSearchTerm("");
+                setSelectedCrewId(null);
                 setRole("");
             } else {
                 alert("Không tìm thấy nhân sự có tên này trong hệ thống. Vui lòng chọn từ danh sách hoặc dùng phần Add Custom Credit.");
@@ -2201,7 +2209,7 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
             <div className="relative flex-1">
                 <input 
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setIsOpen(true); }}
+                    onChange={(e) => { setSearchTerm(e.target.value); setSelectedCrewId(null); setIsOpen(true); }}
                     onFocus={() => setIsOpen(true)}
                     onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                     placeholder="Select or type crew name..." 
@@ -2217,6 +2225,7 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
                         className="flex items-center gap-2 p-2 cursor-pointer hover:bg-white/10 transition-colors"
                         onClick={() => {
                             setSearchTerm(m.name);
+                            setSelectedCrewId(m.id);
                             setIsOpen(false);
                         }}
                         >
@@ -2227,7 +2236,7 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
                             {m.name.substring(0, 2).toUpperCase()}
                             </div>
                         )}
-                        <span className="text-xs text-gray-200">{m.name}</span>
+                        <span className="text-xs text-gray-200">{m.name} {m.email ? `(${m.email})` : ''}</span>
                         </div>
                     ))}
                     </div>
@@ -3231,13 +3240,13 @@ export function ProjectDetailPage() {
                             <div className="space-y-3">
                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                                     {Object.values(assignedCrew.reduce((acc, current) => {
-                                        const key = current.name.toLowerCase();
-                                        if (!acc[key]) acc[key] = { name: current.name, roles: [] };
+                                        const key = current.crewId ? `id-${current.crewId}` : current.name.toLowerCase();
+                                        if (!acc[key]) acc[key] = { name: current.name, crewId: current.crewId, roles: [] };
                                         acc[key].roles.push({ id: current.id, role: current.role });
                                         return acc;
-                                    }, {} as Record<string, { name: string, roles: { id: string, role: string }[] }>)).map((c) => {
+                                    }, {} as Record<string, { name: string, crewId?: number, roles: { id: string, role: string }[] }>)).map((c) => {
                                         const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
-                                        const realMember = dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
+                                        const realMember = c.crewId ? dbCrew.find(m => m.id === c.crewId) : dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                         const avatarUrl = realMember?.avatar || null;
                                         return (
                                             <div key={c.name} className="flex items-start justify-between p-2 rounded-lg" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
