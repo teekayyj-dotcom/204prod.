@@ -1,4 +1,5 @@
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { InAppBrowserWarning } from '../shared/components/InAppBrowserWarning'
 
 import { adminRoute } from '../modules/admin/routes'
 import { crewRoute } from '../modules/crew/routes'
@@ -18,5 +19,10 @@ const router = createBrowserRouter([
 ])
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <InAppBrowserWarning />
+      <RouterProvider router={router} />
+    </>
+  );
 }
