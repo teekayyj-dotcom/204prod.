@@ -192,7 +192,7 @@ export function ClientBillingPage() {
                         )}
                     </div>
 
-                    {/* Quick documents + VAT info */}
+                    {/* Quick documents + VAT info (Temporarily disabled) 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="rounded-xl p-5 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(29, 22, 22, 0.4)" }}>
                             <h3 className="font-semibold text-sm mb-3">Tài liệu pháp lý &amp; Hợp đồng</h3>
@@ -238,6 +238,7 @@ export function ClientBillingPage() {
                             </div>
                         </div>
                     </div>
+                    */}
                 </>
             )}
         </div>

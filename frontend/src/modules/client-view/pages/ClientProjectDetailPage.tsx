@@ -85,10 +85,14 @@ export function ClientProjectDetailPage() {
 
     const [activities, setActivities] = useState<any[]>([]);
     const [comments, setComments] = useState<any[]>([]);
+    const [dbCrew, setDbCrew] = useState<any[]>([]);
 
     useEffect(() => {
         if (!id) return;
         setLoading(true);
+
+        fetchApi<any[]>("/crew").then(c => setDbCrew(c)).catch(() => {});
+
         fetchApi<ProjectData>(`/projects/${id}`)
             .then(async (data) => {
                 setProject(data);
@@ -130,17 +134,7 @@ export function ClientProjectDetailPage() {
                 }
                 setDocuments(docsList);
                 
-                // Fallback to video_url if no gallery items are uploaded yet
-                if (filesList.length === 0 && data.video_url) {
-                    filesList.push({
-                        id: "deliv-video-main",
-                        title: `${data.title} - Video`,
-                        type: "video",
-                        url: data.video_url,
-                        coverUrl: data.cover_image || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
-                        status: "Pending Review"
-                    });
-                }
+
                 setDeliverables(filesList.reverse());
 
                 if (data.client_slug) {
@@ -226,11 +220,16 @@ export function ClientProjectDetailPage() {
     }
 
     const statusInfo = statusColors[project.status] || statusColors["Planning"];
-    const parsedCrew = (project.credits || []).map((credStr, idx) => {
-        const parts = credStr.split(":");
-        const role = parts[0]?.trim() || "Thành viên";
-        const name = parts[1]?.trim() || "";
-        return { id: `cred-${idx}`, name, role };
+    const loadedCredits = project.structured_credits || project.credits || [];
+    const parsedCrew = loadedCredits.map((cred: any, idx: number) => {
+        if (typeof cred === 'string') {
+            const parts = cred.split(":");
+            const role = parts[0]?.trim() || "Thành viên";
+            const name = parts[1]?.trim() || "";
+            return { id: `cred-${idx}-${Date.now()}`, name, role };
+        } else {
+            return { id: `cred-${idx}-${Date.now()}`, name: cred.name, role: cred.role, crewId: cred.crew_id };
+        }
     });
 
     const accountLead = parsedCrew.find(c => c.role.toLowerCase().includes("account") || c.role.toLowerCase().includes("am")) || parsedCrew[0] || null;
@@ -604,18 +603,42 @@ export function ClientProjectDetailPage() {
                     {/* Crew Credits */}
                     {parsedCrew.length > 0 && (
                         <div className="rounded-xl p-4 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
-                            <p style={{ fontSize: "13px", fontWeight: 600 }} className="mb-3">Nhân sự thực hiện</p>
+                            <div className="flex items-center justify-between mb-3">
+                                <p style={{ fontSize: "13px", fontWeight: 600 }}>Nhân sự thực hiện (Assigned Crew)</p>
+                                <span style={{ color: "#D84040", fontSize: "12px" }}>
+                                    {new Set(parsedCrew.map(c => c.name.toLowerCase())).size} members
+                                </span>
+                            </div>
                             <div className="space-y-3">
-                                {parsedCrew.map((c) => {
+                                {Object.values(parsedCrew.reduce((acc, current) => {
+                                    const key = current.crewId ? `id-${current.crewId}` : current.name.toLowerCase();
+                                    if (!acc[key]) acc[key] = { name: current.name, crewId: current.crewId, roles: [] };
+                                    if (!acc[key].roles.includes(current.role)) {
+                                        acc[key].roles.push(current.role);
+                                    }
+                                    return acc;
+                                }, {} as Record<string, { name: string, crewId?: number, roles: string[] }>)).map((c, idx) => {
                                     const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
+                                    const realMember = c.crewId ? dbCrew.find(m => m.id === c.crewId) : dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
+                                    const avatarUrl = realMember?.avatar || null;
+                                    const status = realMember?.status || "Active";
                                     return (
-                                        <div key={c.id} className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-[#8E1616] text-[#EEEEEE] text-[9px] font-bold">
-                                                {initials}
-                                            </div>
+                                        <div key={idx} className="flex items-start gap-3">
+                                            {avatarUrl ? (
+                                                <img src={avatarUrl} alt={c.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5" style={{ border: "2px solid #2A1F1F" }}/>
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5" style={{ background: "#8E1616", border: "2px solid #2A1F1F", color: "#EEEEEE" }}>{initials}</div>
+                                            )}
                                             <div className="flex-1 min-w-0">
-                                                <p style={{ fontSize: "12px", fontWeight: 500 }} className="truncate text-gray-200">{c.name}</p>
-                                                <p style={{ color: "#D84040", fontSize: "11px" }} className="truncate">{c.role}</p>
+                                                <div className="flex items-center justify-between">
+                                                    <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }} className="truncate">{c.name}</p>
+                                                    {realMember && (<span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: status === "Active" ? "#4CAF50" : "#E8A838" }}/>)}
+                                                </div>
+                                                <div className="mt-0.5 space-y-0.5">
+                                                    {c.roles.map((role, rIdx) => (
+                                                        <p key={rIdx} style={{ color: "#D84040", fontSize: "11px" }} className="truncate">{role}</p>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     );

@@ -27,6 +27,13 @@ export function ClientSupportPage() {
                 </div>
             </div>
 
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Headphones size={48} className="text-[#3A2A2A] mb-4" />
+                <h2 className="text-lg font-bold text-gray-300">Tính năng đang phát triển</h2>
+                <p className="text-sm text-gray-500 mt-2">Tính năng Hỗ trợ & Liên hệ đang được đội ngũ kỹ thuật hoàn thiện và sẽ sớm ra mắt.</p>
+            </div>
+
+            {/* Temporarily disabled
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div
                     className="lg:col-span-1 rounded-xl p-6 border border-[#2E2020]/60 flex flex-col items-center justify-between text-center backdrop-blur-md"
@@ -37,7 +44,6 @@ export function ClientSupportPage() {
                             Account Manager của bạn
                         </p>
                         
-                        {/* Avatar */}
                         <div className="relative w-24 h-24 mx-auto">
                             <div className="w-full h-full rounded-full flex items-center justify-center bg-[#8E1616] text-white text-3xl font-bold border-2 border-[#D84040]">
                                 SK
@@ -131,6 +137,7 @@ export function ClientSupportPage() {
                     </div>
                 </div>
             </div>
+            */}
         </div>
     );
 }

@@ -2478,7 +2478,12 @@ export function ProjectDetailPage() {
                 video_url: finalVideoUrl,
                 dueDate: data.dueDate || null,
                 budget: data.budget || "TBD",
-                credits: assignedCrew.map(c => `${c.role}: ${c.name}`),
+                credits: assignedCrew.map((c: any) => `${c.role}: ${c.name}`),
+                structured_credits: assignedCrew.map((c: any) => ({
+                    role: c.role,
+                    name: c.name,
+                    crew_id: c.crewId || null
+                })),
                 gallery_media_ids: finalGalleryMediaIds,
             };
             const updated = await fetchApi(`/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) });

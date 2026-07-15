@@ -51,19 +51,7 @@ export function ClientDemosPage() {
                         });
                     }
 
-                    if (!hasDemo && proj.video_url) {
-                        constructedDemos.push({
-                            id: `demo-vid-${proj.slug}`,
-                            projectTitle: proj.title || "Project",
-                            projectSlug: proj.slug,
-                            title: "Bản dựng nháp (Demo)",
-                            type: "video",
-                            url: proj.video_url,
-                            coverUrl: proj.video_url.includes('vz-f1a07f87-b02.b-cdn.net') ? `https://vz-f1a07f87-b02.b-cdn.net/${proj.video_url.split('/')[3]}/thumbnail.jpg` : proj.cover_image || "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80",
-                            status: proj.status === "Review" ? "Pending Review" : proj.status === "Completed" ? "Approved" : "Draft",
-                            uploadedAt: "Gần đây"
-                        });
-                    }
+
                 });
 
                 setDemos(constructedDemos);
@@ -153,7 +141,7 @@ export function ClientDemosPage() {
                                         {demo.type === "video" && (
                                             <button
                                                 onClick={() => {
-                                                    navigate(`/client/projects/${demo.projectSlug}/playback`);
+                                                    navigate(`/client/projects/${demo.projectSlug}/playback${demo.url ? `?video=${encodeURIComponent(demo.url)}` : ''}`);
                                                 }}
                                                 className="absolute inset-0 m-auto w-12 h-12 rounded-full flex items-center justify-center bg-[#D84040] text-white transition-all transform scale-90 group-hover:scale-100 hover:bg-[#c03030] shadow-lg shadow-[#D84040]/30"
                                             >
