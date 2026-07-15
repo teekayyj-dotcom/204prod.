@@ -129,10 +129,10 @@ export function AddClientPage() {
             </div>
 
             {/* Two-column layout */}
-            <div className="grid grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 {/* ── Left: Main Form (2 cols) ── */}
-                <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+                <div className="lg:col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: "1px solid #2A1F1F", background: "linear-gradient(to right, #1D1616, #241C1C)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(216,64,64,0.15)", border: "1px solid rgba(216,64,64,0.3)" }}>
                             <UserPlus size={17} color="#D84040"/>
@@ -181,7 +181,7 @@ export function AddClientPage() {
                         </div>
 
                         {/* Company + Contact */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Building2 size={13} color="#D84040"/> Company Name *
@@ -199,7 +199,7 @@ export function AddClientPage() {
                         </div>
 
                         {/* Email + Phone */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Mail size={13} color="#D84040"/> Email <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
@@ -215,7 +215,7 @@ export function AddClientPage() {
                         </div>
 
                         {/* Website + Budget */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Globe size={13} color="#D84040"/> Website
@@ -231,7 +231,7 @@ export function AddClientPage() {
                         </div>
 
                         {/* Industry + Client Tier */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <Tag size={13} color="#D84040"/> Lĩnh vực / Ngành hàng (Industry)
@@ -267,7 +267,7 @@ export function AddClientPage() {
                         </div>
 
                         {/* Status + Client Since */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
                                     <User size={13} color="#D84040"/> Relationship Status
@@ -317,7 +317,7 @@ export function AddClientPage() {
                 </div>
 
                 {/* ── Right: Preview + Stats (1 col) ── */}
-                <div className="col-span-1 space-y-5">
+                <div className="lg:col-span-1 space-y-5">
 
                     {/* Live Preview Card */}
                     <div className="rounded-xl p-5" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>

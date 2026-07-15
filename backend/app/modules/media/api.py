@@ -258,6 +258,26 @@ def upload_media_route(
         )
 
 
+@router.get("/cors-proxy")
+def cors_proxy_route(url: str = Query(...)):
+    try:
+        import urllib.parse
+        # Unquote first to remove any double-encoding (like %2520 -> %20)
+        unquoted = urllib.parse.unquote(url)
+        safe_url = urllib.parse.quote(unquoted, safe=":/?&=")
+        req = urllib.request.Request(safe_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            content = response.read()
+            mime_type = response.headers.get('Content-Type', 'image/webp')
+        return StreamingResponse(
+            io.BytesIO(content), 
+            media_type=mime_type, 
+            headers={"Cache-Control": "public, max-age=86400"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get("/{id}/proxy")
 def media_proxy_route(
     id: str,

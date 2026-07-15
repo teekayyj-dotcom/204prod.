@@ -30,8 +30,18 @@ export function MainLayout() {
     appleTitle.id = "admin-apple-title";
     document.head.appendChild(appleTitle);
 
-    // 2. Register Admin Service Worker
+    // 2. Register Admin Service Worker and clean up old ones
     if ("serviceWorker" in navigator) {
+      // Unregister any old service worker registered at the root scope
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          if (registration.scope === window.location.origin + "/") {
+            registration.unregister();
+            console.log("Unregistered old root-scoped Service Worker");
+          }
+        }
+      });
+
       navigator.serviceWorker
         .register("/sw-admin.js", { scope: "/admin/" })
         .then(function (registration) {

@@ -871,23 +871,27 @@ export function WorksPage() {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              transition={{ duration: 0.4 }}
+                              transition={{ duration: 0.6, delay: 0.45 }}
                               className="absolute inset-0 w-full h-full z-10 pointer-events-none"
                             >
                               {(() => {
                                 const videoUrl = project.video;
                                 const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
                                 const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
-                                const bunnyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
-                                const embedUrl = ytMatch
-                                  ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`
-                                  : vmMatch
-                                    ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`
-                                    : bunnyMatch
-                                      ? videoUrl.includes("?")
-                                        ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
-                                        : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`
-                                      : null;
+                                const bunnyLegacyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
+                                
+                                let embedUrl = null;
+                                if (ytMatch) {
+                                  embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
+                                } else if (vmMatch) {
+                                  embedUrl = `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
+                                } else if (bunnyLegacyMatch) {
+                                  embedUrl = videoUrl.includes("?")
+                                    ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
+                                    : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`;
+                                }
+                                
+                                const nativeVideoUrl = videoUrl?.replace("/play_1080p.mp4", "/play_720p.mp4");
                                 
                                 if (embedUrl) {
                                   return (
@@ -902,7 +906,7 @@ export function WorksPage() {
                                 } else {
                                   return (
                                     <video
-                                      src={videoUrl}
+                                      src={nativeVideoUrl}
                                       autoPlay
                                       loop
                                       muted

@@ -13,9 +13,14 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignore cross-origin requests (like Google Tag Manager, Analytics, APIs)
-  // This prevents adblockers from causing Uncaught TypeErrors in the Service Worker
+  // Ignore cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+  
+  // Ignore requests that are outside the /admin scope just in case the SW is registered broadly
+  const url = new URL(event.request.url);
+  if (!url.pathname.startsWith('/admin') && !url.pathname.startsWith('/sw-admin.js') && !url.pathname.startsWith('/manifest-admin.json')) {
     return;
   }
 

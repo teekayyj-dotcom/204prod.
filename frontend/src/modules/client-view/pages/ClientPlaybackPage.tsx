@@ -532,6 +532,7 @@ export function ClientPlaybackPage() {
     };
 
     // Direct playable video (.mp4/.mov/.webm) — Bunny CDN or self-hosted
+    const nativeVideoToPlay = videoToPlay?.replace("/play_1080p.mp4", "/play_720p.mp4");
     const isDirectVideo = !isEmbedVideo && !!videoToPlay;
     const finalVideoSource = isDirectVideo ? videoToPlay : defaultSampleVideo;
 
@@ -595,7 +596,7 @@ export function ClientPlaybackPage() {
                             /* ─── Native HTML5 video mode ─── */
                             <video
                                 ref={videoRef}
-                                src={finalVideoSource}
+                                src={nativeVideoToPlay}
                                 className="w-full h-full object-contain absolute inset-0 rounded-lg"
                                 onTimeUpdate={handleTimeUpdate}
                                 onLoadedMetadata={handleLoadedMetadata}

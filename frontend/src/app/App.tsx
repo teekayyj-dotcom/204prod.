@@ -22,7 +22,10 @@ export default function App() {
   return (
     <>
       <InAppBrowserWarning />
-      <RouterProvider router={router} />
+      <RouterProvider 
+        router={router} 
+        fallbackElement={<div className="flex items-center justify-center min-h-screen bg-[#0A0707] text-white">Loading...</div>} 
+      />
     </>
   );
 }

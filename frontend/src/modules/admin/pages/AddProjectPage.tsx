@@ -25,13 +25,7 @@ function FieldLabel({ icon: Icon, text }) {
             {text}
         </label>);
 }
-const checklist = [
-    "Define project scope and deliverables",
-    "Assign a client from your roster",
-    "Set a realistic due date and budget",
-    "Choose the correct service category",
-    "Add relevant tags for discoverability",
-];
+
 export function AddProjectPage() {
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
@@ -97,14 +91,12 @@ export function AddProjectPage() {
         if (file && file.type.startsWith("video/"))
             setUploadedVideo(file);
     };
-    const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+    const { register, handleSubmit, setValue, formState: { errors } } = useForm({
         defaultValues: { status: "Planning" },
     });
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [isAddingClient, setIsAddingClient] = useState(false);
-    const watched = watch();
-    const statusInfo = statusColors[watched.status] || statusColors["Planning"];
     const onSubmit = async (data) => {
         setSubmitting(true);
         try {
@@ -165,11 +157,9 @@ export function AddProjectPage() {
                 </div>
             </div>
 
-            {/* Two-column layout */}
-            <div className="grid grid-cols-3 gap-6 items-start">
-
-                {/* ── Left: Main Form (2 cols) ── */}
-                <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+            {/* Main Form */}
+            <div className="w-full">
+                <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
                     {/* Card header */}
                     <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: "1px solid #2A1F1F", background: "linear-gradient(to right, #1D1616, #241C1C)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(216,64,64,0.15)", border: "1px solid rgba(216,64,64,0.3)" }}>
@@ -235,7 +225,7 @@ export function AddProjectPage() {
                         </div>
 
                         {/* Client + Category */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <FieldLabel icon={User} text="Client *"/>
                                 <div className="flex gap-2">
@@ -350,7 +340,7 @@ export function AddProjectPage() {
                         </div>
 
                         {/* Status + Due Date */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <FieldLabel icon={Tag} text="Status"/>
                                 <select {...register("status")} className="px-3 py-2.5 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
@@ -379,7 +369,7 @@ export function AddProjectPage() {
                         </div>
 
                         {/* Budget + Tags */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <FieldLabel icon={DollarSign} text="Budget"/>
                                 {(() => {
@@ -511,69 +501,6 @@ export function AddProjectPage() {
                     </form>
                 </div>
 
-                {/* ── Right: Preview + Checklist (1 col) ── */}
-                <div className="col-span-1 space-y-5">
-
-                    {/* Live Preview Card */}
-                    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                        {thumbnailPreview ? (<div className="h-28 relative overflow-hidden">
-                                <img src={thumbnailPreview} alt="Thumbnail" className="w-full h-full object-cover"/>
-                                <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 30%, rgba(29,22,22,0.65))" }}/>
-                            </div>) : (<div className="h-28" style={{ background: "linear-gradient(135deg, #1D1616 0%, #8E1616 60%, #D84040 100%)" }}/>)}
-                        <div className="px-4 py-4 -mt-1">
-                            <div className="flex items-start justify-between mb-2">
-                                <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>
-                                    {watched.title || "Project Title"}
-                                </h3>
-                                <span className="px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: statusInfo.bg, color: statusInfo.text, fontSize: "10px", fontWeight: 600 }}>
-                                    {watched.status || "Planning"}
-                                </span>
-                            </div>
-                            <p style={{ color: "#888", fontSize: "12px" }} className="mb-3">
-                                {watched.client || "No client"} · {watched.category || "No category"}
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                    <Clock size={11} color="#666"/>
-                                    <span style={{ color: "#666", fontSize: "11px" }}>{watched.dueDate || "No due date"}</span>
-                                </div>
-                                <span style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>{watched.budget || "—"}</span>
-                            </div>
-                            {watched.tags && (<div className="flex flex-wrap gap-1 mt-3">
-                                    {watched.tags.split(",").slice(0, 3).map((t) => (<span key={t} className="px-1.5 py-0.5 rounded" style={{ background: "#2A1F1F", color: "#888", fontSize: "10px", border: "1px solid #3A2A2A" }}>
-                                            {t.trim()}
-                                        </span>))}
-                                </div>)}
-                        </div>
-                    </div>
-
-                    {/* Pre-launch Checklist */}
-                    <div className="rounded-xl p-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-                        <div className="flex items-center gap-2 mb-3">
-                            <CheckSquare size={14} color="#D84040"/>
-                            <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>Pre-launch Checklist</p>
-                        </div>
-                        <div className="space-y-2">
-                            {checklist.map((item, i) => (<div key={i} className="flex items-start gap-2">
-                                    <div className="w-4 h-4 rounded flex items-center justify-center mt-0.5 flex-shrink-0" style={{ background: "rgba(216,64,64,0.12)", border: "1px solid rgba(216,64,64,0.3)" }}>
-                                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#D84040" }}/>
-                                    </div>
-                                    <p style={{ color: "#888", fontSize: "12px" }}>{item}</p>
-                                </div>))}
-                        </div>
-                    </div>
-
-                    {/* Tips */}
-                    <div className="rounded-xl p-4" style={{ background: "rgba(216,64,64,0.06)", border: "1px solid rgba(216,64,64,0.2)" }}>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Info size={13} color="#D84040"/>
-                            <p style={{ color: "#D84040", fontSize: "12px", fontWeight: 600 }}>Tip</p>
-                        </div>
-                        <p style={{ color: "#999", fontSize: "12px", lineHeight: "1.6" }}>
-                            Use tags to make this project easier to find. You can always update the details from the project detail page after creation.
-                        </p>
-                    </div>
-                </div>
             </div>
 
             {/* Media Select Modal */}

@@ -175,20 +175,24 @@ export function LandingPage() {
   const videoUrl = currentProject?.video_url || currentProject?.videoUrl || "";
   const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
   const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
-  // Legacy Bunny embed URL
   const bunnyLegacyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
-  const embedUrl = ytMatch
-    ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`
-    : vmMatch
-      ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`
-      : bunnyLegacyMatch
-        ? videoUrl.includes("?")
-          ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
-          : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`
-        : null;
+
+  let embedUrl = "";
+  if (ytMatch) {
+    embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
+  } else if (vmMatch) {
+    embedUrl = `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
+  } else if (bunnyLegacyMatch) {
+    embedUrl = videoUrl.includes("?")
+      ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
+      : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`;
+  }
+
+  // For native video, ensure we use 720p instead of 1080p because 1080p often 404s for smaller source videos
+  const nativeVideoUrl = videoUrl?.replace("/play_1080p.mp4", "/play_720p.mp4");
 
   const isEmbedVideo = !!embedUrl;
-  // Direct video: .mp4/.mov/.webm (includes new Bunny CDN direct URLs like b-cdn.net)
+  // Direct video: .mp4/.mov/.webm (excludes Bunny direct URLs since they need token auth and are handled as embeds above)
   const isDirectVideo = !!videoUrl && !embedUrl;
 
   const coverMedia = currentProject?.cover_media || (currentProject?.cover_image ? { url: currentProject.cover_image, kind: "image" } : null);
@@ -211,8 +215,8 @@ export function LandingPage() {
         />
       ) : isDirectVideo ? (
         <video
-          key={videoUrl}
-          src={videoUrl}
+          key={nativeVideoUrl}
+          src={nativeVideoUrl}
           autoPlay
           loop
           muted
