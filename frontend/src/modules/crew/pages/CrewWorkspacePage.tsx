@@ -181,13 +181,25 @@ export function CrewWorkspacePage() {
   };
 
   useEffect(() => {
-    fetchApi("/projects/tasks/all").then(data => {
+    fetchApi("/projects/tasks/all").then(async (data) => {
       const allTasks = Array.isArray(data) ? data : [];
       const currentUserName = getUserName();
-      const mappedTasks = allTasks.filter((t: any) => 
-        (t.assignee_name && t.assignee_name.includes(currentUserName)) ||
-        (t.assignee && t.assignee.includes(currentUserName))
-      );
+      
+      let backendCrewName: string | null = null;
+      try {
+        const u = JSON.parse(localStorage.getItem("user") || "{}");
+        const crewData = await fetchApi<any[]>("/crew");
+        const me = crewData && Array.isArray(crewData) ? crewData.find((m: any) => m.name === currentUserName || m.email === u.email) : null;
+        if (me) backendCrewName = me.name;
+      } catch (e) {
+        console.error(e);
+      }
+
+      const mappedTasks = allTasks.filter((t: any) => {
+        const aName = (t.assignee_name || t.assignee || "").toLowerCase();
+        return aName.includes(currentUserName.toLowerCase()) || 
+               (backendCrewName && aName.includes(backendCrewName.toLowerCase()));
+      });
       setTasks(mappedTasks);
       
       const now = Date.now();

@@ -132,20 +132,28 @@ export function CrewProjectsPage() {
       const userObj = JSON.parse(localStorage.getItem("user") || "{}");
       const currentUserName = userObj.display_name || userObj.username || "Crew Member";
 
-      const [projectsData, allTasks] = await Promise.all([
+      const [projectsData, allTasks, crewData] = await Promise.all([
         fetchApi<any[]>("/projects/all"),
-        fetchApi<any[]>("/projects/tasks/all").catch(() => [])
+        fetchApi<any[]>("/projects/tasks/all").catch(() => []),
+        fetchApi<any[]>("/crew").catch(() => [])
       ]);
+
+      const me = crewData && Array.isArray(crewData) ? crewData.find((m: any) => m.name === currentUserName || m.email === userObj.email) : null;
+      const backendCrewName = me ? me.name : null;
+
       if (projectsData && projectsData.length > 0) {
         const assignedProjects = projectsData.filter((p: any) => {
-          const hasCredit = Array.isArray(p.credits) && p.credits.some((c: string) => 
-            c.toLowerCase().includes(currentUserName.toLowerCase())
-          );
-          const hasTasks = allTasks.some((t: any) => 
-            t.project_slug === p.slug && 
-            t.assignee_name && 
-            t.assignee_name.toLowerCase().includes(currentUserName.toLowerCase())
-          );
+          const hasCredit = Array.isArray(p.credits) && p.credits.some((c: string) => {
+            const cLower = c.toLowerCase();
+            return cLower.includes(currentUserName.toLowerCase()) || 
+                   (backendCrewName && cLower.includes(backendCrewName.toLowerCase()));
+          });
+          const hasTasks = allTasks.some((t: any) => {
+            if (t.project_slug !== p.slug || !t.assignee_name) return false;
+            const aLower = t.assignee_name.toLowerCase();
+            return aLower.includes(currentUserName.toLowerCase()) || 
+                   (backendCrewName && aLower.includes(backendCrewName.toLowerCase()));
+          });
           return hasCredit || hasTasks;
         });
 
