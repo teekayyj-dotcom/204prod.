@@ -445,7 +445,7 @@ export function ClientProfilePage() {
     }
 
     return (
-        <div className="px-8 py-7 w-full">
+        <div className="px-4 md:px-8 py-4 md:py-7 w-full">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -559,7 +559,7 @@ export function ClientProfilePage() {
             <DeleteConfirmModal isOpen={confirmDelete} itemType="client" itemName={client.name} onConfirm={handleDelete} onCancel={() => setConfirmDelete(false)} isDeleting={deleting}/>
 
             {/* CRM Tabbed Navigation */}
-            <div className="flex gap-2 border-b border-[#2A1F1F] mb-6">
+            <div className="flex gap-2 border-b border-[#2A1F1F] mb-6 overflow-x-auto whitespace-nowrap">
                 {tabs.map((t) => (
                     <button
                         key={t.id}
@@ -585,14 +585,14 @@ export function ClientProfilePage() {
 
                 {/* ── TAB 1: THÔNG TIN CHUNG ── */}
                 {activeTab === "info" && (
-                    <div className="grid grid-cols-3 gap-6 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                         {/* Company Detail Form Fields (2 cols) */}
-                        <div className="col-span-2 rounded-xl p-5 space-y-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                        <div className="lg:col-span-2 rounded-xl p-5 space-y-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
                             <h3 className="text-sm font-semibold uppercase tracking-wider text-[#D84040] mb-4 flex items-center gap-2">
                                 <Building2 size={16} /> Thông tin doanh nghiệp
                             </h3>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1 flex items-center gap-1">
                                         Tên công ty
@@ -620,7 +620,7 @@ export function ClientProfilePage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1 flex items-center gap-1">
                                         Mã số thuế
@@ -672,7 +672,7 @@ export function ClientProfilePage() {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4 pt-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1 flex items-center gap-1">
                                         Thời điểm bắt đầu hợp tác (Since)
@@ -819,7 +819,7 @@ export function ClientProfilePage() {
                                             onChange={(e) => setNewPoc(prev => ({ ...prev, role: e.target.value }))}
                                             className="px-2 py-1 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }} 
                                         />
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                             <input 
                                                 placeholder="Số điện thoại" 
                                                 value={newPoc.phone}
@@ -850,9 +850,9 @@ export function ClientProfilePage() {
 
                 {/* ── TAB 2: DỰ ÁN & BÁO GIÁ ── */}
                 {activeTab === "projects" && (
-                    <div className="grid grid-cols-3 gap-6 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                         {/* Projects list (2 cols) */}
-                        <div className="col-span-2 space-y-6">
+                        <div className="lg:col-span-2 space-y-6">
                             {/* Active Projects */}
                             <div className="rounded-xl overflow-hidden" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
                                 <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid #2A1F1F" }}>
@@ -985,7 +985,7 @@ export function ClientProfilePage() {
                                         onChange={(e) => setNewProposal(prev => ({ ...prev, title: e.target.value }))}
                                         className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }} 
                                     />
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         <input 
                                             type="number" 
                                             placeholder="Ngân sách (₫)" 
@@ -1028,7 +1028,7 @@ export function ClientProfilePage() {
                 {activeTab === "finance" && (
                     <div className="space-y-6">
                         {/* Financial Stat boxes */}
-                        <div className="grid grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {/* LTV */}
                             <div className="rounded-xl p-5 flex items-center justify-between" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
                                 <div className="flex items-center gap-3">
@@ -1221,9 +1221,9 @@ export function ClientProfilePage() {
 
                 {/* ── TAB 4: NHẬT KÝ & GHI CHÚ ── */}
                 {activeTab === "logs" && (
-                    <div className="grid grid-cols-3 gap-6 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                         {/* Timeline logs (2 cols) */}
-                        <div className="col-span-2 space-y-6">
+                        <div className="lg:col-span-2 space-y-6">
                             {/* General Relationship notes */}
                             <div className="rounded-xl p-5 space-y-3" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
                                 <h3 className="text-sm font-semibold uppercase tracking-wider text-[#D84040] flex items-center gap-2">
@@ -1256,7 +1256,7 @@ export function ClientProfilePage() {
                                 {isEditing && (
                                     <div className="p-4 rounded-lg space-y-3 border border-[#3A2A2A]" style={{ background: "rgba(29, 22, 22, 0.4)" }}>
                                         <p className="text-[11px] font-semibold uppercase text-white/50">Ghi nhận nhật ký chăm sóc mới</p>
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             <input 
                                                 type="date"
                                                 value={newLog.date}
@@ -1374,7 +1374,7 @@ export function ClientProfilePage() {
                             {isEditing && (
                                 <div className="pt-3 border-t border-[#2A1F1F] space-y-2">
                                     <p className="text-[11px] font-semibold uppercase text-white/50">Thêm lịch hẹn sắp tới</p>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         <input 
                                             type="date"
                                             value={newAppointment.date}
@@ -1420,7 +1420,7 @@ export function ClientProfilePage() {
                         </h3>
 
                         {/* Documents Grid */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {crmData.documents.map((doc, idx) => {
                                 // Decide icon based on type
                                 let DocIcon = FileText;
@@ -1463,7 +1463,7 @@ export function ClientProfilePage() {
                                     onChange={(e) => setNewDoc(prev => ({ ...prev, name: e.target.value }))}
                                     className="px-2 py-1.5 rounded outline-none" style={{ ...inputStyle, fontSize: "12px" }} 
                                 />
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <select
                                         value={newDoc.type}
                                         onChange={(e) => setNewDoc(prev => ({ ...prev, type: e.target.value }))}

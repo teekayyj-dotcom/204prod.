@@ -45,7 +45,7 @@ def delete_user(db: Session, id: str):
     db.commit()
     return True
 
-def pre_authorize_user(db: Session, email: str, role: str):
+def pre_authorize_user(db: Session, email: str, role: str, display_name: str = None):
     """
     Pre-authorizes an email for a specific role.
     If the user already exists, updates their role (if it's pending).
@@ -55,13 +55,29 @@ def pre_authorize_user(db: Session, email: str, role: str):
         return None
         
     email = email.strip().lower()
+    
+    import hashlib
+    md5_hash = hashlib.md5(email.encode('utf-8')).hexdigest()
+    avatar_url = f"https://www.gravatar.com/avatar/{md5_hash}?d=identicon"
+
     existing_user = db.query(User).filter(User.email == email).first()
     
     if existing_user:
+        changed = False
+        if not existing_user.display_name and display_name:
+            existing_user.display_name = display_name
+            changed = True
+        if not existing_user.avatar_url:
+            existing_user.avatar_url = avatar_url
+            changed = True
+            
         # Only upgrade role if they are pending or moving to a higher privilege
         # We assume admin might change their role. For now, if they are pending, we always update.
         if existing_user.role == "pending" or existing_user.role != role:
             existing_user.role = role
+            changed = True
+            
+        if changed:
             db.commit()
             db.refresh(existing_user)
         return existing_user
@@ -80,7 +96,9 @@ def pre_authorize_user(db: Session, email: str, role: str):
         role=role,
         auth_provider="email",
         password_hash=None, # No password yet
-        firebase_uid=None
+        firebase_uid=None,
+        display_name=display_name,
+        avatar_url=avatar_url
     )
     db.add(new_user)
     db.commit()

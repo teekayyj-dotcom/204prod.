@@ -393,6 +393,7 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
         days = []
         total_days = 0.0
         late_min = 0
+        unscheduled_min = 0
         
         member_logs = log_map.get(member.name, {})
         
@@ -424,7 +425,28 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
             has_business = any(l.status == "business" for l in day_logs)
             has_late = any(l.status == "late" for l in day_logs)
             
-            if has_business:
+            has_unscheduled = any(l.status == "unscheduled" for l in day_logs)
+            
+            if has_unscheduled:
+                days.append("unscheduled")
+                sorted_logs = sorted([l for l in day_logs if l.status == "unscheduled"], key=lambda x: x.time)
+                checkin_time = None
+                for l in sorted_logs:
+                    if l.action == "check-in":
+                        if not checkin_time:
+                            checkin_time = l.time
+                    elif l.action == "check-out":
+                        if checkin_time:
+                            try:
+                                in_hh, in_mm = map(int, checkin_time.split(':'))
+                                out_hh, out_mm = map(int, l.time.split(':'))
+                                diff_min = (out_hh * 60 + out_mm) - (in_hh * 60 + in_mm)
+                                if diff_min > 0:
+                                    unscheduled_min += diff_min
+                            except Exception:
+                                pass
+                            checkin_time = None
+            elif has_business:
                 days.append("business")
                 total_days += 1.0
             elif has_wfh:
@@ -483,6 +505,9 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
                 days.append("on-time")
                 total_days += 1.0
                 
+        ot_hours = round(unscheduled_min / 60.0, 1)
+        ot_str = f"{ot_hours:g}h" if ot_hours > 0 else "0h"
+
         timesheet_data.append({
             "employee": {
                 "name": member.name,
@@ -491,7 +516,7 @@ def get_timesheet(db: Session, year: int, month: int) -> list[dict]:
             },
             "days": days,
             "totalDays": total_days,
-            "ot": "0h",
+            "ot": ot_str,
             "lateMin": late_min
         })
         

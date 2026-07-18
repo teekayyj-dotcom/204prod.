@@ -25,7 +25,29 @@ def _create_auth_response(user: User, db: Session = None) -> AuthResponse:
     client_slug = None
     if user.role == "client" and db is not None:
         from app.modules.projects.models import Client
+        import json
+        
+        # 1. Check primary email
         client = db.query(Client).filter(Client.email == user.email).first()
+        
+        # 2. Check inside notes (poc_list)
+        if not client:
+            # We fetch all clients that have notes and do a manual search
+            # Since number of clients is relatively small this is okay, 
+            # ideally this would be a JSON query if using Postgres.
+            clients = db.query(Client).filter(Client.notes != None).all()
+            for c in clients:
+                try:
+                    trimmed = c.notes.strip()
+                    if trimmed.startswith("{"):
+                        crm = json.loads(trimmed)
+                        poc_list = crm.get("poc_list", [])
+                        if any(poc.get("email", "").strip().lower() == user.email.strip().lower() for poc in poc_list):
+                            client = c
+                            break
+                except Exception:
+                    pass
+
         if client:
             client_slug = client.slug
     

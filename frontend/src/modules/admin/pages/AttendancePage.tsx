@@ -539,6 +539,7 @@ function TimesheetTab() {
 
   const sumDays = timesheetData.reduce((acc, r) => acc + r.totalDays, 0);
   const sumLate = timesheetData.reduce((acc, r) => acc + r.lateMin, 0);
+  const sumOt = timesheetData.reduce((acc, r) => acc + parseFloat(r.ot.replace("h", "") || "0"), 0);
 
   return (
     <div className="space-y-5">
@@ -680,7 +681,7 @@ function TimesheetTab() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Tổng ngày công hợp lệ", value: `${sumDays} ngày`, color: "#4ade80" },
-          { label: "Tổng giờ OT", value: "0h", color: "#60a5fa" }, // Placeholder for now
+          { label: "Tổng giờ OT", value: `${sumOt}h`, color: "#60a5fa" },
           { label: "Tổng phút đi muộn", value: `${sumLate} phút`, color: "#fbbf24" },
         ].map((s) => (
           <div
