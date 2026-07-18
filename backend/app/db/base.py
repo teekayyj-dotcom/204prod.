@@ -15,4 +15,5 @@ def import_models() -> None:
     from app.modules.users import models as _user_models  # noqa: F401
     from app.modules.hr import models as _hr_models  # noqa: F401
     from app.modules.finance import models as _finance_models  # noqa: F401
+    from app.modules.notifications import models as _notification_models  # noqa: F401
 

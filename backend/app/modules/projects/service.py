@@ -407,6 +407,17 @@ def create_feedback(db: Session, project_slug: str, req):
     db.add(db_feedback)
     db.commit()
     db.refresh(db_feedback)
+
+    # Trigger notification to admin
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id="Admin",
+        type="feedback",
+        title="Góp ý mới",
+        message=f"{req.user_id} vừa thêm một góp ý mới trong dự án {project_slug}",
+        link=f"/admin/projects/{project_slug}/playback"
+    ))
+
     return db_feedback
 
 
@@ -428,6 +439,17 @@ def update_feedback_status(db: Session, feedback_id: int, status: str):
     db_feedback.status = status
     db.commit()
     db.refresh(db_feedback)
+
+    # Notify original user
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id=db_feedback.user_id,
+        type="feedback",
+        title="Cập nhật trạng thái góp ý",
+        message=f"Góp ý của bạn trong dự án {db_feedback.project_slug} đã được chuyển thành {status}",
+        link=f"/client/projects/{db_feedback.project_slug}/playback"
+    ))
+
     return db_feedback
 
 
@@ -442,6 +464,17 @@ def reply_feedback(db: Session, feedback_id: int, reply_content: str, reply_auth
     db_feedback.reply_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_feedback)
+
+    # Notify original user
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id=db_feedback.user_id,
+        type="feedback",
+        title="Phản hồi mới từ đội ngũ",
+        message=f"{reply_author} đã trả lời góp ý của bạn: {reply_content[:50]}...",
+        link=f"/client/projects/{db_feedback.project_slug}/playback"
+    ))
+
     return db_feedback
 
 

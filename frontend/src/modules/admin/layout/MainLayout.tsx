@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
-import { Menu, Bell, Download } from "lucide-react";
+import { Menu, Download } from "lucide-react";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
 
 export function MainLayout() {
   const location = useLocation();
@@ -123,11 +124,9 @@ export function MainLayout() {
               <img src="/favicon/204-logo.png" alt="204 Logo" className="h-10 w-10 object-contain" />
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
-              >
-                <Bell size={20} />
-              </button>
+              <div className="text-white flex items-center justify-center">
+                <NotificationBell userId="Admin" />
+              </div>
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"

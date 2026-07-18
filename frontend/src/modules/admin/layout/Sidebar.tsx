@@ -21,6 +21,7 @@ import {
   Network,
   Download,
 } from "lucide-react";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
@@ -383,20 +384,25 @@ export function Sidebar({
               })()}
             </p>
           </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("role");
-              localStorage.removeItem("user");
-              window.location.href = "/login";
-            }}
-            className="flex-shrink-0 transition-colors"
-            style={{ color: "#666" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#D84040")}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#666")}
-          >
-            <LogOut size={15} />
-          </button>
+          <div className="flex items-center gap-1">
+            <div className="flex-shrink-0">
+              <NotificationBell userId="Admin" />
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("role");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+              }}
+              className="flex-shrink-0 transition-colors p-1"
+              style={{ color: "#666" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#D84040")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#666")}
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

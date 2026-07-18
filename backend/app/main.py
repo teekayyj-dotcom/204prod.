@@ -17,6 +17,7 @@ from app.modules.users.api import router as users_router
 from app.modules.crew.api import router as crew_router
 from app.modules.hr.api import router as hr_router
 from app.modules.finance.api import router as finance_router
+from app.modules.notifications.api import router as notifications_router
 
 from app.db.init_db import init_db
 from app.db.session import SessionLocal
@@ -102,6 +103,7 @@ app.include_router(users_router, prefix=settings.api_v1_prefix)
 app.include_router(crew_router, prefix=settings.api_v1_prefix)
 app.include_router(hr_router, prefix=settings.api_v1_prefix)
 app.include_router(finance_router, prefix=settings.api_v1_prefix)
+app.include_router(notifications_router, prefix=f"{settings.api_v1_prefix}/notifications")
 
 from fastapi.staticfiles import StaticFiles
 import os

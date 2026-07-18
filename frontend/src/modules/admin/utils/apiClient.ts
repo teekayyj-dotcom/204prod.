@@ -26,7 +26,18 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
+    let errorDetail = '';
+    let isJsonError = false;
+    
+    try {
+      const errJson = await response.json();
+      errorDetail = errJson.detail || '';
+      isJsonError = true;
+    } catch {
+      errorDetail = await response.text().catch(() => '');
+    }
+
+    if ((response.status === 401 || response.status === 403) && isJsonError) {
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         localStorage.removeItem('token');
         localStorage.removeItem('role');
@@ -43,13 +54,6 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
       }
     }
 
-    let errorDetail = '';
-    try {
-      const errJson = await response.json();
-      errorDetail = errJson.detail || '';
-    } catch {
-      errorDetail = await response.text().catch(() => '');
-    }
     throw new Error(errorDetail || `API error: ${response.status} ${response.statusText}`);
   }
 
