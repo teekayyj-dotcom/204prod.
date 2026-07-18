@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 
 import { AppProviders } from './app/providers'
 import { AppRouter } from './app/router'
+import { Toaster } from 'sonner'
 import './styles/index.css'
 
 // Automatically reload the page when a dynamically imported chunk fails to load.
@@ -20,6 +21,7 @@ window.addEventListener('vite:preloadError', () => {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppProviders>
+      <Toaster position="top-right" duration={2000} richColors />
       <AppRouter />
     </AppProviders>
   </StrictMode>,
