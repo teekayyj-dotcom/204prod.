@@ -8,7 +8,7 @@ interface DemoItem {
     projectTitle: string;
     projectSlug: string;
     title: string;
-    type: "video" | "image";
+    type: "video" | "image" | "document" | "storyboard";
     url: string;
     coverUrl: string;
     status: "Draft" | "Pending Review" | "Approved" | "Rejected";
@@ -21,15 +21,40 @@ export function ClientDemosPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<"All" | "Pending Review" | "Approved" | "Rejected">("All");
     const [activeVideo, setActiveVideo] = useState<string | null>(null);
+    const [editingDemoId, setEditingDemoId] = useState<string | null>(null);
+    const [editTitle, setEditTitle] = useState("");
+
+    const handleRenameSubmit = async (demoId: string) => {
+        if (!editTitle.trim()) {
+            setEditingDemoId(null);
+            return;
+        }
+        try {
+            await fetchApi(`/media/${demoId}/rename`, {
+                method: "PUT",
+                body: JSON.stringify({ title: editTitle.trim() })
+            });
+            setDemos(prev => prev.map(d => d.id === demoId ? { ...d, title: editTitle.trim() } : d));
+            setEditingDemoId(null);
+        } catch (err) {
+            console.error("Failed to rename demo", err);
+            alert("Đổi tên thất bại!");
+        }
+    };
 
     useEffect(() => {
         // Fetch projects to dynamically construct some demo deliverables
         fetchApi<any[]>('/projects/all')
             .then((projects) => {
+                const clientSlug = localStorage.getItem("client_slug") || localStorage.getItem("slug") || null;
+                const clientProjects = clientSlug 
+                    ? projects.filter(p => p.client_slug === clientSlug)
+                    : projects;
+
                 // Map projects and backfill with mock review files to show a rich Netflix-like gallery
                 const constructedDemos: DemoItem[] = [];
 
-                projects.forEach((proj) => {
+                clientProjects.forEach((proj) => {
                     let hasDemo = false;
                     if (proj.gallery && Array.isArray(proj.gallery)) {
                         proj.gallery.forEach((g: any) => {
@@ -169,7 +194,31 @@ export function ClientDemosPage() {
                             <div className="p-4 flex-1 flex flex-col justify-between gap-3">
                                 <div>
                                     <p style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }} className="uppercase tracking-widest">{demo.projectTitle}</p>
-                                    <h3 className="font-semibold text-sm mt-1 line-clamp-1">{demo.title}</h3>
+                                    {editingDemoId === demo.id ? (
+                                        <input
+                                            type="text"
+                                            className="w-full bg-[#2A1F1F] border border-[#8E1616] rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-red-500 mt-1"
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            onBlur={() => handleRenameSubmit(demo.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleRenameSubmit(demo.id);
+                                                if (e.key === 'Escape') setEditingDemoId(null);
+                                            }}
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-between mt-1 group">
+                                            <h3 className="font-semibold text-sm line-clamp-1">{demo.title}</h3>
+                                            <button 
+                                                onClick={() => { setEditingDemoId(demo.id); setEditTitle(demo.title); }}
+                                                className="text-[#666] hover:text-[#EEEEEE] ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Đổi tên"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                            </button>
+                                        </div>
+                                    )}
                                     <p className="text-[11px] mt-1" style={{ color: "#666" }}>{demo.uploadedAt}</p>
                                 </div>
 

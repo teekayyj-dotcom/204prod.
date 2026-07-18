@@ -1385,6 +1385,8 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
     const [mediaView, setMediaView] = useState<"grid" | "feedback">("grid");
     const [uploadingFiles, setUploadingFiles] = useState<{ id: string, name: string, progress: number, type: string, previewUrl: string }[]>([]);
     const [replyText, setReplyText] = useState<Record<number, string>>({});
+    const [editingDemoId, setEditingDemoId] = useState<string | null>(null);
+    const [editTitle, setEditTitle] = useState("");
 
     const formattedFeedbacks = feedbacks.map(fb => ({
         id: fb.id,
@@ -1397,6 +1399,32 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
         reply_content: fb.reply_content,
         reply_author: fb.reply_author
     }));
+
+    const handleRenameSubmit = async (demoId: string) => {
+        if (!editTitle.trim()) {
+            setEditingDemoId(null);
+            return;
+        }
+        try {
+            await fetchApi(`/media/${demoId}/rename`, {
+                method: "PUT",
+                body: JSON.stringify({ title: editTitle.trim() })
+            });
+            setProject((prev: any) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    gallery: (prev.gallery || []).map((g: any) => 
+                        g.id === demoId ? { ...g, name: editTitle.trim() } : g
+                    )
+                };
+            });
+            setEditingDemoId(null);
+        } catch (err) {
+            console.error("Failed to rename demo", err);
+            alert("Đổi tên thất bại!");
+        }
+    };
 
     const togglePublish = async (mediaAssetId: string, currentPublished: boolean) => {
         try {
@@ -1575,7 +1603,33 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                     )}
                                 </div>
                                 <div style={{ padding: "8px 10px" }}>
-                                    <p style={{ color: "#EEEEEE", fontSize: "10px", fontWeight: 500, marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                                    {editingDemoId === file.id ? (
+                                        <input
+                                            type="text"
+                                            className="w-full bg-[#2A1F1F] border border-[#8E1616] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red-500 mb-1"
+                                            value={editTitle}
+                                            onChange={(e) => setEditTitle(e.target.value)}
+                                            onBlur={() => handleRenameSubmit(file.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleRenameSubmit(file.id);
+                                                if (e.key === 'Escape') setEditingDemoId(null);
+                                            }}
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name} className="flex-1">
+                                                {file.name}
+                                            </p>
+                                            <button 
+                                                onClick={() => { setEditingDemoId(file.id); setEditTitle(file.name); }}
+                                                className="text-[#888] hover:text-[#EEEEEE] ml-2 transition-colors flex-shrink-0 cursor-pointer bg-white/5 p-1 rounded"
+                                                title="Đổi tên"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                            </button>
+                                        </div>
+                                    )}
                                     <p style={{ color: "#555", fontSize: "9px", marginBottom: "6px" }}>{file.size} · {file.uploaded}</p>
                                     {file.type === "video" && (
                                         <button 

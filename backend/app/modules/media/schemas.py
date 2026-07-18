@@ -57,6 +57,10 @@ class MediaFinalizeRequest(BaseModel):
     folder: str | None = None
 
 
+class MediaRenameRequest(BaseModel):
+    title: str
+
+
 class VideoUploadRequest(BaseModel):
     filename: str
     title: str | None = None

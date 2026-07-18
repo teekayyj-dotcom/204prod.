@@ -33,6 +33,7 @@ interface Project {
     title: string;
     slug: string;
     client: string;
+    client_slug?: string;
     format: string;
     status: string;
     year: number;
@@ -61,7 +62,12 @@ export function ClientProjectsPage() {
             fetchApi<Project[]>('/projects/all'),
             fetchApi<Category[]>('/categories')
         ]).then(([projectsData, categoriesData]) => {
-            setAllProjects(projectsData);
+            const clientSlug = localStorage.getItem("client_slug") || localStorage.getItem("slug") || null;
+            const clientProjects = clientSlug 
+                ? projectsData.filter(p => p.client_slug === clientSlug)
+                : projectsData;
+
+            setAllProjects(clientProjects);
             setCategories(categoriesData);
             setLoading(false);
         }).catch(err => {

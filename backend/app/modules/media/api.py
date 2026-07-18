@@ -22,6 +22,7 @@ from app.modules.media.schemas import (
     PresignedUrlRequest, 
     PresignedUrlResponse, 
     MediaFinalizeRequest,
+    MediaRenameRequest,
     VideoUploadRequest,
     VideoUploadResponse,
     VideoSaveRequest,
@@ -256,6 +257,33 @@ def upload_media_route(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Upload failed: {str(e)}"
         )
+
+
+@router.put("/{id}/rename", status_code=status.HTTP_200_OK)
+def rename_media_route(
+    id: str,
+    req: MediaRenameRequest,
+    db: Session = Depends(get_db_session)
+):
+    from app.modules.media.models import MediaAsset
+    asset = db.query(MediaAsset).filter(MediaAsset.id == id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Media asset not found"
+        )
+    
+    asset.alt = req.title
+    asset.caption = req.title
+    
+    from app.modules.projects.models import ProjectGalleryImage
+    gallery_img = db.query(ProjectGalleryImage).filter(ProjectGalleryImage.media_asset_id == id).first()
+    if gallery_img:
+        gallery_img.caption = req.title
+        gallery_img.alt = req.title
+        
+    db.commit()
+    return {"status": "ok", "id": id, "title": req.title}
 
 
 @router.get("/cors-proxy")

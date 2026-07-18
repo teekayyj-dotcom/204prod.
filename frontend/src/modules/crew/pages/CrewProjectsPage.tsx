@@ -126,6 +126,8 @@ export function CrewProjectsPage() {
   const [projectsList, setProjectsList] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [uploadingFiles, setUploadingFiles] = useState<{ id: string, name: string, progress: number, type: string, previewUrl: string }[]>([]);
+  const [editingDemoId, setEditingDemoId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   const fetchProjects = async () => {
     try {
@@ -338,6 +340,36 @@ export function CrewProjectsPage() {
 
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
+  const handleRenameSubmit = async (demoId: string) => {
+    if (!editTitle.trim()) {
+      setEditingDemoId(null);
+      return;
+    }
+    try {
+      await fetchApi(`/media/${demoId}/rename`, {
+        method: "PUT",
+        body: JSON.stringify({ title: editTitle.trim() })
+      });
+      // Find the project and update the gallery
+      setProjectsList(prev => prev.map(p => {
+        if (p.id === selectedProject?.id || p.slug === selectedProject?.slug) {
+          const newGallery = (p.gallery || []).map((g: any) => g.id === demoId ? { ...g, name: editTitle.trim() } : g);
+          return { ...p, gallery: newGallery };
+        }
+        return p;
+      }));
+      setSelectedProject((prev: any) => {
+        if (!prev) return prev;
+        const newGallery = (prev.gallery || []).map((g: any) => g.id === demoId ? { ...g, name: editTitle.trim() } : g);
+        return { ...prev, gallery: newGallery };
+      });
+      setEditingDemoId(null);
+    } catch (err) {
+      console.error("Failed to rename demo", err);
+      alert("Đổi tên thất bại!");
+    }
+  };
+
   const deliverables = selectedProject ? [...(selectedProject.gallery || [])].filter((f: any) => f.folder === "demo").reverse() : [];
   const lastDemo = deliverables.find((f: any) => f.type === 'video');
   const playbackUrl = lastDemo 
@@ -1090,23 +1122,54 @@ export function CrewProjectsPage() {
                 >
                   <Film size={15} style={{ color: "#D84040", flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
-                    {file.type === "video" ? (
-                      <button 
-                        onClick={() => {
-                            // Use embed URL for Bunny Stream (direct mp4 URL returns 403)
-                            // thumbnail_url holds the iframe embed URL in DB
-                            const videoUrlForReview = file.url;
-                            navigate(`/crew-dashboard/projects/${selectedProject.id}/playback?video=${encodeURIComponent(videoUrlForReview)}`);
-                        }}
-                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
-                        className="hover:underline"
-                      >
-                        <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
-                      </button>
+                    {editingDemoId === file.id ? (
+                        <input
+                            type="text"
+                            className="w-full bg-[#2A1F1F] border border-[#8E1616] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red-500 mb-1"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onBlur={() => handleRenameSubmit(file.id)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleRenameSubmit(file.id);
+                                if (e.key === 'Escape') setEditingDemoId(null);
+                            }}
+                            autoFocus
+                        />
+                    ) : file.type === "video" ? (
+                      <div className="flex items-center gap-2 group">
+                        <button 
+                          onClick={() => {
+                              // Use embed URL for Bunny Stream (direct mp4 URL returns 403)
+                              // thumbnail_url holds the iframe embed URL in DB
+                              const videoUrlForReview = file.url;
+                              navigate(`/crew-dashboard/projects/${selectedProject.id}/playback?video=${encodeURIComponent(videoUrlForReview)}`);
+                          }}
+                          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+                          className="hover:underline flex-1"
+                        >
+                          <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                        </button>
+                        <button 
+                          onClick={() => { setEditingDemoId(file.id); setEditTitle(file.name); }}
+                          className="text-[#666] hover:text-[#EEEEEE] opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Đổi tên"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                      </div>
                     ) : (
-                      <a href={file.url} target="_blank" rel="noreferrer" className="hover:underline">
-                        <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
-                      </a>
+                      <div className="flex items-center gap-2 group">
+                        <a href={file.url} target="_blank" rel="noreferrer" className="hover:underline flex-1">
+                          <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
+                        </a>
+                        <button 
+                          onClick={() => { setEditingDemoId(file.id); setEditTitle(file.name); }}
+                          className="text-[#666] hover:text-[#EEEEEE] opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Đổi tên"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                      </div>
                     )}
                     <p style={{ color: "#555", fontSize: "10px" }}>
                       {file.size} · {file.uploaded}

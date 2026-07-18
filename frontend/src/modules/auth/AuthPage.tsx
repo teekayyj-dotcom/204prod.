@@ -280,7 +280,7 @@ export function AuthPage() {
                 const userCredential = await signInWithEmailAndPassword(auth, username, password);
                 const idToken = await userCredential.user.getIdToken();
                 
-                const response = await fetchApi<{ access_token: string, user: { role: string, username: string, email: string, display_name: string } }>("/auth/firebase", {
+                const response = await fetchApi<{ access_token: string, user: { role: string, username: string, email: string, display_name: string, client_slug?: string } }>("/auth/firebase", {
                     method: "POST",
                     body: JSON.stringify({ 
                         id_token: idToken,

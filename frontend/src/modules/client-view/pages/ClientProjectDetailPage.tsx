@@ -26,7 +26,7 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
     Review: { bg: "rgba(76,175,80,0.15)", text: "#4CAF50", border: "rgba(76,175,80,0.3)" },
     Completed: { bg: "rgba(107,143,214,0.15)", text: "#6B8FD6", border: "rgba(107,143,214,0.3)" },
     Planning: { bg: "rgba(232,168,56,0.15)", text: "#E8A838", border: "rgba(232,168,56,0.3)" },
-    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888" },
+    Other: { bg: "rgba(136,136,136,0.15)", text: "#888888", border: "rgba(136,136,136,0.3)" },
 };
 
 interface ClientData {
@@ -51,6 +51,7 @@ interface ProjectData {
     budget: string;
     summary?: string;
     credits?: string[];
+    structured_credits?: Array<{ role: string; name: string; crewId?: number; crew_id?: number }>;
     gallery?: Array<{ id: string; url: string }>;
 }
 
@@ -82,6 +83,8 @@ export function ClientProjectDetailPage() {
     // Dynamic state for deliverables
     const [deliverables, setDeliverables] = useState<DemoDeliverable[]>([]);
     const [documents, setDocuments] = useState<ProjectDocument[]>([]);
+    const [editingDemoId, setEditingDemoId] = useState<string | null>(null);
+    const [editTitle, setEditTitle] = useState("");
 
     const [activities, setActivities] = useState<any[]>([]);
     const [comments, setComments] = useState<any[]>([]);
@@ -179,6 +182,24 @@ export function ClientProjectDetailPage() {
 
     const handleUpdateStatus = (id: string, nextStatus: "Approved" | "Rejected") => {
         setDeliverables(prev => prev.map(d => d.id === id ? { ...d, status: nextStatus } : d));
+    };
+
+    const handleRenameSubmit = async (demoId: string) => {
+        if (!editTitle.trim()) {
+            setEditingDemoId(null);
+            return;
+        }
+        try {
+            await fetchApi(`/media/${demoId}/rename`, {
+                method: "PUT",
+                body: JSON.stringify({ title: editTitle.trim() })
+            });
+            setDeliverables(prev => prev.map(d => d.id === demoId ? { ...d, title: editTitle.trim() } : d));
+            setEditingDemoId(null);
+        } catch (err) {
+            console.error("Failed to rename demo", err);
+            alert("Đổi tên thất bại!");
+        }
     };
 
     if (loading) {
@@ -432,7 +453,31 @@ export function ClientProjectDetailPage() {
                                         </div>
 
                                         <div className="p-3.5 space-y-3">
-                                            <h4 className="text-xs font-semibold leading-tight line-clamp-1">{demo.title}</h4>
+                                            {editingDemoId === demo.id ? (
+                                                <input
+                                                    type="text"
+                                                    className="w-full bg-[#2A1F1F] border border-[#8E1616] rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-red-500 mb-1"
+                                                    value={editTitle}
+                                                    onChange={(e) => setEditTitle(e.target.value)}
+                                                    onBlur={() => handleRenameSubmit(demo.id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleRenameSubmit(demo.id);
+                                                        if (e.key === 'Escape') setEditingDemoId(null);
+                                                    }}
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <div className="flex items-center justify-between group mb-1">
+                                                    <h4 className="text-xs font-semibold leading-tight line-clamp-1">{demo.title}</h4>
+                                                    <button 
+                                                        onClick={() => { setEditingDemoId(demo.id); setEditTitle(demo.title); }}
+                                                        className="text-[#666] hover:text-[#EEEEEE] ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                                        title="Đổi tên"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                                    </button>
+                                                </div>
+                                            )}
                                             
                                             {demo.status === "Pending Review" && (
                                                 <div className="flex gap-2 pt-1">
@@ -617,7 +662,7 @@ export function ClientProjectDetailPage() {
                                         acc[key].roles.push(current.role);
                                     }
                                     return acc;
-                                }, {} as Record<string, { name: string, crewId?: number, roles: string[] }>)).map((c, idx) => {
+                                }, {} as any)).map((c: any, idx: number) => {
                                     const initials = c.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?";
                                     const realMember = c.crewId ? dbCrew.find(m => m.id === c.crewId) : dbCrew.find(m => m.name.toLowerCase() === c.name.toLowerCase());
                                     const avatarUrl = realMember?.avatar || null;
