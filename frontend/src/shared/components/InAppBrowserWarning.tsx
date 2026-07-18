@@ -8,11 +8,8 @@ export const InAppBrowserWarning = () => {
   useEffect(() => {
     const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
     const rules = [
-      'WebView',
-      '(iPhone|iPod|iPad)(?!.*Safari\\/)',
-      'Android.*(wv|\\.0\\.0\\.0)',
-      'FBAV', 'FBAN', 'Instagram',
-      'Zalo', 'Viber', 'Line', 'MicroMessenger', 'Snapchat', 'Twitter',
+      'FBAV', 'FBAN', 'Instagram', 'Zalo', 'Viber', 'Line', 
+      'MicroMessenger', 'Snapchat', 'Twitter', 'TikTok', 'Threads'
     ];
     const regex = new RegExp(`(${rules.join('|')})`, 'ig');
     

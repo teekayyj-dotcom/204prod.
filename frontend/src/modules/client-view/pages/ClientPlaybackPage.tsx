@@ -116,7 +116,7 @@ export function ClientPlaybackPage() {
     const [sidebarComment, setSidebarComment] = useState("");
 
     // Feedback Mode toggle
-    const [isFeedbackMode, setIsFeedbackMode] = useState(true);
+    const [isFeedbackMode, setIsFeedbackMode] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -347,7 +347,15 @@ export function ClientPlaybackPage() {
     const toggleFullscreen = () => {
         if (!containerRef.current) return;
         if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen().catch(err => {
+            containerRef.current.requestFullscreen().then(() => {
+                try {
+                    // @ts-ignore
+                    if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+                        // @ts-ignore
+                        window.screen.orientation.lock("landscape").catch(() => {});
+                    }
+                } catch (e) {}
+            }).catch(err => {
                 console.error(`Error attempting to enable fullscreen: ${err.message}`);
             });
             setIsFullscreen(true);
@@ -360,7 +368,16 @@ export function ClientPlaybackPage() {
     // Fullscreen change listener
     useEffect(() => {
         const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
+            const isFull = !!document.fullscreenElement;
+            setIsFullscreen(isFull);
+            if (!isFull) {
+                try {
+                    // @ts-ignore
+                    if (window.screen && window.screen.orientation && window.screen.orientation.unlock) {
+                        window.screen.orientation.unlock();
+                    }
+                } catch (e) {}
+            }
         };
         document.addEventListener("fullscreenchange", handleFullscreenChange);
         return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -540,10 +557,10 @@ export function ClientPlaybackPage() {
     const activePins = feedbacks.filter(f => Math.abs(f.timecode - currentTime) <= 0.25);
 
     return (
-        <div className="flex h-screen bg-[#0A0707] text-[#EEEEEE] overflow-hidden">
+        <div ref={containerRef} className="flex flex-col md:flex-row h-[100dvh] bg-[#0A0707] text-[#EEEEEE] overflow-hidden">
 
             {/* Left Column: Video Room (75% width) */}
-            <div className="flex-1 flex flex-col justify-between p-6 relative overflow-hidden bg-black">
+            <div className="w-full md:flex-1 h-[55vh] md:h-auto flex flex-col justify-between p-4 md:p-6 relative overflow-hidden bg-black flex-shrink-0">
                 {/* Top Header */}
                 <div className="flex items-center justify-between mb-4 z-10">
                     <div className="flex items-center gap-3">
@@ -559,26 +576,26 @@ export function ClientPlaybackPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-[#1A1515] p-1 rounded-lg border border-[#2A1F1F]">
-                        <button
-                            onClick={() => setIsFeedbackMode(false)}
-                            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${!isFeedbackMode ? 'bg-[#EEEEEE] text-[#0A0707]' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            <Play size={12} fill={!isFeedbackMode ? "currentColor" : "none"} />
-                            Xem Video
-                        </button>
-                        <button
-                            onClick={() => setIsFeedbackMode(true)}
-                            className={`px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 transition-colors ${isFeedbackMode ? 'bg-[#D84040] text-white' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            <MousePointer size={12} fill={isFeedbackMode ? "currentColor" : "none"} />
-                            Góp ý toạ độ
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => setIsFeedbackMode(!isFeedbackMode)}
+                        className={`w-[110px] justify-center px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors border ${!isFeedbackMode ? 'bg-[#1A1515] text-[#EEEEEE] border-[#2A1F1F]' : 'bg-[#D84040] text-white border-[#D84040]'}`}
+                    >
+                        {!isFeedbackMode ? (
+                            <>
+                                <Play size={14} fill="currentColor" />
+                                Xem Video
+                            </>
+                        ) : (
+                            <>
+                                <MousePointer size={14} fill="currentColor" />
+                                Tọa độ
+                            </>
+                        )}
+                    </button>
                 </div>
 
                 {/* Video Player Centerpiece */}
-                <div ref={containerRef} className={`flex-1 flex flex-col items-center justify-center relative w-full ${isFullscreen ? 'h-screen' : 'h-[65vh]'} rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]`}>
+                <div className={`flex-1 flex flex-col items-center justify-center relative w-full h-full md:h-[65vh] rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]`}>
 
                     <div className="relative w-full max-h-full aspect-video group flex items-center justify-center">
                         {isEmbedVideo ? (
@@ -646,10 +663,10 @@ export function ClientPlaybackPage() {
                                 {/* Form Popup at coordinates position */}
                                 <form
                                     onSubmit={handleSubmitComment}
-                                    className="absolute z-40 bg-[#141010] border border-[#2A1F1F] p-3 rounded-lg shadow-2xl space-y-2 w-64 text-xs transform -translate-x-1/2 mt-3"
+                                    className="absolute z-40 bg-[#141010] border border-[#2A1F1F] p-3 rounded-lg shadow-2xl space-y-2 w-[260px] text-xs transform -translate-x-1/2 mt-3"
                                     style={{
-                                        left: `${Math.min(Math.max(tempPin.x, 20), 80)}%`,
-                                        top: `${tempPin.y}%`
+                                        left: `clamp(130px, ${tempPin.x}%, calc(100% - 130px))`,
+                                        top: `clamp(0%, ${tempPin.y}%, calc(100% - 140px))`
                                     }}
                                 >
                                     <div className="flex justify-between items-center text-gray-400">
@@ -737,7 +754,7 @@ export function ClientPlaybackPage() {
                     </div>
 
                     {/* Timeline text info and play controls */}
-                    <div className="grid grid-cols-3 items-center text-xs text-gray-500">
+                    <div className="flex items-center justify-between text-xs text-gray-500 gap-1 overflow-x-auto no-scrollbar">
                         {/* Play controls */}
                         <div className="flex items-center gap-1.5 justify-start">
                             <button
@@ -782,8 +799,8 @@ export function ClientPlaybackPage() {
                         </div>
 
                         {/* Center Time display */}
-                        <div className="flex justify-center">
-                            <span className="font-mono text-gray-300 font-semibold text-sm">
+                        <div className="flex justify-center shrink-0">
+                            <span className="font-mono text-gray-300 font-semibold text-[10px] md:text-sm whitespace-nowrap text-center">
                                 {formatTimecode(currentTime)} / {formatTimecode(duration)}
                             </span>
                         </div>
@@ -802,7 +819,7 @@ export function ClientPlaybackPage() {
                             <button
                                 type="button"
                                 onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-                                className="px-3 py-1.5 bg-[#1D1616]/40 border border-[#2E2020]/60 text-gray-300 rounded text-xs font-bold transition-all hover:border-[#D84040]/70 hover:bg-[#1D1616]/60 hover:text-white flex items-center gap-1.5 shadow backdrop-blur-sm"
+                                className="px-2 md:px-3 py-1.5 bg-[#1D1616]/40 border border-[#2E2020]/60 text-gray-300 rounded text-[10px] md:text-xs font-bold transition-all hover:border-[#D84040]/70 hover:bg-[#1D1616]/60 hover:text-white flex items-center gap-1 md:gap-1.5 shadow backdrop-blur-sm whitespace-nowrap shrink-0"
                                 title="Thay đổi tốc độ phát"
                             >
                                 <Gauge size={13} className="text-[#D84040]" />
@@ -844,7 +861,7 @@ export function ClientPlaybackPage() {
             </div>
 
             {/* Right Column: Timecode Comment Sidebar (400px width) */}
-            <div className="w-[400px] border-l border-[#1F1818] bg-[#141010] flex flex-col flex-shrink-0">
+            <div className="w-full md:w-[400px] flex-1 md:flex-none border-t md:border-t-0 md:border-l border-[#1F1818] bg-[#141010] flex flex-col overflow-hidden">
                 <div className="p-4 border-b border-[#1F1818] flex items-center justify-between">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                         <MessageSquare size={13} className="text-[#D84040]" />
