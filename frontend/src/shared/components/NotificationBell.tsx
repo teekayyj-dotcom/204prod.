@@ -60,6 +60,7 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
                     setUnreadCount(prev => prev + 1);
                     
                     toast.info(newNotif.title, {
+                        id: `notif-${newNotif.id}`,
                         description: newNotif.message,
                         duration: 5000,
                         action: newNotif.link ? {

@@ -21,7 +21,7 @@ window.addEventListener('vite:preloadError', () => {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppProviders>
-      <Toaster position="top-right" duration={2000} richColors />
+      <Toaster position="top-right" duration={2000} richColors expand={true} />
       <AppRouter />
     </AppProviders>
   </StrictMode>,
