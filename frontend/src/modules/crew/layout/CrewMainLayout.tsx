@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { CrewSidebar } from "./CrewSidebar";
-import { Menu, Bell } from "lucide-react";
+import { Menu } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
 
 export function CrewMainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -50,21 +51,12 @@ export function CrewMainLayout() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg"
-                style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#888", fontSize: "12px" }}
-              >
-                <Bell size={14} />
-                <span className="hidden min-[400px]:inline">Thông báo</span>
-                {alertsCount > 0 && (
-                  <span
-                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-white ml-1"
-                    style={{ background: "#D84040", fontSize: "10px", fontWeight: 700 }}
-                  >
-                    {alertsCount}
-                  </span>
-                )}
-              </button>
+              <NotificationBell userId={(() => {
+                try {
+                    const u = JSON.parse(localStorage.getItem("user") || "{}");
+                    return u.display_name || u.username || "Crew User";
+                } catch { return "Crew User"; }
+              })()} />
               <button
                 onClick={() => setSidebarOpen(true)}
                 className="p-1.5 sm:p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"

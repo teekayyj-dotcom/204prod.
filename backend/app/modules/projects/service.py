@@ -413,11 +413,29 @@ def create_feedback(db: Session, project_slug: str, req):
     notif_crud.create_notification(db, notif_schemas.NotificationCreate(
         user_id="Admin",
         type="feedback",
-        title="Góp ý mới",
-        message=f"{req.user_id} vừa thêm một góp ý mới trong dự án {project_slug}",
-        link=f"/admin/projects/{project_slug}/playback"
+        title="Có phản hồi mới",
+        message=f"Dự án {project_slug} có feedback mới.",
+        link=f"/admin/projects/{project_slug}"
     ))
 
+    # Trigger notification to all crew members assigned to this project's tasks
+    from app.modules.projects.models import ProjectTask
+    tasks = db.query(ProjectTask).filter(ProjectTask.project_slug == project_slug).all()
+    notified_crew = set()
+    for t in tasks:
+        if t.assignee_name:
+            for assignee in t.assignee_name.split(","):
+                name = assignee.strip()
+                if name and name not in notified_crew:
+                    notified_crew.add(name)
+                    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+                        user_id=name,
+                        type="feedback",
+                        title="Có phản hồi mới",
+                        message=f"Dự án {project_slug} có feedback mới từ khách hàng.",
+                        link=f"/crew-dashboard/projects?project={project_slug}"
+                    ))
+    
     return db_feedback
 
 
@@ -546,6 +564,17 @@ def create_approval_request(db: Session, project_slug: str, req: ApprovalRequest
     db.add(db_req)
     db.commit()
     db.refresh(db_req)
+
+    # Notify Admin about the new approval request
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id="Admin",
+        type="task_approval",
+        title="Yêu cầu xét duyệt mới",
+        message=f"{req.crew_name} đã gửi yêu cầu xét duyệt cho task trong dự án {project_slug}",
+        link=f"/admin/projects/{project_slug}/tasks"
+    ))
+
     return db_req
 
 
@@ -584,6 +613,17 @@ def approve_task_request(db: Session, request_id: str) -> bool:
         db_task.status = "done"
         
     db.commit()
+
+    # Notify Crew that their task was approved
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id=db_req.crew_name,
+        type="task_approval",
+        title="Task đã được duyệt",
+        message=f"Admin đã duyệt task của bạn trong dự án {db_req.project_slug}",
+        link=f"/crew-dashboard/projects"
+    ))
+
     return True
 
 
@@ -594,5 +634,16 @@ def reject_task_request(db: Session, request_id: str) -> bool:
         return False
     db_req.status = "rejected"
     db.commit()
+
+    # Notify Crew that their task was rejected
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id=db_req.crew_name,
+        type="task_approval",
+        title="Task bị từ chối",
+        message=f"Admin đã từ chối task của bạn trong dự án {db_req.project_slug}, vui lòng kiểm tra lại",
+        link=f"/crew-dashboard/projects"
+    ))
+
     return True
 

@@ -78,6 +78,7 @@ export function ClientPlaybackPage() {
 
     // Video state
     const containerRef = useRef<HTMLDivElement>(null);
+    const videoWrapperRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const sidebarInputRef = useRef<HTMLInputElement>(null);
@@ -345,22 +346,58 @@ export function ClientPlaybackPage() {
     };
 
     const toggleFullscreen = () => {
-        if (!containerRef.current) return;
+        if (isEmbedVideo && iframeRef.current) {
+            // For embeds, try to request fullscreen on the iframe wrapper
+            if (!document.fullscreenElement) {
+                iframeRef.current.requestFullscreen().catch(() => {});
+                setIsFullscreen(true);
+            } else {
+                document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+            return;
+        }
+
+        const el = videoWrapperRef.current;
+        if (!el) return;
+
         if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen().then(() => {
-                try {
-                    // @ts-ignore
-                    if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+            if (el.requestFullscreen) {
+                el.requestFullscreen().then(() => {
+                    try {
                         // @ts-ignore
-                        window.screen.orientation.lock("landscape").catch(() => {});
+                        if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+                            // @ts-ignore
+                            window.screen.orientation.lock("landscape").catch(() => {});
+                        }
+                    } catch (e) {}
+                }).catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                    // Fallback for iOS Safari which only allows fullscreen on the video element itself
+                    // @ts-ignore
+                    if (videoRef.current && videoRef.current.webkitEnterFullscreen) {
+                        // @ts-ignore
+                        videoRef.current.webkitEnterFullscreen();
                     }
-                } catch (e) {}
-            }).catch(err => {
-                console.error(`Error attempting to enable fullscreen: ${err.message}`);
-            });
+                });
+            } else {
+                // @ts-ignore
+                if (videoRef.current && videoRef.current.webkitEnterFullscreen) {
+                    // @ts-ignore
+                    videoRef.current.webkitEnterFullscreen();
+                }
+            }
             setIsFullscreen(true);
         } else {
-            document.exitFullscreen();
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else {
+                // @ts-ignore
+                if (videoRef.current && videoRef.current.webkitExitFullscreen) {
+                    // @ts-ignore
+                    videoRef.current.webkitExitFullscreen();
+                }
+            }
             setIsFullscreen(false);
         }
     };
@@ -594,8 +631,9 @@ export function ClientPlaybackPage() {
                     </button>
                 </div>
 
-                {/* Video Player Centerpiece */}
-                <div className={`flex-1 flex flex-col items-center justify-center relative w-full h-full md:h-[65vh] rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]`}>
+                <div ref={videoWrapperRef} className="flex-1 flex flex-col min-h-0 relative bg-black w-full justify-center">
+                    {/* Video Player Centerpiece */}
+                    <div className={`flex-1 flex flex-col items-center justify-center relative w-full h-full min-h-[40vh] md:min-h-0 rounded-xl overflow-hidden border border-[#1A1515] bg-[#000]`}>
 
                     <div className="relative w-full max-h-full aspect-video group flex items-center justify-center">
                         {isEmbedVideo ? (
@@ -858,6 +896,7 @@ export function ClientPlaybackPage() {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
 
             {/* Right Column: Timecode Comment Sidebar (400px width) */}
