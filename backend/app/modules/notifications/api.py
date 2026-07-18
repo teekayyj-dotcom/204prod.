@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db_session
 from app.modules.notifications import crud, schemas
 from typing import List
+from fastapi import WebSocket, WebSocketDisconnect
+from app.modules.notifications.manager import manager
 
 router = APIRouter()
 
@@ -30,3 +32,14 @@ def mark_all_notifications_read(user_id: str, db: Session = Depends(get_db_sessi
     """Mark all notifications as read for a user."""
     updated = crud.mark_all_as_read(db, user_id=user_id)
     return {"updated": updated}
+
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    await manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Keep connection open and listen for pings/messages if needed
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)
+

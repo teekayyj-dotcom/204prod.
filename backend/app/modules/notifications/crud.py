@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.modules.notifications.models import Notification
-from app.modules.notifications.schemas import NotificationCreate
+from app.modules.notifications.schemas import NotificationCreate, NotificationResponse
+from app.modules.notifications.manager import manager
 
 def create_notification(db: Session, notif: NotificationCreate):
     db_notif = Notification(
@@ -14,6 +15,14 @@ def create_notification(db: Session, notif: NotificationCreate):
     db.add(db_notif)
     db.commit()
     db.refresh(db_notif)
+    
+    # Notify connected clients via websocket
+    try:
+        payload = NotificationResponse.model_validate(db_notif).model_dump(mode='json')
+        manager.send_personal_message_sync(payload, notif.user_id)
+    except Exception as e:
+        print(f"WS notification failed: {e}")
+        
     return db_notif
 
 def get_user_notifications(db: Session, user_id: str, limit: int = 50):

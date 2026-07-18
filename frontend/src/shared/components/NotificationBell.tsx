@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import { fetchApi } from '../../modules/admin/utils/apiClient';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface NotificationItem {
     id: number;
@@ -14,7 +15,7 @@ interface NotificationItem {
     created_at: string;
 }
 
-export const NotificationBell = ({ userId }: { userId: string }) => {
+export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userId: string; placement?: 'bottom-right' | 'top-left' | 'top-right' }) => {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -36,13 +37,59 @@ export const NotificationBell = ({ userId }: { userId: string }) => {
     };
 
     useEffect(() => {
-        if (!userId) return;
+        if (!userId || userId === "Unknown") return;
         
         loadNotifications();
         
-        // Simple polling every 30 seconds
-        const interval = setInterval(loadNotifications, 30000);
-        return () => clearInterval(interval);
+        // Simple polling fallback (reduce frequency since we have WS)
+        const interval = setInterval(loadNotifications, 60000);
+        
+        let ws: WebSocket | null = null;
+        let reconnectTimeout: ReturnType<typeof setTimeout>;
+
+        const connectWebSocket = () => {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            // Determine base URL, if running locally vite proxy might handle it, or we use relative path
+            const host = window.location.host;
+            ws = new WebSocket(`${protocol}//${host}/api/v1/notifications/ws/${encodeURIComponent(userId)}`);
+
+            ws.onmessage = (event) => {
+                try {
+                    const newNotif = JSON.parse(event.data) as NotificationItem;
+                    setNotifications(prev => [newNotif, ...prev]);
+                    setUnreadCount(prev => prev + 1);
+                    
+                    toast.info(newNotif.title, {
+                        description: newNotif.message,
+                        duration: 5000,
+                        action: newNotif.link ? {
+                            label: 'Xem',
+                            onClick: () => {
+                                handleNotificationClick(newNotif);
+                            }
+                        } : undefined,
+                    });
+                } catch (err) {
+                    console.error("Error parsing WS message", err);
+                }
+            };
+
+            ws.onclose = () => {
+                // Attempt to reconnect after 3 seconds
+                reconnectTimeout = setTimeout(connectWebSocket, 3000);
+            };
+        };
+
+        connectWebSocket();
+
+        return () => {
+            clearInterval(interval);
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            if (ws) {
+                ws.onclose = null; // Prevent reconnect on unmount
+                ws.close();
+            }
+        };
     }, [userId]);
 
     useEffect(() => {
@@ -114,7 +161,7 @@ export const NotificationBell = ({ userId }: { userId: string }) => {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 max-h-[80vh] flex flex-col bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl z-[9999] overflow-hidden">
+                <div className={`absolute ${placement === 'top-left' ? 'bottom-full mb-2 left-0' : placement === 'top-right' ? 'bottom-full mb-2 right-0' : 'top-full mt-2 right-0'} w-80 max-h-[80vh] flex flex-col bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl z-[9999] overflow-hidden`}>
                     <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-800">
                         <h3 className="font-bold text-gray-900 dark:text-white">Thông báo</h3>
                         {unreadCount > 0 && (
