@@ -9,6 +9,7 @@ import {
   Zap,
   X,
 } from "lucide-react";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
 
 const navItems = [
   {
@@ -222,6 +223,14 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
               })()}
             </p>
           </div>
+          <NotificationBell userId={(() => {
+                try {
+                  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                  return userObj.display_name || userObj.username || userObj.email || "Unknown";
+                } catch {
+                  return "Unknown";
+                }
+              })()} placement="top-left" />
           <button
             onClick={() => {
               localStorage.removeItem("token");
