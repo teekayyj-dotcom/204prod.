@@ -113,7 +113,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         const convs = await messagingApi.getConversations(token);
         setConversations(convs);
 
-        const wsBaseUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8000/api/v1/messaging/ws";
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const defaultWsUrl = `${protocol}//${host}/api/v1/messaging/ws`;
+        const wsBaseUrl = import.meta.env.VITE_WS_URL || defaultWsUrl;
         wsService.connect(wsBaseUrl, token);
       } catch (err) {
         console.error("Failed to init messaging", err);
