@@ -3,12 +3,18 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Menu, Download } from "lucide-react";
 import { NotificationBell } from "../../../shared/components/NotificationBell";
+import { ChatWidget } from "../../messaging/components/ChatWidget";
 
 export function MainLayout() {
   const location = useLocation();
   const isPlaybackPage = location.pathname.endsWith("/playback");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem("adminSidebarCollapsed") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("adminSidebarCollapsed", String(isCollapsed));
+  }, [isCollapsed]);
 
   useEffect(() => {
     // 1. Inject Admin Manifest dynamically
@@ -111,12 +117,14 @@ export function MainLayout() {
           <Sidebar 
             isOpen={sidebarOpen} 
             onClose={() => setSidebarOpen(false)} 
+            isCollapsed={isCollapsed}
+            onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
             installPrompt={installPrompt}
             onInstallClick={handleInstallClick}
           />
         </>
       )}
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? (isCollapsed ? "lg:ml-20" : "lg:ml-64") : ""}`}>
         {/* Mobile Header Bar */}
         {!isPlaybackPage && (
           <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
@@ -140,6 +148,7 @@ export function MainLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

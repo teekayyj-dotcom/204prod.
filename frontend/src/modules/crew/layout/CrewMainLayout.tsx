@@ -4,12 +4,18 @@ import { CrewSidebar } from "./CrewSidebar";
 import { Menu } from "lucide-react";
 import { fetchApi } from "../../admin/utils/apiClient";
 import { NotificationBell } from "../../../shared/components/NotificationBell";
+import { ChatWidget } from "../../messaging/components/ChatWidget";
 
 export function CrewMainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const isPlaybackPage = location.pathname.endsWith("/playback");
   const [alertsCount, setAlertsCount] = useState(0);
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem("crewSidebarCollapsed") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("crewSidebarCollapsed", String(isCollapsed));
+  }, [isCollapsed]);
 
   useEffect(() => {
     fetchApi("/projects/tasks/all").then(data => {
@@ -36,10 +42,15 @@ export function CrewMainLayout() {
       )}
 
       {!isPlaybackPage && (
-        <CrewSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <CrewSidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+          isCollapsed={isCollapsed}
+          onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        />
       )}
 
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? (isCollapsed ? "lg:ml-20" : "lg:ml-64") : ""}`}>
         {/* Mobile Header Bar */}
         {!isPlaybackPage && (
           <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
@@ -71,6 +82,7 @@ export function CrewMainLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   UserCircle2,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Zap,
   X,
 } from "lucide-react";
@@ -42,26 +43,44 @@ const navItems = [
   },
 ];
 
-export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
+export function CrewSidebar({ 
+  isOpen, 
+  onClose,
+  isCollapsed,
+  onToggleCollapse
+}: { 
+  isOpen?: boolean; 
+  onClose?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const location = useLocation();
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen w-64 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+      className={`fixed left-0 top-0 h-screen flex flex-col z-50 transition-all duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"} ${isCollapsed ? "w-20" : "w-64"}`}
       style={{ background: "#141010", borderRight: "1px solid #2A1F1F" }}
     >
+      {/* Desktop Toggle */}
+      <button
+        onClick={onToggleCollapse}
+        className="hidden lg:flex absolute -right-3 top-8 p-1 rounded-full bg-[#141010] border border-[#2A1F1F] text-white hover:bg-[#2A1F1F] hover:text-[#EEEEEE] transition-colors z-50"
+        title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
       {/* Logo */}
       <div
-        className="flex items-center justify-between px-4 py-5"
-        style={{ borderBottom: "1px solid #2A1F1F" }}
+        className={`flex items-center gap-2.5 py-5 overflow-hidden ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}
+        style={{ borderBottom: "1px solid #2A1F1F", minHeight: "89px" }}
       >
-        <div className="flex items-center gap-2.5">
-          <img
-            src="/favicon/204-logo.png"
-            alt="204 Logo"
-            className="h-12 w-12 object-contain"
-          />
-          <div className="flex flex-col">
+        <img
+          src="/favicon/204-logo.png"
+          alt="204 Logo"
+          className="h-12 w-12 object-contain flex-shrink-0"
+        />
+        {!isCollapsed && (
+          <div className="flex flex-col transition-opacity duration-300">
             <span
               className="tracking-widest uppercase"
               style={{
@@ -78,10 +97,12 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
               WORKSPACE
             </span>
           </div>
-        </div>
+        )}
+        
+        {/* Mobile Close */}
         <button
           onClick={onClose}
-          className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+          className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors ml-auto flex-shrink-0"
         >
           <X size={16} />
         </button>
@@ -89,12 +110,14 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        <p
-          className="px-3 mb-3 uppercase tracking-widest"
-          style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }}
-        >
-          Navigation
-        </p>
+        {!isCollapsed && (
+          <p
+            className="px-3 mb-3 uppercase tracking-widest"
+            style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }}
+          >
+            Navigation
+          </p>
+        )}
 
         {navItems.map((item) => {
           const isActive = item.exact
@@ -106,7 +129,7 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
               key={item.path}
               to={item.path}
               onClick={onClose}
-              className="flex items-center justify-between px-3 py-2.5 rounded-lg group transition-all duration-200"
+              className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg group transition-all duration-200`}
               style={{
                 background: isActive ? "#D84040" : "transparent",
                 color: isActive ? "#EEEEEE" : "#999",
@@ -123,26 +146,30 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
                   (e.currentTarget as HTMLElement).style.color = "#999";
                 }
               }}
+              title={isCollapsed ? `${item.label} - ${item.sublabel}` : undefined}
             >
               <div className="flex items-center gap-3">
-                <item.icon size={17} />
-                <div className="flex flex-col">
-                  <span style={{ fontSize: "13px", fontWeight: isActive ? 600 : 400, lineHeight: 1.2 }}>
-                    {item.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      color: isActive ? "rgba(238,238,238,0.65)" : "#666",
-                      letterSpacing: "0.05em",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {item.sublabel}
-                  </span>
-                </div>
+                <item.icon size={17} className="flex-shrink-0" />
+                {!isCollapsed && (
+                  <div className="flex flex-col overflow-hidden">
+                    <span style={{ fontSize: "13px", fontWeight: isActive ? 600 : 400, lineHeight: 1.2 }} className="truncate">
+                      {item.label}
+                    </span>
+                    <span
+                      className="truncate"
+                      style={{
+                        fontSize: "10px",
+                        color: isActive ? "rgba(238,238,238,0.65)" : "#666",
+                        letterSpacing: "0.05em",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {item.sublabel}
+                    </span>
+                  </div>
+                )}
               </div>
-              {isActive && <ChevronRight size={14} />}
+              {!isCollapsed && isActive && <ChevronRight size={14} className="flex-shrink-0" />}
             </NavLink>
           );
         })}
@@ -153,9 +180,9 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
       </nav>
 
       {/* User Profile */}
-      <div className="px-4 py-5" style={{ borderTop: "1px solid #2A1F1F" }}>
+      <div className={`py-5 ${isCollapsed ? 'px-2' : 'px-4'}`} style={{ borderTop: "1px solid #2A1F1F" }}>
         <div
-          className="flex items-center gap-3 px-2 py-2 rounded-lg"
+          className={`flex items-center gap-3 py-2 rounded-lg ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}
           style={{ background: "#1D1616" }}
         >
           <div
@@ -201,36 +228,40 @@ export function CrewSidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: (
               }
             })()}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-              {(() => {
-                try {
-                  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                  return userObj.display_name || userObj.username || "Crew Member";
-                } catch {
-                  return "Crew Member";
-                }
-              })()}
-            </p>
-            <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
-              {(() => {
-                try {
-                  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                  return userObj.email || "crew@204prod.io";
-                } catch {
-                  return "crew@204prod.io";
-                }
-              })()}
-            </p>
-          </div>
-          <NotificationBell userId={(() => {
-                try {
-                  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                  return userObj.display_name || userObj.username || userObj.email || "Unknown";
-                } catch {
-                  return "Unknown";
-                }
-              })()} placement="top-left" />
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
+                {(() => {
+                  try {
+                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                    return userObj.display_name || userObj.username || "Crew Member";
+                  } catch {
+                    return "Crew Member";
+                  }
+                })()}
+              </p>
+              <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
+                {(() => {
+                  try {
+                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                    return userObj.email || "crew@204prod.io";
+                  } catch {
+                    return "crew@204prod.io";
+                  }
+                })()}
+              </p>
+            </div>
+          )}
+          {!isCollapsed && (
+            <NotificationBell placement="top-left" userId={(() => {
+                  try {
+                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                    return userObj.display_name || userObj.username || userObj.email || "Unknown";
+                  } catch {
+                    return "Unknown";
+                  }
+                })()} />
+          )}
           <button
             onClick={() => {
               localStorage.removeItem("token");

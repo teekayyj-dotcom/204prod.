@@ -8,6 +8,7 @@ import {
     LogOut,
     ChevronRight,
 } from "lucide-react";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
 
 const navItems = [
     { label: "Tổng quan", icon: LayoutDashboard, path: "/client" },
@@ -17,24 +18,43 @@ const navItems = [
     { label: "Hỗ trợ", icon: Headphones, path: "/client/support" },
 ];
 
-import { X } from "lucide-react";
+import { X, ChevronLeft } from "lucide-react";
 
-export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
+export function Sidebar({ 
+    isOpen, 
+    onClose,
+    isCollapsed,
+    onToggleCollapse
+}: { 
+    isOpen?: boolean; 
+    onClose?: () => void;
+    isCollapsed?: boolean;
+    onToggleCollapse?: () => void;
+}) {
     const location = useLocation();
 
     return (
         <aside
-            className={`fixed left-0 top-0 h-screen w-64 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+            className={`fixed left-0 top-0 h-screen flex flex-col z-50 transition-all duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"} ${isCollapsed ? "w-20" : "w-64"}`}
             style={{ background: "#141010", borderRight: "1px solid #2A1F1F" }}
         >
-            <div className="flex items-center justify-between px-4 py-5" style={{ borderBottom: "1px solid #2A1F1F" }}>
-                <div className="flex items-center gap-2.5">
-                    <img src="/favicon/204-logo.png" alt="204 Logo" className="h-12 w-12 object-contain" />
-                    <span className="tracking-widest uppercase font-extrabold text-xl" style={{ color: "#EEEEEE", letterSpacing: "0.1rem" }}>CLIENT</span>
-                </div>
+            {/* Desktop Toggle */}
+            <button
+                onClick={onToggleCollapse}
+                className="hidden lg:flex absolute -right-3 top-8 p-1 rounded-full bg-[#141010] border border-[#2A1F1F] text-white hover:bg-[#2A1F1F] hover:text-[#EEEEEE] transition-colors z-50"
+                title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+            >
+                {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+
+            <div className={`flex items-center gap-2.5 py-5 overflow-hidden ${isCollapsed ? 'justify-center px-0' : 'px-4'}`} style={{ borderBottom: "1px solid #2A1F1F", minHeight: "89px" }}>
+                <img src="/favicon/204-logo.png" alt="204 Logo" className="h-12 w-12 object-contain flex-shrink-0" />
+                {!isCollapsed && <span className="tracking-widest uppercase font-extrabold text-xl transition-opacity duration-300" style={{ color: "#EEEEEE", letterSpacing: "0.1rem" }}>CLIENT</span>}
+                
+                {/* Mobile Close */}
                 <button
                     onClick={onClose}
-                    className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+                    className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors ml-auto"
                 >
                     <X size={16} />
                 </button>
@@ -42,12 +62,14 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-                <p
-                    className="px-3 mb-3 uppercase tracking-widest"
-                    style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }}
-                >
-                    Main Menu
-                </p>
+                {!isCollapsed && (
+                    <p
+                        className="px-3 mb-3 uppercase tracking-widest"
+                        style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }}
+                    >
+                        Main Menu
+                    </p>
+                )}
 
                 {/* Flat nav items */}
                 {navItems.map((item) => {
@@ -60,7 +82,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                             key={item.path}
                             to={item.path}
                             onClick={onClose}
-                            className="flex items-center justify-between px-3 py-2.5 rounded-lg group transition-all duration-200"
+                            className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg group transition-all duration-200`}
                             style={{
                                 background: isActive ? "#D84040" : "transparent",
                                 color: isActive ? "#EEEEEE" : "#999",
@@ -78,22 +100,24 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                                 }
                             }}
                         >
-                            <div className="flex items-center gap-3">
-                                <item.icon size={17} />
-                                <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }}>
-                                    {item.label}
-                                </span>
+                            <div className="flex items-center gap-3" title={isCollapsed ? item.label : undefined}>
+                                <item.icon size={17} className="flex-shrink-0" />
+                                {!isCollapsed && (
+                                    <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }} className="truncate">
+                                        {item.label}
+                                    </span>
+                                )}
                             </div>
-                            {isActive && <ChevronRight size={14} />}
+                            {!isCollapsed && isActive && <ChevronRight size={14} className="flex-shrink-0" />}
                         </NavLink>
                     );
                 })}
             </nav>
 
             {/* User Profile */}
-            <div className="px-4 py-5" style={{ borderTop: "1px solid #2A1F1F" }}>
+            <div className={`py-5 ${isCollapsed ? 'px-2' : 'px-4'}`} style={{ borderTop: "1px solid #2A1F1F" }}>
                 <div
-                    className="flex items-center gap-3 px-2 py-2 rounded-lg"
+                    className={`flex items-center gap-3 py-2 rounded-lg ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}
                     style={{ background: "#1D1616" }}
                 >
                     <div
@@ -134,28 +158,38 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                             }
                         })()}
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-                            {(() => {
-                                try {
-                                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                                    return userObj.display_name || userObj.username || "Client User";
-                                } catch {
-                                    return "Client User";
-                                }
-                            })()}
-                        </p>
-                        <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
-                            {(() => {
-                                try {
-                                    const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                                    return userObj.email || "client@204prod.io";
-                                } catch {
-                                    return "client@204prod.io";
-                                }
-                            })()}
-                        </p>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="flex-1 min-w-0">
+                            <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
+                                {(() => {
+                                    try {
+                                        const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                                        return userObj.display_name || userObj.username || "Client User";
+                                    } catch {
+                                        return "Client User";
+                                    }
+                                })()}
+                            </p>
+                            <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
+                                {(() => {
+                                    try {
+                                        const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                                        return userObj.email || "client@204prod.io";
+                                    } catch {
+                                        return "client@204prod.io";
+                                    }
+                                })()}
+                            </p>
+                        </div>
+                    )}
+                    {!isCollapsed && (
+                        <NotificationBell placement="top-left" userId={(() => {
+                            try {
+                                const u = JSON.parse(localStorage.getItem("user") || "{}");
+                                return u.display_name || u.username || "Client User";
+                            } catch { return "Client User"; }
+                        })()} />
+                    )}
                     <button
                         onClick={() => {
                             localStorage.removeItem("token");

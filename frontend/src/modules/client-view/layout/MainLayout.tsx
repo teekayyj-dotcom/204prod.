@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "lucide-react";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
+import { ChatWidget } from "../../messaging/components/ChatWidget";
 
 export function MainLayout() {
     const location = useLocation();
     const isPlaybackPage = location.pathname.endsWith("/playback");
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem("clientSidebarCollapsed") === "true");
+
+    useEffect(() => {
+        localStorage.setItem("clientSidebarCollapsed", String(isCollapsed));
+    }, [isCollapsed]);
 
     return (
         <div className="flex min-h-screen relative overflow-hidden bg-[#0A0707]">
@@ -26,10 +33,15 @@ export function MainLayout() {
                             onClick={() => setSidebarOpen(false)}
                         />
                     )}
-                    <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                    <Sidebar 
+                        isOpen={sidebarOpen} 
+                        onClose={() => setSidebarOpen(false)}
+                        isCollapsed={isCollapsed}
+                        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+                    />
                 </>
             )}
-            <div className={`flex-1 flex flex-col min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? "lg:ml-64" : ""}`}>
+            <div className={`flex-1 flex flex-col min-h-screen z-10 transition-all duration-300 ${!isPlaybackPage ? (isCollapsed ? "lg:ml-20" : "lg:ml-64") : ""}`}>
                 {/* Mobile Header */}
                 {!isPlaybackPage && (
                     <header className="lg:hidden flex items-center justify-between px-6 py-4 bg-[#141010] border-b border-[#2A1F1F] sticky top-0 z-20">
@@ -37,18 +49,27 @@ export function MainLayout() {
                             <img src="/favicon/204-logo.png" alt="204 Logo" className="h-10 w-10 object-contain" />
                             <span className="tracking-widest uppercase text-white font-extrabold text-lg">204 PROD</span>
                         </div>
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
-                        >
-                            <Menu size={20} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <NotificationBell userId={(() => {
+                                try {
+                                    const u = JSON.parse(localStorage.getItem("user") || "{}");
+                                    return u.display_name || u.username || "Client User";
+                                } catch { return "Client User"; }
+                            })()} />
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="p-2 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+                            >
+                                <Menu size={20} />
+                            </button>
+                        </div>
                     </header>
                 )}
                 <main className="flex-1 overflow-y-auto min-h-screen">
                     <Outlet />
                 </main>
             </div>
+            <ChatWidget />
         </div>
     );
 }

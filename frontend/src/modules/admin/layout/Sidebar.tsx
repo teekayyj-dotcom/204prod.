@@ -52,19 +52,23 @@ const hrSubItems = [
   { label: "Crew", icon: UserCheck, path: "/admin/crew" },
 ];
 
-import { X } from "lucide-react";
+import { X, ChevronLeft } from "lucide-react";
 
 function DropdownSection({
   label,
   icon: Icon,
   subItems,
   isGroupActive,
+  isCollapsed,
+  onExpandSidebar,
   onClose,
 }: {
   label: string;
   icon: React.ElementType;
   subItems: { label: string; icon: React.ElementType; path: string }[];
   isGroupActive: boolean;
+  isCollapsed?: boolean;
+  onExpandSidebar?: () => void;
   onClose?: () => void;
 }) {
   const location = useLocation();
@@ -73,8 +77,16 @@ function DropdownSection({
   return (
     <div>
       <button
-        onClick={() => setOpen((prev) => !prev)}
-        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200"
+        onClick={() => {
+          if (isCollapsed && onExpandSidebar) {
+            onExpandSidebar();
+            setOpen(true);
+          } else {
+            setOpen((prev) => !prev);
+          }
+        }}
+        title={isCollapsed ? label : undefined}
+        className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200`}
         style={{
           background: isGroupActive && !open ? "#D84040" : open ? "#2A1F1F" : "transparent",
           color: isGroupActive || open ? "#EEEEEE" : "#999",
@@ -95,13 +107,13 @@ function DropdownSection({
         }}
       >
         <div className="flex items-center gap-3">
-          <Icon size={17} />
-          <span style={{ fontSize: "14px", fontWeight: isGroupActive ? 600 : 400 }}>{label}</span>
+          <Icon size={17} className="flex-shrink-0" />
+          {!isCollapsed && <span style={{ fontSize: "14px", fontWeight: isGroupActive ? 600 : 400 }} className="truncate">{label}</span>}
         </div>
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        {!isCollapsed && (open ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
       </button>
 
-      {open && (
+      {open && !isCollapsed && (
         <div
           className="mt-1 ml-3 pl-3 space-y-0.5"
           style={{ borderLeft: "1px solid #2A1F1F" }}
@@ -151,11 +163,15 @@ function DropdownSection({
 export function Sidebar({ 
   isOpen, 
   onClose,
+  isCollapsed,
+  onToggleCollapse,
   installPrompt,
   onInstallClick
 }: { 
   isOpen?: boolean; 
   onClose?: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   installPrompt?: any;
   onInstallClick?: () => void;
 }) {
@@ -175,17 +191,26 @@ export function Sidebar({
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen w-64 flex flex-col z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+      className={`fixed left-0 top-0 h-screen flex flex-col z-50 transition-all duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"} ${isCollapsed ? "w-20" : "w-64"}`}
       style={{ background: "#141010", borderRight: "1px solid #2A1F1F" }}
     >
-      <div className="flex items-center justify-between px-4 py-5" style={{ borderBottom: "1px solid #2A1F1F" }}>
-        <div className="flex items-center gap-2.5">
-          <img src="/favicon/204-logo.png" alt="204 Logo" className="h-12 w-12 object-contain" />
-          <span className="tracking-widest uppercase" style={{ color: "#EEEEEE", fontWeight: 800, fontSize: "20px", letterSpacing: "0.1rem" }}>ADMIN</span>
-        </div>
+      {/* Desktop Toggle */}
+      <button
+        onClick={onToggleCollapse}
+        className="hidden lg:flex absolute -right-3 top-8 p-1 rounded-full bg-[#141010] border border-[#2A1F1F] text-white hover:bg-[#2A1F1F] hover:text-[#EEEEEE] transition-colors z-50"
+        title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      <div className={`flex items-center gap-2.5 py-5 overflow-hidden ${isCollapsed ? 'justify-center px-0' : 'px-4'}`} style={{ borderBottom: "1px solid #2A1F1F", minHeight: "89px" }}>
+        <img src="/favicon/204-logo.png" alt="204 Logo" className="h-12 w-12 object-contain flex-shrink-0" />
+        {!isCollapsed && <span className="tracking-widest uppercase transition-opacity duration-300" style={{ color: "#EEEEEE", fontWeight: 800, fontSize: "20px", letterSpacing: "0.1rem" }}>ADMIN</span>}
+        
+        {/* Mobile Close */}
         <button
           onClick={onClose}
-          className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors"
+          className="lg:hidden p-1.5 rounded-lg bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors ml-auto"
         >
           <X size={16} />
         </button>
@@ -193,12 +218,14 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        <p
-          className="px-3 mb-3 uppercase tracking-widest"
-          style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }}
-        >
-          Main Menu
-        </p>
+        {!isCollapsed && (
+          <p
+            className="px-3 mb-3 uppercase tracking-widest"
+            style={{ color: "#8E1616", fontSize: "10px", fontWeight: 600 }}
+          >
+            Main Menu
+          </p>
+        )}
 
         {/* Flat nav items */}
         {navItems.map((item) => {
@@ -211,7 +238,7 @@ export function Sidebar({
               key={item.path}
               to={item.path}
               onClick={onClose}
-              className="flex items-center justify-between px-3 py-2.5 rounded-lg group transition-all duration-200"
+              className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg group transition-all duration-200`}
               style={{
                 background: isActive ? "#D84040" : "transparent",
                 color: isActive ? "#EEEEEE" : "#999",
@@ -228,14 +255,17 @@ export function Sidebar({
                   (e.currentTarget as HTMLElement).style.color = "#999";
                 }
               }}
+              title={isCollapsed ? item.label : undefined}
             >
               <div className="flex items-center gap-3">
-                <item.icon size={17} />
-                <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }}>
-                  {item.label}
-                </span>
+                <item.icon size={17} className="flex-shrink-0" />
+                {!isCollapsed && (
+                  <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }} className="truncate">
+                    {item.label}
+                  </span>
+                )}
               </div>
-              {isActive && <ChevronRight size={14} />}
+              {!isCollapsed && isActive && <ChevronRight size={14} className="flex-shrink-0" />}
             </NavLink>
           );
         })}
@@ -246,6 +276,8 @@ export function Sidebar({
           icon={ContactRound}
           subItems={crmSubItems}
           isGroupActive={isCrmActive}
+          isCollapsed={isCollapsed}
+          onExpandSidebar={() => onToggleCollapse && onToggleCollapse()}
           onClose={onClose}
         />
 
@@ -255,6 +287,8 @@ export function Sidebar({
           icon={HardHat}
           subItems={hrSubItems}
           isGroupActive={isHrActive}
+          isCollapsed={isCollapsed}
+          onExpandSidebar={() => onToggleCollapse && onToggleCollapse()}
           onClose={onClose}
         />
 
@@ -264,6 +298,8 @@ export function Sidebar({
           icon={DollarSign}
           subItems={financeSubItems}
           isGroupActive={isFinanceActive}
+          isCollapsed={isCollapsed}
+          onExpandSidebar={() => onToggleCollapse && onToggleCollapse()}
           onClose={onClose}
         />
 
@@ -275,7 +311,7 @@ export function Sidebar({
               key={item.path}
               to={item.path}
               onClick={onClose}
-              className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200"
+              className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200`}
               style={{
                 background: isActive ? "#D84040" : "transparent",
                 color: isActive ? "#EEEEEE" : "#999",
@@ -292,20 +328,23 @@ export function Sidebar({
                   (e.currentTarget as HTMLElement).style.color = "#999";
                 }
               }}
+              title={isCollapsed ? item.label : undefined}
             >
               <div className="flex items-center gap-3">
-                <item.icon size={17} />
-                <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }}>
-                  {item.label}
-                </span>
+                <item.icon size={17} className="flex-shrink-0" />
+                {!isCollapsed && (
+                  <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }} className="truncate">
+                    {item.label}
+                  </span>
+                )}
               </div>
-              {isActive && <ChevronRight size={14} />}
+              {!isCollapsed && isActive && <ChevronRight size={14} className="flex-shrink-0" />}
             </NavLink>
           );
         })}
 
         {/* Install App Button (Mobile Only) */}
-        {installPrompt && (
+        {installPrompt && !isCollapsed && (
           <div className="lg:hidden mt-4 pt-4 px-2 border-t border-[#2A1F1F]">
             <button
               onClick={onInstallClick}
@@ -319,9 +358,9 @@ export function Sidebar({
       </nav>
 
       {/* User Profile */}
-      <div className="px-4 py-5" style={{ borderTop: "1px solid #2A1F1F" }}>
+      <div className={`py-5 ${isCollapsed ? 'px-2' : 'px-4'}`} style={{ borderTop: "1px solid #2A1F1F" }}>
         <div
-          className="flex items-center gap-3 px-2 py-2 rounded-lg"
+          className={`flex items-center gap-3 py-2 rounded-lg ${isCollapsed ? 'justify-center px-0' : 'px-2'}`}
           style={{ background: "#1D1616" }}
         >
           <div
@@ -362,47 +401,51 @@ export function Sidebar({
               }
             })()}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
-              {(() => {
-                try {
-                  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                  return userObj.display_name || userObj.username || "Admin User";
-                } catch {
-                  return "Admin User";
-                }
-              })()}
-            </p>
-            <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
-              {(() => {
-                try {
-                  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-                  return userObj.email || "admin@204prod.io";
-                } catch {
-                  return "admin@204prod.io";
-                }
-              })()}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="flex-shrink-0">
-              <NotificationBell userId="Admin" />
-            </div>
-            <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("role");
-                localStorage.removeItem("user");
-                window.location.href = "/login";
-              }}
-              className="flex-shrink-0 transition-colors p-1"
-              style={{ color: "#666" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#D84040")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#666")}
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
+          {!isCollapsed && (
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>
+                  {(() => {
+                    try {
+                      const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                      return userObj.display_name || userObj.username || "Admin User";
+                    } catch {
+                      return "Admin User";
+                    }
+                  })()}
+                </p>
+                <p className="truncate" style={{ color: "#666", fontSize: "11px" }}>
+                  {(() => {
+                    try {
+                      const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+                      return userObj.email || "admin@204prod.io";
+                    } catch {
+                      return "admin@204prod.io";
+                    }
+                  })()}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="flex-shrink-0">
+                  <NotificationBell userId="Admin" placement="top-left" />
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("role");
+                    localStorage.removeItem("user");
+                    window.location.href = "/login";
+                  }}
+                  className="flex-shrink-0 transition-colors p-1"
+                  style={{ color: "#666" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#D84040")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#666")}
+                >
+                  <LogOut size={15} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </aside>
