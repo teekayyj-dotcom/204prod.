@@ -11,6 +11,7 @@ const router = createBrowserRouter([
   { path: '/register', lazy: () => import('../modules/auth/AuthPage').then(m => ({ Component: m.AuthPage })) },
   { path: '/change-password', lazy: () => import('../modules/auth/AuthPage').then(m => ({ Component: m.AuthPage })) },
   { path: '/pending', lazy: () => import('../modules/auth/PendingApprovalPage').then(m => ({ Component: m.PendingApprovalPage })) },
+  { path: '/messaging', lazy: () => import('../modules/messaging/MessagingPage').then(m => ({ Component: m.MessagingPage })) },
   clientSiteRoute,
   adminRoute,
   crewRoute,

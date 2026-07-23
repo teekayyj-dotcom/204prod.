@@ -56,6 +56,12 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
             ws.onmessage = (event) => {
                 try {
                     const newNotif = JSON.parse(event.data) as NotificationItem;
+                    
+                    if (newNotif.type === "silent_kanban_update") {
+                        window.dispatchEvent(new CustomEvent('kanban_update', { detail: newNotif }));
+                        return; // Do not show notification
+                    }
+
                     setNotifications(prev => [newNotif, ...prev]);
                     setUnreadCount(prev => prev + 1);
                     
