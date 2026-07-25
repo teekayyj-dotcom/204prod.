@@ -146,7 +146,7 @@ export function SpiralGallery({ urls, className = "" }: SpiralGalleryProps) {
               resolve(tex);
             }
           };
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+          const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
           img.src = `${apiUrl}/media/cors-proxy?url=${encodeURIComponent(url)}`;
         });
       });

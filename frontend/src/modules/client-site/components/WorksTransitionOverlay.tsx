@@ -395,7 +395,7 @@ export function WorksTransitionOverlay({ onNavigate, onComplete }: WorksTransiti
             let globalBag: string[] = [];
 
             const loadImagesForBand = async (imagesCount: number) => {
-              const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+              const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
               const bandUrls: string[] = [];
 
               for (let i = 0; i < imagesCount; i++) {
