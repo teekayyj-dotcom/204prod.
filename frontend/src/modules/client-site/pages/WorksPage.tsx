@@ -669,6 +669,9 @@ export function WorksPage() {
     // Hide original
     card.style.opacity = '0';
     
+    // Clear inline transform (like Framer Motion's) so it doesn't offset GSAP positioning
+    clone.style.transform = 'none';
+    
     // Fix clone position
     gsap.set(clone, {
       position: "fixed",
@@ -1066,7 +1069,7 @@ export function WorksPage() {
                       onClick={(e) => handleProjectClick(e, project.id)}
                       className="block"
                     >
-                      <motion.div variants={itemVariants} className="relative group aspect-square md:aspect-[4/5] bg-zinc-950 overflow-hidden cursor-pointer rounded-2xl border border-white/5">
+                      <motion.div variants={itemVariants} className="relative group aspect-[3/4] bg-zinc-950 overflow-hidden cursor-pointer rounded-2xl border border-white/5">
                         <ImageWithFallback 
                           src={project.image} 
                           alt={project.title} 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
-
+import { Link, useNavigate } from "react-router-dom";
+import gsap from "gsap";
 interface Social {
   icon: string;
   url: string;
@@ -23,6 +23,69 @@ interface CrewDetailProps {
 
 export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
   const [assignedProjects, setAssignedProjects] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const [transitioningProject, setTransitioningProject] = useState<string | null>(null);
+
+  const handleProjectClick = (e: React.MouseEvent, slug: string) => {
+    if (transitioningProject) {
+      e.preventDefault();
+      return;
+    }
+    
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    
+    e.preventDefault();
+    setTransitioningProject(slug);
+
+    let card = e.currentTarget as HTMLElement;
+    const rect = card.getBoundingClientRect();
+    
+    const clone = card.cloneNode(true) as HTMLElement;
+    document.body.appendChild(clone);
+    
+    card.style.opacity = '0';
+    clone.style.transform = 'none';
+
+    gsap.set(clone, {
+      position: "fixed",
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      zIndex: 9999,
+      margin: 0,
+      pointerEvents: "none",
+      borderRadius: window.getComputedStyle(card).borderRadius
+    });
+
+    const textElements = clone.querySelectorAll("h3, p, span, div.absolute");
+    if (textElements.length > 0) {
+      gsap.to(textElements, { opacity: 0, duration: 0.3 });
+    }
+
+    document.body.classList.add("is-transitioning");
+
+    gsap.to(clone, {
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      borderRadius: 0,
+      duration: 1.0,
+      ease: "power3.inOut",
+      onComplete: () => {
+        document.body.classList.remove("is-transitioning");
+        navigate(`/works/${slug}`);
+        
+        gsap.to(clone, {
+          opacity: 0,
+          duration: 0.6,
+          delay: 0.6,
+          onComplete: () => clone.remove()
+        });
+      }
+    });
+  };
 
   useEffect(() => {
     if (!activeMember) return;
@@ -250,7 +313,12 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
               {assignedProjects.map(p => {
                  const imageUrl = (p.cover_media && p.cover_media.url) || p.cover_image || (p.cover_media && p.cover_media.thumbnail_url);
                  return (
-                  <Link key={p.slug} to={`/works/${p.slug}`} className="group block">
+                  <Link 
+                    key={p.slug} 
+                    to={`/works/${p.slug}`} 
+                    onClick={(e) => handleProjectClick(e, p.slug)}
+                    className="group block"
+                  >
                     <div className="aspect-video bg-white/5 rounded-lg overflow-hidden mb-4 relative">
                       {imageUrl ? (
                         <img src={imageUrl} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
