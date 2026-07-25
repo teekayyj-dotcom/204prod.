@@ -95,7 +95,8 @@ export function ProjectDetail() {
           const listRes = await fetch(`/api/v1/projects`);
           if (listRes.ok) {
             const listData = await listRes.json();
-            const items = listData.items || [];
+            const allItems = listData.items || [];
+            const items = allItems.filter((proj: any) => proj.published && !proj.locked);
             if (items.length > 0) {
                const currentIndex = items.findIndex((p: any) => p.slug === id);
                const nextIndex = currentIndex !== -1 ? (currentIndex + 1) % items.length : 0;
