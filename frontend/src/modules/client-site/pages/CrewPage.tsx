@@ -210,7 +210,7 @@ export function CrewPage() {
               {crewData.map((member, index) => (
                 <button
                   key={member.id}
-                  className="relative inline-flex items-center gap-[0.6rem] max-[768px]:gap-2 w-fit text-[clamp(1.6rem,2.8vw,3rem)] max-[768px]:text-[clamp(1.4rem,5vw,2.2rem)] max-[480px]:text-[clamp(1.6rem,7vw,2.5rem)] leading-none tracking-[-0.045em] text-white/95 cursor-pointer transition-[opacity,transform] duration-300 ease-in-out bg-transparent border-0 p-0 font-inherit text-left hover:translate-x-[10px] max-[768px]:hover:translate-x-0 group-hover:opacity-[0.32] hover:!opacity-100"
+                  className="relative inline-flex items-center gap-[0.6rem] max-[768px]:gap-2 w-fit text-[clamp(1.1rem,1.8vw,2.2rem)] max-[768px]:text-[clamp(1.1rem,3.5vw,1.8rem)] max-[480px]:text-[clamp(1.2rem,5vw,2rem)] whitespace-nowrap leading-none tracking-[-0.045em] text-white/95 cursor-pointer transition-[opacity,transform] duration-300 ease-in-out bg-transparent border-0 p-0 font-inherit text-left hover:translate-x-[10px] max-[768px]:hover:translate-x-0 group-hover:opacity-[0.32] hover:!opacity-100"
                   style={{ transitionDelay: `${0.1 + index * 0.05}s` }}
                   onMouseEnter={() => setHoveredCrew(member.id)}
                   onMouseLeave={() => setHoveredCrew(null)}

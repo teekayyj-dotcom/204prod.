@@ -34,14 +34,19 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
         const filtered = projArray.filter((p: any) => {
           if (!p.published) return false;
           
+          let hasCredit = false;
+          
+          // Check structured_credits first
           if (Array.isArray(p.structured_credits) && p.structured_credits.length > 0) {
-            return p.structured_credits.some((sc: any) => String(sc.crew_id) === String(activeMember.id));
+            hasCredit = p.structured_credits.some((sc: any) => String(sc.crew_id) === String(activeMember.id));
           }
           
-          // Fallback to name checking if structured_credits doesn't exist
-          const hasCredit = Array.isArray(p.credits) && p.credits.some((c: string) => 
-            c.toLowerCase().includes(activeMember.name.toLowerCase())
-          );
+          // Fallback to name checking if not found in structured_credits
+          if (!hasCredit && Array.isArray(p.credits)) {
+            hasCredit = p.credits.some((c: string) => 
+              c.toLowerCase().includes(activeMember.name.toLowerCase())
+            );
+          }
           
           return hasCredit;
         });
