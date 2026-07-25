@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import gsap from "gsap-trial";
+import gsap from "gsap";
 import { CrewDetail } from "./CrewDetail";
 import { useParams, useNavigate } from "react-router-dom";
 

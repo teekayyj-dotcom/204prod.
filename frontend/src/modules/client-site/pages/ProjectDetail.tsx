@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { MorphSVGPlugin } from 'gsap-trial/MorphSVGPlugin';
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import * as THREE from 'three';
 
 gsap.registerPlugin(ScrollTrigger, MorphSVGPlugin);
