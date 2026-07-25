@@ -29,6 +29,7 @@ export const crewRoute = {
     { path: "media", lazy: () => import("./pages/CrewMediaLibraryPage").then(m => ({ Component: m.CrewMediaLibraryPage })) },
     { path: "hr", lazy: () => import("./pages/CrewHRPage").then(m => ({ Component: m.CrewHRPage })) },
     { path: "hr/attendance/edit", lazy: () => import("./pages/EditSchedulePage").then(m => ({ Component: m.EditSchedulePage })) },
+    { path: "messages", lazy: () => import("../messaging/MessagingPage").then(m => ({ Component: m.MessagingPage })) },
     { path: "*", Component: CrewNotFound },
   ],
 };

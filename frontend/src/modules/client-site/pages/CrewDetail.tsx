@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Social {
   icon: string;
@@ -20,6 +22,34 @@ interface CrewDetailProps {
 }
 
 export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
+  const [assignedProjects, setAssignedProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!activeMember) return;
+    
+    fetch("/api/v1/projects/all")
+      .then(res => res.json())
+      .then(data => {
+        const projArray = Array.isArray(data) ? data : (data.items || []);
+        const filtered = projArray.filter((p: any) => {
+          if (!p.published) return false;
+          
+          if (Array.isArray(p.structured_credits) && p.structured_credits.length > 0) {
+            return p.structured_credits.some((sc: any) => String(sc.crew_id) === String(activeMember.id));
+          }
+          
+          // Fallback to name checking if structured_credits doesn't exist
+          const hasCredit = Array.isArray(p.credits) && p.credits.some((c: string) => 
+            c.toLowerCase().includes(activeMember.name.toLowerCase())
+          );
+          
+          return hasCredit;
+        });
+        setAssignedProjects(filtered);
+      })
+      .catch(console.error);
+  }, [activeMember]);
+
   if (!activeMember) return null;
 
   return (
@@ -167,7 +197,7 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
                 className="parallax-scene"
                 style={{
                   "--n": 4,
-                  "--back": `url(${activeMember.img}) 50% 15% / cover no-repeat`
+                  "--back": `url("${activeMember.img}") 50% 15% / cover no-repeat`
                 } as React.CSSProperties}
               >
                 <div className="parallax-card" />
@@ -206,6 +236,32 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
             </div>
           </div>
         </div>
+
+        {/* Selected Works Gallery */}
+        {assignedProjects.length > 0 && (
+          <div className="mt-24 pb-24 border-t border-white/10 pt-16">
+            <h2 className="text-2xl font-[450] tracking-tighter text-white mb-10 uppercase">Works</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 lg:gap-8">
+              {assignedProjects.map(p => {
+                 const imageUrl = (p.cover_media && p.cover_media.url) || p.cover_image || (p.cover_media && p.cover_media.thumbnail_url);
+                 return (
+                  <Link key={p.slug} to={`/works/${p.slug}`} className="group block">
+                    <div className="aspect-video bg-white/5 rounded-lg overflow-hidden mb-4 relative">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={p.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/20">No Cover</div>
+                      )}
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                    </div>
+                    <h3 className="text-white text-lg font-medium tracking-tight mb-1">{p.title}</h3>
+                    <p className="text-white/50 text-xs uppercase tracking-widest">{p.client || p.category || "Project"}</p>
+                  </Link>
+                 );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

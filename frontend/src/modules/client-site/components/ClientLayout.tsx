@@ -1,15 +1,22 @@
-import { useEffect, useState, useRef } from "react";
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { useEffect, useLayoutEffect, useState, useRef } from "react";
+import { Outlet, NavLink, useLocation, useOutlet } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { initFluid } from "../utils/fluid";
+import { WorksTransitionProvider, useWorksTransition } from "./WorksTransitionContext";
+import { useLandingTransition } from "./LandingTransitionContext";
 
 
 const LOGO_LETTERS = ["2", "0", "4", "P", "R", "O", "D", "."];
 
 export function ClientLayout() {
+  const { navigateToWorks } = useWorksTransition();
+  const { navigateToLanding } = useLandingTransition();
   const location = useLocation();
+  const currentOutlet = useOutlet();
   const isLandingPage = location.pathname === "/";
   const isContactPage = location.pathname === "/contact";
+  const isProjectDetailPage = location.pathname.startsWith("/works/");
   const [time, setTime] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [hideHeader, setHideHeader] = useState(false);
@@ -108,8 +115,8 @@ export function ClientLayout() {
     };
   }, [isLandingPage, location.pathname]);
 
-  useEffect(() => {
-    // Reset scroll to top on route change
+  useLayoutEffect(() => {
+    // Reset scroll to top on route change BEFORE browser paints to prevent flashing
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
@@ -125,7 +132,7 @@ export function ClientLayout() {
 
     const cleanup = initFluid(canvas);
     return cleanup;
-  }, [isLandingPage]);
+  }, [isLandingPage, location.pathname]);
 
   return (
     <div
@@ -140,9 +147,9 @@ export function ClientLayout() {
       <header className={`fixed top-0 left-0 right-0 h-[10vh] z-50 bg-transparent transition-all duration-500 ease-in-out ${hideHeader ? "-translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"}`}>
         <div className="w-full h-full px-12 md:px-24 grid grid-cols-5 items-center">
           <div className="flex justify-start">
-            <NavLink to="/works" className="text-[15px] font-light tracking-wide hover:text-white/70 transition-colors text-white">
+            <button onClick={navigateToWorks} className="text-[15px] font-light tracking-wide hover:text-white/70 transition-colors text-white outline-none">
               Portfolio
-            </NavLink>
+            </button>
           </div>
 
           <div className="flex justify-center">
@@ -152,13 +159,13 @@ export function ClientLayout() {
           </div>
 
           <div className="flex justify-center">
-            <NavLink to="/">
+            <button onClick={navigateToLanding} className="cursor-pointer focus:outline-none">
               <img
                 src="/favicon/204-logo.png"
                 alt="Logo"
                 className="h-[8vh] max-h-[8vh] w-auto object-contain"
               />
-            </NavLink>
+            </button>
           </div>
 
           <div className="flex justify-center">
@@ -177,12 +184,25 @@ export function ClientLayout() {
 
       <div className="w-full flex flex-col min-h-screen">
         {/* Main Content */}
-        <div className="flex-1">
-          <Outlet />
+        <div className="flex-1 relative">
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={location.pathname}
+              initial={
+                location.pathname === '/works' ? { opacity: 0 } : { opacity: 0 }
+              }
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6, ease: [0.65, 0, 0.35, 1] }}
+              className="w-full h-full bg-black"
+            >
+              {currentOutlet}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Footer */}
-        {isContactPage ? null : isLandingPage ? (
+        {isContactPage || isProjectDetailPage ? null : isLandingPage ? (
           <footer className="absolute bottom-0 left-0 right-0 z-50 bg-transparent py-8 w-full px-12 md:px-24">
             <div className="flex flex-col md:flex-row justify-between items-center text-[13px] font-light text-white/50 w-full">
               <p>
@@ -221,9 +241,9 @@ export function ClientLayout() {
             <div className="flex flex-col md:flex-row justify-between items-start w-full gap-12 mt-12 md:mt-6 relative z-10">
               {/* Left side links */}
               <div className="flex flex-col gap-1 md:gap-2">
-                <NavLink to="/works" className="text-[44px] md:text-[60px] font-black text-white hover:text-white/60 transition-all tracking-tight leading-[1]">
+                <button onClick={navigateToWorks} className="text-[44px] md:text-[60px] font-black text-white hover:text-white/60 transition-all tracking-tight leading-[1] text-left outline-none">
                   Work
-                </NavLink>
+                </button>
                 <NavLink to="/about" className="text-[44px] md:text-[60px] font-black text-white hover:text-white/60 transition-all tracking-tight leading-[1]">
                   Studio
                 </NavLink>
@@ -253,6 +273,7 @@ export function ClientLayout() {
             </div>
 
             <div
+              onClick={navigateToLanding}
               onMouseMove={handleLogoMouseMove}
               onMouseLeave={handleLogoMouseLeave}
               className="w-full flex justify-center items-center mt-auto mb-2 select-none relative z-10 cursor-pointer"

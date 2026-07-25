@@ -48,6 +48,10 @@ class ConversationParticipant(Base):
     def role(self):
         return self.user.role if self.user else None
 
+    @property
+    def avatar_url(self):
+        return self.user.avatar_url if self.user else None
+
 
 class Message(Base):
     __tablename__ = "messaging_messages"

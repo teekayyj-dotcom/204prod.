@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { wsService } from "../services/websocket";
+import { toast } from "sonner";
+import { ensureUTC } from "../utils/time";
 
 export type Attachment = {
   id: number;
@@ -38,6 +40,7 @@ export type ConversationParticipant = {
   last_read_message_id: number | null;
   display_name?: string;
   role?: string;
+  avatar_url?: string | null;
 };
 
 export type Conversation = {
@@ -78,6 +81,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   // Refs for event listeners
   const activeConversationIdRef = React.useRef<number | null>(null);
   const isWidgetOpenRef = React.useRef<boolean>(false);
+  const conversationsRef = React.useRef<Conversation[]>([]);
 
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId;
@@ -86,6 +90,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     isWidgetOpenRef.current = isWidgetOpen;
   }, [isWidgetOpen]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Request Notification permission
   useEffect(() => {
@@ -147,9 +155,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       });
 
       // Notification logic
-      const u = JSON.parse(localStorage.getItem("user") || "{}");
-      if (msg.sender_id !== u.id) {
-        const isViewing = isWidgetOpenRef.current && activeConversationIdRef.current === msg.conversation_id;
+      let currentUserId = -1;
+      try {
+        const u = JSON.parse(localStorage.getItem("user") || "{}");
+        currentUserId = u.id;
+      } catch (e) {}
+
+      if (Number(msg.sender_id) !== Number(currentUserId)) {
+        const isViewing = isWidgetOpenRef.current && Number(activeConversationIdRef.current) === Number(msg.conversation_id);
         if (!isViewing) {
           // Increment unread_count and update last_message
           setConversations(prev => prev.map(c => 
@@ -157,15 +170,65 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           ));
           
           const text = msg.content || "Sent an attachment";
-          
-          // In-App Toast
-          import("sonner").then(({ toast }) => {
-            toast("New message", { description: text });
-          });
-          
+
           // OS Notification
           if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("New message", { body: text });
+            const path = window.location.pathname.toLowerCase();
+            const isAppRoute = path.includes("dashboard") || path.includes("admin") || path.includes("client") || path.includes("crew") || path.includes("messaging");
+            if (isAppRoute) {
+              new Notification("New message", { body: text });
+            }
+          }
+          
+          // In-App Toast
+          const path = window.location.pathname.toLowerCase();
+          const isAppRoute = path.includes("dashboard") || path.includes("admin") || path.includes("client") || path.includes("crew") || path.includes("messaging");
+          
+          if (isAppRoute) {
+            const currentConvs = conversationsRef.current;
+            const conv = currentConvs.find(c => c.id === msg.conversation_id);
+            const groupName = conv?.name ? conv.name.replace(/^Project:\s*/i, "") : (conv?.is_group ? `Group ${conv.id}` : "");
+            const groupStr = groupName ? ` (${groupName})` : "";
+            const time = new Date(ensureUTC(msg.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const senderInitial = msg.sender_name ? msg.sender_name.charAt(0).toUpperCase() : "U";
+            
+            let toastAvatarUrl: string | null | undefined = null;
+            if (conv?.is_group) {
+              toastAvatarUrl = conv.avatar_url;
+            } else {
+              const sender = conv?.participants.find(p => p.user_id === msg.sender_id);
+              toastAvatarUrl = sender?.avatar_url;
+            }
+            
+            toast.custom((t) => (
+              <div 
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors w-[356px] pointer-events-auto"
+                onClick={() => {
+                  setIsWidgetOpen(true);
+                  setActiveConversationId(msg.conversation_id);
+                  toast.dismiss(t);
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  {toastAvatarUrl ? (
+                    <img src={toastAvatarUrl} alt={msg.sender_name || "Avatar"} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold shrink-0">
+                      {senderInitial}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {msg.sender_name} <span className="text-gray-500 font-normal">{groupStr}</span>
+                      </p>
+                      <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{time}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{text}</p>
+                  </div>
+                </div>
+              </div>
+            ), { duration: 6000 });
           }
         } else {
           // Update last_message even if viewing
@@ -261,12 +324,60 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       });
     };
 
+    const handleMessageDeleted = (data: any) => {
+      setMessages((prev) => {
+        const conversationMessages = prev[data.conversation_id] || [];
+        return {
+          ...prev,
+          [data.conversation_id]: conversationMessages.filter(m => m.id !== data.message_id)
+        };
+      });
+      // Also update last_message if it was the deleted one
+      setConversations((prev) => 
+        prev.map(c => {
+          if (c.id === data.conversation_id && c.last_message?.id === data.message_id) {
+            // We'd ideally fetch the new last message, but for now just clear it or leave it
+            // A proper implementation would need a refetch or keeping track of the previous one.
+            return { ...c, last_message: null as any };
+          }
+          return c;
+        })
+      );
+    };
+
+    const handleMessageUpdated = (data: any) => {
+      setMessages((prev) => {
+        const conversationMessages = prev[data.conversation_id] || [];
+        const msgIndex = conversationMessages.findIndex(m => m.id === data.message.id);
+        if (msgIndex === -1) return prev;
+        
+        const updatedMsg = { ...conversationMessages[msgIndex], ...data.message };
+        const nextMessages = [...conversationMessages];
+        nextMessages[msgIndex] = updatedMsg;
+        return {
+          ...prev,
+          [data.conversation_id]: nextMessages
+        };
+      });
+      
+      setConversations((prev) => 
+        prev.map(c => {
+          if (c.id === data.conversation_id && c.last_message?.id === data.message.id) {
+            return { ...c, last_message: { ...c.last_message, ...data.message } };
+          }
+          return c;
+        })
+      );
+    };
+
     wsService.on("new_message", handleNewMessage);
     wsService.on("user_status", handleUserStatus);
     wsService.on("typing_start", handleTypingStart);
     wsService.on("typing_stop", handleTypingStop);
     wsService.on("read_receipt", handleReadReceipt);
     wsService.on("poll_vote", handlePollVote);
+    wsService.on("message_deleted", handleMessageDeleted);
+    wsService.on("message_updated", handleMessageUpdated);
 
     return () => {
       wsService.off("new_message", handleNewMessage);
@@ -275,6 +386,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       wsService.off("typing_stop", handleTypingStop);
       wsService.off("read_receipt", handleReadReceipt);
       wsService.off("poll_vote", handlePollVote);
+      wsService.off("message_deleted", handleMessageDeleted);
+      wsService.off("message_updated", handleMessageUpdated);
       wsService.disconnect();
     };
   }, []);

@@ -2,22 +2,36 @@ import React, { useState } from "react";
 import { useChatStore, Conversation } from "../store/ChatContext";
 import { Users, Search, Plus } from "lucide-react";
 import { wsService } from "../services/websocket";
+import { CreateGroupModal } from "./CreateGroupModal";
+import { messagingApi } from "../services/api";
+import { ensureUTC } from "../utils/time";
 
 export function ChatSidebar() {
-  const { conversations, activeConversationId, setActiveConversationId, onlineUsers } = useChatStore();
+  const { conversations, activeConversationId, setActiveConversationId, setConversations } = useChatStore();
   const [search, setSearch] = useState("");
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
   const filtered = conversations.filter(c => 
     c.name?.toLowerCase().includes(search.toLowerCase()) || 
     (!c.is_group && c.participants.length > 0) // Basic fallback
   );
 
+  const sortedConversations = [...filtered].sort((a, b) => {
+    const timeA = new Date(ensureUTC(a.last_message?.created_at || a.created_at)).getTime();
+    const timeB = new Date(ensureUTC(b.last_message?.created_at || b.created_at)).getTime();
+    return timeB - timeA;
+  });
+
   return (
     <div className="w-80 border-r border-slate-200 h-full flex flex-col bg-white">
       {/* Header */}
       <div className="p-4 border-b border-slate-200 flex justify-between items-center">
         <h2 className="text-xl font-semibold text-slate-800">Messages</h2>
-        <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button 
+          onClick={() => setShowCreateGroup(true)}
+          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          title="Create Group"
+        >
           <Plus className="w-5 h-5 text-slate-600" />
         </button>
       </div>
@@ -38,7 +52,7 @@ export function ChatSidebar() {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.map(conv => {
+        {sortedConversations.map(conv => {
           const u = JSON.parse(localStorage.getItem("user") || "{}");
           const currentUserId = u.id || 0;
           const otherParticipant = conv.participants.find(p => p.user_id !== currentUserId);
@@ -53,11 +67,14 @@ export function ChatSidebar() {
               onClick={() => {
                 setActiveConversationId(conv.id);
                 // Mark as read immediately when clicked (mocking for now)
-                wsService.send({
-                  type: "read_receipt",
-                  conversation_id: conv.id,
-                  message_id: conv.last_message?.id
-                });
+                const msgId = conv.last_message?.id;
+                if (msgId && msgId < 10000000000) {
+                  wsService.send({
+                    type: "read_receipt",
+                    conversation_id: conv.id,
+                    message_id: msgId
+                  });
+                }
               }}
               className={`w-full text-left p-4 hover:bg-slate-50 border-b border-slate-100 flex items-start gap-3 transition-colors
                 ${activeConversationId === conv.id ? 'bg-blue-50/50' : ''}`}
@@ -79,7 +96,7 @@ export function ChatSidebar() {
                     {displayName}
                   </h3>
                   <span className="text-xs text-slate-500 flex-shrink-0">
-                    {new Date(conv.last_message?.created_at || conv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(ensureUTC(conv.last_message?.created_at || conv.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -103,12 +120,29 @@ export function ChatSidebar() {
             </button>
           );
         })}
-        {filtered.length === 0 && (
+        {sortedConversations.length === 0 && (
           <div className="p-8 text-center text-slate-500 text-sm">
             No conversations found.
           </div>
         )}
       </div>
+
+      {showCreateGroup && (
+        <CreateGroupModal 
+          onClose={() => setShowCreateGroup(false)}
+          onSuccess={(newId) => {
+            setShowCreateGroup(false);
+            // Re-fetch conversations to include the new group, or we could just update the context
+            const fetchHistory = async () => {
+              const token = localStorage.getItem("token") || "";
+              const data = await messagingApi.getConversations(token);
+              setConversations(data);
+              setActiveConversationId(newId);
+            };
+            fetchHistory();
+          }}
+        />
+      )}
     </div>
   );
 }

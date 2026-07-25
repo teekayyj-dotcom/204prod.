@@ -17,6 +17,7 @@ import {
   Timer,
   TrendingUp,
 } from "lucide-react";
+import { NotificationBell } from "../../../shared/components/NotificationBell";
 
 // ─── Check-in timer ───────────────────────────────────────────────────────────
 function useCheckinTimer() {
@@ -292,21 +293,9 @@ export function CrewWorkspacePage() {
             })}
           </p>
         </div>
-        <button
-          className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-lg"
-          style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#888", fontSize: "13px" }}
-        >
-          <Bell size={15} />
-          <span>Thông báo</span>
-          {alerts.length > 0 && (
-            <span
-              className="w-5 h-5 rounded-full flex items-center justify-center text-white"
-              style={{ background: "#D84040", fontSize: "10px", fontWeight: 700 }}
-            >
-              {alerts.length}
-            </span>
-          )}
-        </button>
+        <div className="hidden lg:block">
+          <NotificationBell userId={getUserName()} />
+        </div>
       </div>
 
       {/* Stats row */}

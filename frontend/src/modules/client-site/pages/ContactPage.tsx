@@ -11,8 +11,6 @@ export function ContactPage() {
     name: '',
     organization: '',
     email: '',
-    category: '',
-    budget: '',
     phone: '',
     message: ''
   });
@@ -46,9 +44,9 @@ export function ContactPage() {
         contact: formData.name,
         email: formData.email,
         phone: formData.phone,
-        industry: formData.category,
+        industry: '',
         status: 'Lead',
-        notes: `Budget: ${formData.budget} | Message: ${formData.message}`
+        notes: `Message: ${formData.message}`
       };
 
       const response = await fetch('/api/v1/projects/clients', {
@@ -61,7 +59,7 @@ export function ContactPage() {
 
       if (response.ok) {
         setSubmitSuccess(true);
-        setFormData({ name: '', organization: '', email: '', category: '', budget: '', phone: '', message: '' });
+        setFormData({ name: '', organization: '', email: '', phone: '', message: '' });
         setTimeout(() => setSubmitSuccess(false), 5000);
       } else {
         const errData = await response.json().catch(() => null);
@@ -231,7 +229,7 @@ export function ContactPage() {
                   id="organization"
                   value={formData.organization}
                   onChange={handleChange}
-                  placeholder="Acme Corp"
+                  placeholder="204PROD."
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
                 />
               </div>
@@ -252,46 +250,13 @@ export function ContactPage() {
               </div>
 
               <div className="flex flex-col gap-1.5 relative group">
-                <label htmlFor="category" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Category</label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white/90 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] appearance-none"
-                >
-                  <option value="" className="bg-zinc-900 text-white">Select a category</option>
-                  <option value="film" className="bg-zinc-900 text-white">Film Production</option>
-                  <option value="commercial" className="bg-zinc-900 text-white">Commercial</option>
-                  <option value="music-video" className="bg-zinc-900 text-white">Music Video</option>
-                  <option value="other" className="bg-zinc-900 text-white">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div className="flex flex-col gap-1.5 relative group">
-                <label htmlFor="budget" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Estimated Budget</label>
-                <select
-                  id="budget"
-                  value={formData.budget}
-                  onChange={handleChange}
-                  className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white/90 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] appearance-none"
-                >
-                  <option value="" className="bg-zinc-900 text-white">Select budget range</option>
-                  <option value="10m-50m" className="bg-zinc-900 text-white">10M ₫ - 50M ₫</option>
-                  <option value="50m-100m" className="bg-zinc-900 text-white">50M ₫ - 100M ₫</option>
-                  <option value="100m+" className="bg-zinc-900 text-white">100M ₫+</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5 relative group">
                 <label htmlFor="phone" className="text-[10px] md:text-xs font-semibold uppercase tracking-widest text-white/40 group-focus-within:text-white group-focus-within:drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] transition-all">Phone Number</label>
                 <input
                   type="tel"
                   id="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="+84 989 143 490"
                   className="bg-white/5 border border-white/10 border-t-white/20 border-l-white/20 rounded-lg px-3 py-2.5 md:py-3 text-sm md:text-base outline-none focus:border-white focus:bg-white/10 focus:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all text-white placeholder:text-white/20 w-full shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)]"
                 />
               </div>

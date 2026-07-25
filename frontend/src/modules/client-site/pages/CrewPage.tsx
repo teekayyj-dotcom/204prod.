@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { crewData } from "../data/crewData";
 import gsap from "gsap-trial";
 import { CrewDetail } from "./CrewDetail";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,6 +9,33 @@ export function CrewPage() {
   const [hoveredCrew, setHoveredCrew] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [crewData, setCrewData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/v1/crew")
+      .then(res => res.json())
+      .then(data => {
+        const mappedData = data.map((c: any) => {
+          let avatarUrl = c.avatar;
+          if (avatarUrl && avatarUrl.includes("ik.imagekit.io")) {
+            // Ensure high quality for sharper images
+            const baseUrl = avatarUrl.split('?')[0];
+            avatarUrl = `${baseUrl}?tr=w-1200,f-auto,q-100`;
+          } else if (!avatarUrl) {
+            avatarUrl = "https://ik.imagekit.io/204prod/CREW/default.jpg?tr=w-1200,f-auto,q-100";
+          }
+
+          return {
+            ...c,
+            id: c.id.toString(),
+            img: avatarUrl,
+            socials: [],
+          };
+        });
+        setCrewData(mappedData);
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

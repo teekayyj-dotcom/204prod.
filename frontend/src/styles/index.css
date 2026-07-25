@@ -41,3 +41,18 @@ html, body, #root {
   80% { transform: translate(2px, -1px) }
   100% { transform: translate(0) }
 }
+
+/* 
+ * Native View Transition API for Back Button Slide
+ * Applies only when document.documentElement has the 'back-transition' class.
+ */
+html.back-transition::view-transition-old(root) {
+  /* No static animation, we drive this dynamically via GSAP updating --slide-x */
+  transform: translateX(var(--slide-x, 0%));
+  z-index: 2; /* Keep old page on top while sliding */
+}
+
+html.back-transition::view-transition-new(root) {
+  animation: none;
+  z-index: 1; /* New page stays underneath statically */
+}

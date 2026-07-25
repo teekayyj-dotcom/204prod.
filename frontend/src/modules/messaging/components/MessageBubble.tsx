@@ -1,32 +1,200 @@
-import React from "react";
+import React, { useState } from "react";
 import { Message, Attachment } from "../store/ChatContext";
-import { FileText, Download, Check, CheckCheck } from "lucide-react";
+import { FileText, Download, Check, CheckCheck, Calendar, Clock, BarChart2, MoreVertical, X } from "lucide-react";
 import { format } from "date-fns";
 import { wsService } from "../services/websocket";
-import { Calendar, Clock, BarChart2 } from "lucide-react";
+import { ensureUTC } from "../utils/time";
 
 export function MessageBubble({ 
   message, 
   isOwn,
   isRead,
   senderName,
-  showName
+  showName,
+  hideTimestamp,
+  hideAvatar,
+  senderAvatar,
+  referencedPollMessage
 }: { 
   message: Message, 
   isOwn: boolean,
   isRead?: boolean,
   senderName?: string,
-  showName?: boolean
+  showName?: boolean,
+  hideTimestamp?: boolean,
+  hideAvatar?: boolean,
+  senderAvatar?: string,
+  referencedPollMessage?: Message
 }) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPollQuestion, setEditPollQuestion] = useState("");
+  const [editPollOptions, setEditPollOptions] = useState<string[]>([]);
+  
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  
   const metadata = typeof message.metadata_json === 'string' 
-    ? JSON.parse(message.metadata_json) 
-    : message.metadata_json;
+    ? JSON.parse(message.metadata_json || '{}') 
+    : (message.metadata_json || {});
+
+  const renderPollWidget = (pollMessage: Message, pollMetadata: any) => {
+    const isCreator = pollMessage.sender_id === currentUser.id;
+    return (
+      <div className="w-64 bg-white border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-xl p-3 shadow-sm text-sm text-gray-900 dark:text-gray-100 mt-2 relative">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex items-center space-x-2 font-medium">
+            <BarChart2 className="w-4 h-4 text-blue-500" />
+            <span>{pollMetadata.question || "Poll"}</span>
+          </div>
+          {isCreator && (
+            <div className="relative">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowDropdown(!showDropdown); }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              {showDropdown && (
+                <div className="absolute right-0 mt-1 w-28 bg-white border border-gray-200 shadow-md rounded-md py-1 z-20 text-xs">
+                  <button 
+                    onClick={() => {
+                      setShowDropdown(false);
+                      setEditPollQuestion(pollMetadata.question || "");
+                      setEditPollOptions(pollMetadata.options?.map((o: any) => o.text) || []);
+                      setShowEditModal(true);
+                    }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-gray-100"
+                  >
+                    Edit Poll
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowDropdown(false);
+                      wsService.send({ type: "delete_message", conversation_id: pollMessage.conversation_id, message_id: pollMessage.id });
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-red-600 hover:bg-red-50"
+                  >
+                    Delete Poll
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          {pollMetadata.options?.map((opt: any) => {
+            const votesForOption = (pollMessage.poll_votes || []).filter(v => v.option_id === opt.id).length;
+            const totalVotes = pollMessage.poll_votes?.length || 0;
+            const percent = totalVotes > 0 ? Math.round((votesForOption / totalVotes) * 100) : 0;
+            const hasVotedOpt = (pollMessage.poll_votes || []).some(v => v.user_id === currentUser.id && v.option_id === opt.id);
+
+            return (
+              <button 
+                key={opt.id}
+                onClick={() => {
+                  wsService.send({
+                    type: "poll_vote",
+                    conversation_id: pollMessage.conversation_id,
+                    message_id: pollMessage.id,
+                    option_id: opt.id
+                  });
+                }}
+                className="w-full relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden text-left text-xs transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                <div 
+                  className={`absolute top-0 left-0 h-full transition-all duration-500 ease-in-out ${hasVotedOpt ? "bg-blue-200 dark:bg-blue-900/50" : "bg-gray-200 dark:bg-gray-600"}`} 
+                  style={{ width: `${percent}%` }}
+                />
+                <div className="relative z-10 px-3 py-2 flex justify-between">
+                  <span className="font-medium truncate pr-2">{opt.text}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{votesForOption}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Edit Poll Modal inline to avoid absolute positioning complex z-index issues */}
+        {showEditModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 w-80 shadow-xl border border-gray-200 dark:border-gray-700 relative">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-gray-900 dark:text-white">Edit Poll</h4>
+                <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4"/></button>
+              </div>
+              <input 
+                type="text" placeholder="Question..." value={editPollQuestion} onChange={e => setEditPollQuestion(e.target.value)}
+                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <div className="space-y-2 mb-3">
+                {editPollOptions.map((opt, i) => (
+                  <input 
+                    key={i} type="text" placeholder={`Option ${i + 1}`} value={opt} onChange={e => {
+                      const newOpts = [...editPollOptions];
+                      newOpts[i] = e.target.value;
+                      setEditPollOptions(newOpts);
+                    }}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                ))}
+                <button onClick={() => setEditPollOptions([...editPollOptions, ""])} className="text-xs text-blue-500 hover:underline">+ Add Option</button>
+              </div>
+              <button 
+                onClick={() => {
+                  const validOptions = editPollOptions.filter(o => o.trim());
+                  if (!editPollQuestion.trim() || validOptions.length < 2) return;
+                  wsService.send({
+                    type: "edit_poll",
+                    conversation_id: pollMessage.conversation_id,
+                    message_id: pollMessage.id,
+                    metadata_json: {
+                      ...pollMetadata,
+                      question: editPollQuestion.trim(),
+                      options: validOptions.map((text, idx) => ({ id: `opt_${idx}`, text: text.trim() }))
+                    }
+                  });
+                  setShowEditModal(false);
+                }} 
+                className="w-full bg-blue-600 text-white rounded py-2 text-sm font-medium hover:bg-blue-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (message.message_type === "system") {
+    return (
+      <div className="flex flex-col items-center my-4">
+        <div className="bg-slate-100 text-slate-500 text-xs px-4 py-1.5 rounded-full shadow-sm border border-slate-200">
+          {message.content}
+        </div>
+        {/* Bumped Poll Widget */}
+        {referencedPollMessage && (
+          <div className="mt-2 w-full flex justify-center">
+            {renderPollWidget(referencedPollMessage, typeof referencedPollMessage.metadata_json === 'string' ? JSON.parse(referencedPollMessage.metadata_json) : (referencedPollMessage.metadata_json || {}))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex w-full ${isOwn ? "justify-end" : "justify-start"} mb-4`}>
+    <div className={`flex w-full ${isOwn ? "justify-end" : "justify-start"} ${hideTimestamp ? "mb-1" : "mb-4"}`} onClick={() => showDropdown && setShowDropdown(false)}>
       {!isOwn && (
-        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-medium mr-2 flex-shrink-0 mt-auto text-xs">
-          {senderName ? senderName.charAt(0).toUpperCase() : "U"}
+        <div className="w-8 h-8 mr-2 flex-shrink-0 mt-auto">
+          {!hideAvatar && (
+            <div className="w-full h-full rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-medium text-xs overflow-hidden">
+              {senderAvatar ? (
+                <img src={senderAvatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                senderName ? senderName.charAt(0).toUpperCase() : "U"
+              )}
+            </div>
+          )}
         </div>
       )}
       
@@ -77,50 +245,12 @@ export function MessageBubble({
 
         {/* Poll Widget */}
         {message.message_type === "poll" && metadata && (
-          <div className="w-64 bg-white border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-xl p-3 shadow-sm text-sm text-gray-900 dark:text-gray-100">
-            <div className="flex items-center space-x-2 font-medium mb-3">
-              <BarChart2 className="w-4 h-4 text-blue-500" />
-              <span>{metadata.question || "Poll"}</span>
-            </div>
-            <div className="space-y-2">
-              {metadata.options?.map((opt: any) => {
-                const votesForOption = (message.poll_votes || []).filter(v => v.option_id === opt.id).length;
-                const totalVotes = message.poll_votes?.length || 0;
-                const percent = totalVotes > 0 ? Math.round((votesForOption / totalVotes) * 100) : 0;
-                const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-                const hasVotedOpt = (message.poll_votes || []).some(v => v.user_id === currentUser.id && v.option_id === opt.id);
-
-                return (
-                  <button 
-                    key={opt.id}
-                    onClick={() => {
-                      wsService.send({
-                        type: "poll_vote",
-                        conversation_id: message.conversation_id,
-                        message_id: message.id,
-                        option_id: opt.id
-                      });
-                    }}
-                    className="w-full relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden text-left text-xs transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    <div 
-                      className={`absolute top-0 left-0 h-full transition-all duration-500 ease-in-out ${hasVotedOpt ? "bg-blue-200 dark:bg-blue-900/50" : "bg-gray-200 dark:bg-gray-600"}`} 
-                      style={{ width: `${percent}%` }}
-                    />
-                    <div className="relative z-10 px-3 py-2 flex justify-between">
-                      <span className="font-medium truncate pr-2">{opt.text}</span>
-                      <span className="text-gray-500 dark:text-gray-400">{votesForOption}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          renderPollWidget(message, metadata)
         )}
 
         {/* Deadline Widget */}
         {message.message_type === "deadline" && metadata && (
-          <div className="w-64 bg-white border border-red-200 dark:border-red-900/30 dark:bg-gray-800 rounded-xl p-3 shadow-sm text-sm text-gray-900 dark:text-gray-100">
+          <div className="w-64 bg-white border border-red-200 dark:border-red-900/30 dark:bg-gray-800 rounded-xl p-3 shadow-sm text-sm text-gray-900 dark:text-gray-100 mt-2">
             <div className="flex items-center space-x-2 font-semibold text-red-600 dark:text-red-400 mb-1">
               <Calendar className="w-4 h-4" />
               <span>Deadline</span>
@@ -134,15 +264,31 @@ export function MessageBubble({
         )}
 
         {/* Timestamp and Read Status */}
-        <div className="flex items-center gap-1 mt-1 text-[11px] text-slate-400">
-          <span>{format(new Date(message.created_at), "h:mm a")}</span>
-          {isOwn && (
-            <span className={isRead ? "text-blue-500" : "text-slate-300"}>
-              {isRead ? <CheckCheck className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-            </span>
+        {!hideTimestamp && (
+          <div className="flex items-center gap-1 mt-1 text-[11px] text-slate-400">
+            <span>{format(new Date(ensureUTC(message.created_at)), "h:mm a")}</span>
+            {isOwn && (
+              <span className={isRead ? "text-blue-500" : "text-slate-300"}>
+                {isRead ? <CheckCheck className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {isOwn && (
+        <div className="w-8 h-8 ml-2 flex-shrink-0 mt-auto">
+          {!hideAvatar && (
+            <div className="w-full h-full rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-medium text-xs overflow-hidden shadow-sm">
+              {senderAvatar ? (
+                <img src={senderAvatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                senderName ? senderName.charAt(0).toUpperCase() : "U"
+              )}
+            </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, desc
@@ -203,6 +203,7 @@ class ConversationNameUpdate(BaseModel):
 def update_conversation_name(
     conversation_id: int,
     payload: ConversationNameUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     current_user: User = Depends(require_auth_token)
 ):
@@ -243,6 +244,36 @@ def update_conversation_name(
     if last_msg:
         conv_out.last_message = MessageOut.model_validate(last_msg)
     conv_out.unread_count = unread_count
+    
+    # Create system message
+    sys_msg = Message(
+        conversation_id=conv.id,
+        sender_id=current_user.id,
+        content=f"{current_user.display_name} changed the group name to '{payload.name}'.",
+        message_type="system"
+    )
+    db.add(sys_msg)
+    db.commit()
+    db.refresh(sys_msg)
+    
+    # Broadcast
+    p_ids = [p.user_id for p in conv_reloaded.participants]
+    broadcast_data = {
+        "type": "new_message",
+        "conversation_id": conv.id,
+        "message": {
+            "id": sys_msg.id,
+            "conversation_id": sys_msg.conversation_id,
+            "sender_id": sys_msg.sender_id,
+            "sender_name": current_user.display_name,
+            "content": sys_msg.content,
+            "message_type": sys_msg.message_type,
+            "metadata_json": sys_msg.metadata_json,
+            "created_at": sys_msg.created_at.isoformat(),
+            "attachments": []
+        }
+    }
+    background_tasks.add_task(manager.broadcast_to_users, broadcast_data, p_ids)
     
     return conv_out
 
@@ -307,6 +338,7 @@ def add_participants(
 def update_conversation_avatar(
     conversation_id: int,
     payload: ConversationAvatarUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     current_user: User = Depends(require_auth_token)
 ):
@@ -341,6 +373,36 @@ def update_conversation_avatar(
     if last_msg:
         conv_out.last_message = MessageOut.model_validate(last_msg)
     conv_out.unread_count = unread_count
+    
+    # Create system message
+    sys_msg = Message(
+        conversation_id=conv.id,
+        sender_id=current_user.id,
+        content=f"{current_user.display_name} changed the group avatar.",
+        message_type="system"
+    )
+    db.add(sys_msg)
+    db.commit()
+    db.refresh(sys_msg)
+    
+    # Broadcast
+    p_ids = [p.user_id for p in conv_reloaded.participants]
+    broadcast_data = {
+        "type": "new_message",
+        "conversation_id": conv.id,
+        "message": {
+            "id": sys_msg.id,
+            "conversation_id": sys_msg.conversation_id,
+            "sender_id": sys_msg.sender_id,
+            "sender_name": current_user.display_name,
+            "content": sys_msg.content,
+            "message_type": sys_msg.message_type,
+            "metadata_json": sys_msg.metadata_json,
+            "created_at": sys_msg.created_at.isoformat(),
+            "attachments": []
+        }
+    }
+    background_tasks.add_task(manager.broadcast_to_users, broadcast_data, p_ids)
     
     return conv_out
 
@@ -527,13 +589,17 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
                 
             elif msg_type == "read_receipt" and conv_id:
                 msg_id = data.get("message_id")
-                if msg_id:
+                # Ignore optimistic frontend IDs (which are timestamps > 1 trillion)
+                if msg_id and msg_id < 10000000000:
                     part = db.query(ConversationParticipant).filter_by(
                         conversation_id=conv_id, user_id=user.id
                     ).first()
                     if part:
                         part.last_read_message_id = msg_id
-                        db.commit()
+                        try:
+                            db.commit()
+                        except Exception:
+                            db.rollback()
                         
                     participants = db.query(ConversationParticipant).filter_by(conversation_id=conv_id).all()
                     p_ids = [p.user_id for p in participants if p.user_id != user.id]
@@ -544,19 +610,72 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
                         "message_id": msg_id
                     }, p_ids)
 
+            elif msg_type == "delete_message" and conv_id:
+                msg_id = data.get("message_id")
+                if msg_id:
+                    msg = db.query(Message).filter_by(id=msg_id, conversation_id=conv_id).first()
+                    if msg and msg.sender_id == user.id:
+                        db.delete(msg)
+                        db.commit()
+                        participants = db.query(ConversationParticipant).filter_by(conversation_id=conv_id).all()
+                        p_ids = [p.user_id for p in participants]
+                        await manager.broadcast_to_users({
+                            "type": "message_deleted",
+                            "conversation_id": conv_id,
+                            "message_id": msg_id
+                        }, p_ids)
+
+            elif msg_type == "edit_poll" and conv_id:
+                msg_id = data.get("message_id")
+                new_metadata = data.get("metadata_json")
+                if msg_id and new_metadata:
+                    msg = db.query(Message).filter_by(id=msg_id, conversation_id=conv_id).first()
+                    if msg and msg.sender_id == user.id and msg.message_type == "poll":
+                        msg.metadata_json = new_metadata
+                        db.commit()
+                        participants = db.query(ConversationParticipant).filter_by(conversation_id=conv_id).all()
+                        p_ids = [p.user_id for p in participants]
+                        await manager.broadcast_to_users({
+                            "type": "message_updated",
+                            "conversation_id": conv_id,
+                            "message": {
+                                "id": msg.id,
+                                "metadata_json": msg.metadata_json
+                            }
+                        }, p_ids)
+
             elif msg_type == "poll_vote" and conv_id:
                 msg_id = data.get("message_id")
                 option_id = data.get("option_id")
                 if msg_id and option_id:
                     from .models import PollVote
-                    # Check if already voted by this user on this message
+                    
+                    # Fetch original poll message and option text to format system message
+                    original_msg = db.query(Message).filter_by(id=msg_id).first()
+                    poll_metadata = original_msg.metadata_json if original_msg and original_msg.metadata_json else {}
+                    options = poll_metadata.get("options", [])
+                    option_text = next((opt["text"] for opt in options if opt["id"] == option_id), "an option")
+                    
                     existing_vote = db.query(PollVote).filter_by(message_id=msg_id, user_id=user.id).first()
+                    action = "changed their vote to" if existing_vote else "voted for"
+
                     if existing_vote:
                         existing_vote.option_id = option_id
                     else:
                         new_vote = PollVote(message_id=msg_id, user_id=user.id, option_id=option_id)
                         db.add(new_vote)
+                    
+                    # Create system message
+                    sys_msg = Message(
+                        conversation_id=conv_id,
+                        sender_id=user.id,
+                        content=f"{user.display_name} {action} '{option_text}'.",
+                        message_type="system",
+                        metadata_json={"poll_reference_id": msg_id}
+                    )
+                    db.add(sys_msg)
                     db.commit()
+                    db.refresh(sys_msg)
                     
                     participants = db.query(ConversationParticipant).filter_by(conversation_id=conv_id).all()
                     p_ids = [p.user_id for p in participants]
@@ -567,6 +686,24 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
                         "user_id": user.id,
                         "option_id": option_id
                     }, p_ids)
+                    
+                    # Broadcast the system message
+                    broadcast_data = {
+                        "type": "new_message",
+                        "conversation_id": conv_id,
+                        "message": {
+                            "id": sys_msg.id,
+                            "conversation_id": sys_msg.conversation_id,
+                            "sender_id": sys_msg.sender_id,
+                            "sender_name": user.display_name,
+                            "content": sys_msg.content,
+                            "message_type": sys_msg.message_type,
+                            "metadata_json": sys_msg.metadata_json,
+                            "created_at": sys_msg.created_at.isoformat(),
+                            "attachments": []
+                        }
+                    }
+                    await manager.broadcast_to_users(broadcast_data, p_ids)
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, user.id)

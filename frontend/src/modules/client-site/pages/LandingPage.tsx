@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 interface Project {
@@ -130,7 +131,7 @@ export function LandingPage() {
           const data = await response.json();
           // Assuming /projects/all returns a flat array, or an object with items.
           const items = Array.isArray(data) ? data : (data.items || []);
-          const visibleProjects = items.filter((p: any) => p.published && !p.locked);
+          const visibleProjects = items.filter((p: any) => p.published && !p.locked && p.featured);
           setProjects(visibleProjects);
         } else {
           setProjects([]);
@@ -312,7 +313,7 @@ export function LandingPage() {
       </div>
 
       {/* Right Indicators */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-4 pointer-events-none">
+      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-4 pointer-events-none right-indicators">
         {projects.map((_, idx) => (
           <div
             key={idx}
@@ -325,7 +326,7 @@ export function LandingPage() {
       {/* Custom Cursor */}
       {projects.length > 0 && (
         <div
-          className={`fixed pointer-events-none z-50 flex items-center justify-center gap-1.5 rounded-full border border-white/30 bg-black/50 backdrop-blur-sm px-3 py-1.5 text-white transition duration-150 ease-out ${mousePos.y < 120 ? "opacity-0 scale-90" : "opacity-100 scale-100"
+          className={`custom-cursor fixed pointer-events-none z-50 flex items-center justify-center gap-1.5 rounded-full border border-white/30 bg-black/50 backdrop-blur-sm px-3 py-1.5 text-white transition duration-150 ease-out ${mousePos.y < 120 ? "opacity-0 scale-90" : "opacity-100 scale-100"
             }`}
           style={{
             left: `${mousePos.x}px`,

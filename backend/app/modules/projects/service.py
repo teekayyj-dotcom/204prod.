@@ -96,6 +96,18 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
 
     db.commit()
     db.refresh(db_project)
+    
+    try:
+        from app.modules.messaging.service import sync_project_group_chat
+        crew_ids = []
+        if project.structured_credits:
+            for cred in project.structured_credits:
+                if cred.crew_id:
+                    crew_ids.append(cred.crew_id)
+        sync_project_group_chat(db, db_project.slug, db_project.title, crew_ids=crew_ids)
+    except Exception as e:
+        print(f"Error syncing project group chat: {e}")
+        
     return db_project
 
 
@@ -184,6 +196,16 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
         
     db.commit()
     db.refresh(existing_project)
+    
+    try:
+        from app.modules.messaging.service import sync_project_group_chat
+        from app.modules.projects.models import ProjectCredit
+        db_credits = db.query(ProjectCredit).filter(ProjectCredit.project_slug == existing_project.slug).all()
+        crew_ids = [c.crew_id for c in db_credits if c.crew_id is not None]
+        sync_project_group_chat(db, existing_project.slug, existing_project.title, crew_ids=crew_ids)
+    except Exception as e:
+        print(f"Error syncing project group chat: {e}")
+
     return existing_project
 
 
@@ -507,6 +529,31 @@ def get_project_tasks(db: Session, project_slug: str):
     return db.query(ProjectTask).filter(ProjectTask.project_slug == project_slug).all()
 
 
+def broadcast_kanban_update(db: Session, project_slug: str, task=None, action: str = "update"):
+    from app.modules.notifications.manager import manager
+    
+    for uid in list(manager.active_connections.keys()):
+        manager.send_personal_message_sync(
+            {"type": "silent_kanban_update", "project_slug": project_slug}, 
+            uid
+        )
+        
+    if task and task.assignee_name and action in ["create", "update"]:
+        assignee_names = [n.strip() for n in task.assignee_name.split(",") if n.strip()]
+        if assignee_names:
+            from app.modules.users.models import User
+            users = db.query(User).filter(User.display_name.in_(assignee_names)).all()
+            from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+            for u in users:
+                notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+                    user_id=str(u.id),
+                    type="task_assigned",
+                    title="Cập nhật Kanban",
+                    message=f"Task '{task.title}' trong dự án {project_slug} vừa được cập nhật.",
+                    link=f"/crew/projects?project={project_slug}"
+                ))
+
+
 def create_project_task(db: Session, project_slug: str, task: ProjectTaskCreate) -> ProjectTask:
     from app.modules.projects.models import ProjectTask
     db_task = ProjectTask(
@@ -524,6 +571,7 @@ def create_project_task(db: Session, project_slug: str, task: ProjectTaskCreate)
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+    broadcast_kanban_update(db, project_slug, db_task, "create")
     return db_task
 
 
@@ -538,6 +586,7 @@ def update_project_task(db: Session, task_id: str, task_update: ProjectTaskUpdat
     
     db.commit()
     db.refresh(db_task)
+    broadcast_kanban_update(db, db_task.project_slug, db_task, "update")
     return db_task
 
 
@@ -546,8 +595,10 @@ def delete_project_task(db: Session, task_id: str) -> bool:
     db_task = db.query(ProjectTask).filter(ProjectTask.id == task_id).first()
     if not db_task:
         return False
+    project_slug = db_task.project_slug
     db.delete(db_task)
     db.commit()
+    broadcast_kanban_update(db, project_slug, action="delete")
     return True
 
 
@@ -613,6 +664,7 @@ def approve_task_request(db: Session, request_id: str) -> bool:
         db_task.status = "done"
         
     db.commit()
+    broadcast_kanban_update(db, db_req.project_slug, db_task, "update")
 
     # Notify Crew that their task was approved
     from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
@@ -634,6 +686,7 @@ def reject_task_request(db: Session, request_id: str) -> bool:
         return False
     db_req.status = "rejected"
     db.commit()
+    broadcast_kanban_update(db, db_req.project_slug, action="update")
 
     # Notify Crew that their task was rejected
     from app.modules.notifications import crud as notif_crud, schemas as notif_schemas

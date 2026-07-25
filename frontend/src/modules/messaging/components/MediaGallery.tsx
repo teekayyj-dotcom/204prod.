@@ -43,7 +43,7 @@ export const MediaGallery: React.FC<MediaGalleryProps> = ({ media }) => {
   return (
     <div className="flex flex-col space-y-4">
       {/* Mini Tabs */}
-      <div className="flex space-x-2 border-b border-gray-200 dark:border-gray-800 pb-2 overflow-x-auto custom-scrollbar">
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-800 pb-2">
         {tabs.map(tab => (
           <button
             key={tab.id}

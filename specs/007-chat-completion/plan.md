@@ -1,79 +1,48 @@
-# Implementation Plan: Chat Completion & Enhancements
+# Implementation Plan: Chat Enhancements (Poll Management & UI Tweaks)
 
-**Branch**: `007-chat-completion` | **Date**: 2026-07-23 | **Spec**: [007-chat-completion/spec.md](spec.md)
+**Branch**: `007-chat-completion` | **Date**: 2026-07-23
 
-**Input**: Feature specification from `/specs/007-chat-completion/spec.md`
+## Goal Description
 
-## Summary
+Enhance the chat features with the following updates:
+1. **Poll Management**: Add a 3-dot menu to Poll widgets allowing the poll creator to Edit or Delete their poll.
+2. **Poll Bumping**: Automatically bring a poll to the bottom of the chat view when a user votes on it, ensuring it stays visible in active chats.
+3. **Media Categories UI**: Fix the scrolling issue in the Media Details panel where category tabs were cut off on smaller screens.
 
-Complete the chat feature by implementing group chat details (members, media gallery, avatar updates) and refining the real-time messaging UI for smoothness (optimistic updates, no call features).
+## User Review Required
 
-## Technical Context
+> [!IMPORTANT]  
+> **Global Notification Integration**: Regarding your question about integrating chat messages into the global system notifications—**I recommend against doing this for every message**. Chat messages occur with high frequency and would quickly spam the global notification bell, burying important system alerts (like task assignments, mentions, or approvals). 
+> **Alternative**: We should only push chat notifications to the global bell if a user is explicitly `@mentioned` in a group chat, or we just keep the chat notifications entirely separate (as they are now, with toast popups and unread badges).
 
-**Language/Version**: Python 3.11 (Backend), TypeScript (Frontend)
+Please review the proposed plan below and click **Proceed** if you agree with the approach.
 
-**Primary Dependencies**: FastAPI, SQLAlchemy, React, TailwindCSS, Socket.io (assumed for real-time messaging)
+## Proposed Changes
 
-**Storage**: PostgreSQL (SQLAlchemy)
+### Backend (FastAPI)
 
-**Testing**: Pytest
+#### [MODIFY] [api.py](file:///Users/macbook/Documents/Documents%20-%20Teekayyj/204prod./backend/app/modules/messaging/api.py)
+- **Delete Message**: Add WebSocket support for `{ type: "delete_message" }` which deletes the target message (if the sender matches the current user) and broadcasts `message_deleted` to participants.
+- **Edit Poll**: Add WebSocket support for `{ type: "edit_poll" }` which updates a poll's `metadata_json` (adding/removing options) and broadcasts `message_updated`.
+- **Poll Bumping**: When intercepting a `poll_vote`, the generated system message will now include `"poll_reference_id": msg_id` in its `metadata_json`.
 
-**Target Platform**: Web browsers
+### Frontend (React/Vite)
 
-**Project Type**: Web Application
+#### [MODIFY] [MessageBubble.tsx](file:///Users/macbook/Documents/Documents%20-%20Teekayyj/204prod./frontend/src/modules/messaging/components/MessageBubble.tsx)
+- Add a 3-dot (`MoreVertical`) menu to the Poll Widget, visible only to the poll creator.
+- Integrate an **Edit Poll Modal** that allows the creator to modify the question or options.
+- Handle `poll_reference_id` in system messages: if present, render a clickable shortcut or the poll widget itself right below the system message to "bump" it.
 
-**Performance Goals**: Instant visual feedback for sent messages (< 50ms UI update).
+#### [MODIFY] [ChatContext.tsx](file:///Users/macbook/Documents/Documents%20-%20Teekayyj/204prod./frontend/src/modules/messaging/store/ChatContext.tsx)
+- Add listeners for `message_deleted` to remove messages from state.
+- Add listeners for `message_updated` to update a message's content/metadata in state (used for edited polls).
 
-**Constraints**: Must leverage existing `messaging_conversations` and `messaging_attachments` tables.
+#### [MODIFY] [MediaGallery.tsx](file:///Users/macbook/Documents/Documents%20-%20Teekayyj/204prod./frontend/src/modules/messaging/components/MediaGallery.tsx)
+- Change the tab container's styling from `flex space-x-2 overflow-x-auto` to `flex flex-wrap gap-2`. This ensures that if the tabs (Images, Videos, Files, Links) exceed the container width, they will gracefully wrap to the next line rather than being cut off.
 
-**Scale/Scope**: Group chats up to 50 members, thousands of messages.
+## Verification Plan
 
-## Constitution Check
-
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-- **API-First**: API contracts for fetching media and updating avatars will be built first.
-- **Component-Driven Frontend**: The chat details panel will be a modular React component.
-- **Strict Typing**: TypeScript interfaces will be written for all API responses.
-- **UI/UX Consistency**: `ui-ux-pro-max-skill` will inform the design of the chat details panel and optimistic UI updates.
-- **Test-Driven & Validation**: Backend validation for avatar image uploads and file types.
-
-## Project Structure
-
-### Documentation (this feature)
-
-```text
-specs/007-chat-completion/
-├── plan.md              # This file
-├── research.md          # Research output
-├── data-model.md        # Schema updates and API models
-├── quickstart.md        # Validation scenarios
-└── contracts/           # API interface contracts (to be defined in implementation)
-```
-
-### Source Code (repository root)
-
-```text
-backend/
-├── app/
-│   ├── modules/
-│   │   └── messaging/
-│   │       ├── models.py   # Add avatar_url
-│   │       ├── router.py   # Add media endpoints, avatar update endpoint
-│   │       └── service.py  # Logic for fetching participants and media
-└── tests/
-
-frontend/
-├── src/
-│   ├── modules/
-│   │   └── messaging/
-│   │       ├── components/
-│   │       │   ├── ChatDetailsPanel.tsx
-│   │       │   ├── MediaGallery.tsx
-│   │       │   └── ParticipantList.tsx
-│   │       └── store/
-│   │           └── ChatContext.tsx # Update for optimistic UI
-└── tests/
-```
-
-**Structure Decision**: The project is a split frontend/backend architecture. The messaging module already exists in both codebases, so we will extend the existing `messaging/` modules.
+### Manual Verification
+- **Poll Management**: Create a poll, click the 3-dot menu, edit the poll options, and verify the UI updates for all users. Delete the poll and ensure it disappears.
+- **Poll Bumping**: Vote on a poll and verify the system message appears with the poll widget bumped to the bottom.
+- **Media UI**: Open Chat Details -> Media, and verify the category tabs are fully visible and wrap neatly if the space is constrained.

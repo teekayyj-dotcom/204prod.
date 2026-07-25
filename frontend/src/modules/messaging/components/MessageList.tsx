@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { useChatStore, Conversation } from "../store/ChatContext";
+import { ChevronDown } from "lucide-react";
 
 export function MessageList({ conversation }: { conversation: Conversation }) {
   const { messages, typingUsers } = useChatStore();
@@ -13,14 +14,28 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
   const currentUserId = u.id || 0;
 
   // Auto-scroll to bottom
-  useEffect(() => {
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     if (listRef.current) {
       listRef.current.scrollTo({
         top: listRef.current.scrollHeight,
-        behavior: "smooth"
+        behavior
       });
     }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [conversationMessages, typingUsers]);
+
+  const handleScroll = () => {
+    if (!listRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
+    // Show button if we are scrolled up more than 150px from bottom
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 150;
+    setShowScrollButton(isScrolledUp);
+  };
 
   // Read receipts logic:
   // Determine the highest message id read by the *other* participant
@@ -31,7 +46,11 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
   const isTyping = typingSet && typingSet.size > 0;
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 bg-slate-50" ref={listRef}>
+    <div 
+      className="flex-1 overflow-y-auto p-4 bg-slate-50 relative" 
+      ref={listRef}
+      onScroll={handleScroll}
+    >
       
       {conversationMessages.length === 0 && (
         <div className="flex h-full items-center justify-center text-slate-400 text-sm">
@@ -39,10 +58,50 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
         </div>
       )}
 
-      {conversationMessages.map(msg => {
+      {conversationMessages.map((msg, index) => {
         const isOwn = msg.sender_id === currentUserId;
         const sender = conversation.participants.find(p => p.user_id === msg.sender_id);
         const senderName = msg.sender_name || sender?.display_name || `User ${msg.sender_id}`;
+        
+        // Determine if we should hide the timestamp
+        let hideTimestamp = false;
+        if (index < conversationMessages.length - 1) {
+          const nextMsg = conversationMessages[index + 1];
+          if (nextMsg.sender_id === msg.sender_id && nextMsg.message_type !== "system" && msg.message_type !== "system") {
+            const currentT = new Date(msg.created_at).getTime();
+            const nextT = new Date(nextMsg.created_at).getTime();
+            // If the next message is within 2 minutes (120,000 ms)
+            if (nextT - currentT < 120000) {
+              hideTimestamp = true;
+            }
+          }
+        }
+
+        // Determine if we should hide the name (only show for the first message in a block)
+        let showName = !isOwn && conversation.is_group;
+        if (showName && index > 0) {
+          const prevMsg = conversationMessages[index - 1];
+          if (prevMsg.sender_id === msg.sender_id && prevMsg.message_type !== "system" && msg.message_type !== "system") {
+            const currentT = new Date(msg.created_at).getTime();
+            const prevT = new Date(prevMsg.created_at).getTime();
+            // If the previous message was within 2 minutes
+            if (currentT - prevT < 120000) {
+              showName = false;
+            }
+          }
+        }
+
+        // Bumping Poll logic
+        let referencedPollMessage = undefined;
+        if (msg.message_type === "system") {
+          const meta = typeof msg.metadata_json === 'string' 
+            ? JSON.parse(msg.metadata_json || '{}') 
+            : (msg.metadata_json || {});
+          if (meta.poll_reference_id) {
+            referencedPollMessage = conversationMessages.find(m => m.id === meta.poll_reference_id);
+          }
+        }
+
         return (
           <MessageBubble 
             key={msg.id}
@@ -50,10 +109,24 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
             isOwn={isOwn}
             isRead={msg.id <= otherLastReadId}
             senderName={senderName}
-            showName={!isOwn && conversation.is_group}
+            showName={showName}
+            hideTimestamp={hideTimestamp}
+            hideAvatar={hideTimestamp}
+            senderAvatar={sender?.avatar_url}
+            referencedPollMessage={referencedPollMessage}
           />
         );
       })}
+
+      {showScrollButton && (
+        <button 
+          onClick={() => scrollToBottom()}
+          className="fixed bottom-24 right-8 md:absolute md:bottom-6 md:right-8 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all z-20 animate-in fade-in slide-in-from-bottom-5"
+          title="Scroll to bottom"
+        >
+          <ChevronDown className="w-5 h-5" />
+        </button>
+      )}
 
       {isTyping && (
         <div className="flex items-center gap-2 text-slate-400 text-sm mb-4">

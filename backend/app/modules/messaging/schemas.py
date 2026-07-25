@@ -71,6 +71,7 @@ class ConversationParticipantOut(ConversationParticipantBase):
     last_read_message_id: Optional[int] = None
     display_name: Optional[str] = None
     role: Optional[str] = None
+    avatar_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

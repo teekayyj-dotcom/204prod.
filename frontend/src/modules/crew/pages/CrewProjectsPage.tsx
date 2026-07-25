@@ -261,6 +261,16 @@ export function CrewProjectsPage() {
       .catch(err => console.error("Error fetching tasks:", err));
   };
 
+  useEffect(() => {
+    const handleKanbanUpdate = (e: any) => {
+      if (e.detail?.project_slug === selectedProject?.id) {
+        fetchTasks();
+      }
+    };
+    window.addEventListener('kanban_update', handleKanbanUpdate);
+    return () => window.removeEventListener('kanban_update', handleKanbanUpdate);
+  }, [selectedProject]);
+
   const fetchFeedback = async () => {
     if (!selectedProject) return;
     try {

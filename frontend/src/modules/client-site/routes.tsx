@@ -1,11 +1,19 @@
 import { MaintenancePage } from "../../shared/pages/MaintenancePage";
 import { ClientLayout } from "./components/ClientLayout";
+import { WorksTransitionProvider } from "./components/WorksTransitionContext";
+import { LandingTransitionProvider } from "./components/LandingTransitionContext";
 
 const isDev = import.meta.env.DEV;
 
 export const clientSiteRoute = {
   path: "/",
-  Component: isDev ? ClientLayout : MaintenancePage, // ClientLayout on dev, Maintenance on prod
+  element: (
+    <LandingTransitionProvider>
+      <WorksTransitionProvider>
+        <ClientLayout />
+      </WorksTransitionProvider>
+    </LandingTransitionProvider>
+  ),
   children: [
     { index: true, lazy: () => import("./pages/LandingPage").then(m => ({ Component: m.LandingPage })) },
     { path: "works", lazy: () => import("./pages/WorksPage").then(m => ({ Component: m.WorksPage })) },

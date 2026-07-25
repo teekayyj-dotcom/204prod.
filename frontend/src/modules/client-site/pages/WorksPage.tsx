@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { Square, List, LayoutGrid, Search, ChevronDown } from "lucide-react";
+import gsap from 'gsap';
 
 function FluidHero({ title, children }) {
     const containerRef = useRef(null);
@@ -612,6 +613,9 @@ function ImageWithFallback({ src, alt, ...props }) {
 }
 
 export function WorksPage() {
+  const navigate = useNavigate();
+  const [transitioningProject, setTransitioningProject] = useState(null);
+  
   const [view, setView] = useState('single');
   const [hoveredProject, setHoveredProject] = useState(null);
 
@@ -633,6 +637,80 @@ export function WorksPage() {
   const springConfig = { damping: 25, stiffness: 200 };
   const cursorXSpring = useSpring(cursorX, springConfig);
   const cursorYSpring = useSpring(cursorY, springConfig);
+
+  const handleProjectClick = (e, projectId) => {
+    if (transitioningProject) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Only prevent default and animate if it's not a right click or ctrl click
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    
+    e.preventDefault();
+    setTransitioningProject(projectId);
+
+    let card = e.currentTarget;
+    
+    // For Row View, grab the floating image instead!
+    if (view === 'row') {
+      const floatingImage = document.getElementById("floating-cursor-image");
+      if (floatingImage) {
+        card = floatingImage;
+      }
+    }
+    
+    const rect = card.getBoundingClientRect();
+    
+    // Create clone
+    const clone = card.cloneNode(true);
+    document.body.appendChild(clone);
+    
+    // Hide original
+    card.style.opacity = '0';
+    
+    // Fix clone position
+    gsap.set(clone, {
+      position: "fixed",
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      zIndex: 9999,
+      margin: 0,
+      pointerEvents: "none",
+      borderRadius: window.getComputedStyle(card).borderRadius
+    });
+
+    // Fade out text elements inside clone
+    const textElements = clone.querySelectorAll("h3, p, span, div.absolute");
+    if (textElements.length > 0) {
+      gsap.to(textElements, { opacity: 0, duration: 0.3 });
+    }
+
+    document.body.classList.add("is-transitioning");
+
+    gsap.to(clone, {
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      borderRadius: 0,
+      duration: 1.0,
+      ease: "power3.inOut",
+      onComplete: () => {
+        document.body.classList.remove("is-transitioning");
+        navigate(`/works/${projectId}`);
+        
+        gsap.to(clone, {
+          opacity: 0,
+          duration: 0.6,
+          delay: 0.6,
+          onComplete: () => clone.remove()
+        });
+      }
+    });
+  };
 
   const handleMouseMove = (e) => {
     cursorX.set(e.clientX);
@@ -855,6 +933,7 @@ export function WorksPage() {
                       
                       <Link 
                         to={`/works/${project.id}`}
+                        onClick={(e) => handleProjectClick(e, project.id)}
                         className="w-full aspect-[4/5] md:aspect-[21/9] bg-zinc-950 overflow-hidden relative group rounded-2xl border border-white/5 cursor-pointer block"
                         onMouseEnter={() => setHoveredProject(project.id)}
                         onMouseLeave={() => setHoveredProject(null)}
@@ -939,7 +1018,12 @@ export function WorksPage() {
                   onMouseLeave={() => setHoveredProject(null)}
                 >
                   {filteredProjects.map((project) => (
-                    <Link key={project.id} to={`/works/${project.id}`} className="block">
+                    <Link 
+                      key={project.id} 
+                      to={`/works/${project.id}`} 
+                      onClick={(e) => handleProjectClick(e, project.id)}
+                      className="block"
+                    >
                       <motion.div 
                         variants={itemVariants}
                         onMouseEnter={() => setHoveredProject(project.id)}
@@ -976,7 +1060,12 @@ export function WorksPage() {
               {view === 'gallery' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredProjects.map((project) => (
-                    <Link key={project.id} to={`/works/${project.id}`} className="block">
+                    <Link 
+                      key={project.id} 
+                      to={`/works/${project.id}`} 
+                      onClick={(e) => handleProjectClick(e, project.id)}
+                      className="block"
+                    >
                       <motion.div variants={itemVariants} className="relative group aspect-square md:aspect-[4/5] bg-zinc-950 overflow-hidden cursor-pointer rounded-2xl border border-white/5">
                         <ImageWithFallback 
                           src={project.image} 
@@ -1017,6 +1106,7 @@ export function WorksPage() {
         <AnimatePresence>
           {view === 'row' && hoveredProject && (
             <motion.div
+              id="floating-cursor-image"
               className="fixed pointer-events-none z-50 w-72 aspect-video overflow-hidden shadow-2xl hidden md:block border border-white/10 rounded-md"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}

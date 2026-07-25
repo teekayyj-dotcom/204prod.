@@ -259,6 +259,18 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
+
+    # Notify Admin if check-in is late
+    if action == "check-in" and resolved_status == "late":
+        from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+        notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+            user_id="Admin",
+            type="hr",
+            title="Nhân sự đi muộn",
+            message=f"{resolved_name} vừa check-in muộn lúc {time}",
+            link="/admin/hr"
+        ))
+
     return db_log
 
 # Leave Requests
@@ -311,6 +323,17 @@ def create_leave_request_record(db: Session, payload: LeaveRequestCreate) -> Lea
     db.add(db_req)
     db.commit()
     db.refresh(db_req)
+
+    # Notify Admin about new leave request
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id="Admin",
+        type="hr",
+        title="Đơn từ mới",
+        message=f"{resolved_name} vừa nộp đơn {payload.type} cho ngày {payload.date}",
+        link="/admin/hr"
+    ))
+
     return db_req
 
 def update_leave_request_status(db: Session, req_id: int, status: str) -> LeaveRequest | None:
@@ -320,6 +343,17 @@ def update_leave_request_status(db: Session, req_id: int, status: str) -> LeaveR
     db_req.status = status
     db.commit()
     db.refresh(db_req)
+
+    # Notify Crew about leave request status
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id=db_req.employee_name,
+        type="hr",
+        title="Cập nhật đơn từ",
+        message=f"Đơn {db_req.type} ngày {db_req.date} của bạn đã được {status}",
+        link="/crew-dashboard/hr"
+    ))
+
     return db_req
 
 # Shifts

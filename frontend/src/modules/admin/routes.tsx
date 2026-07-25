@@ -46,6 +46,7 @@ export const adminRoute = {
         { path: "finance/revenue", lazy: () => import("./pages/FinanceRevenuePage").then(m => ({ Component: m.FinanceRevenuePage })) },
         { path: "finance/expenses", lazy: () => import("./pages/FinanceExpensesPage").then(m => ({ Component: m.FinanceExpensesPage })) },
         { path: "finance/payables", lazy: () => import("./pages/FinancePayablesPage").then(m => ({ Component: m.FinancePayablesPage })) },
+        { path: "messages", lazy: () => import("../messaging/MessagingPage").then(m => ({ Component: m.MessagingPage })) },
         { path: "*", Component: AdminNotFound },
     ],
 };

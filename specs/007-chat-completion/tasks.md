@@ -1,112 +1,46 @@
-# Tasks: Chat Completion & Enhancements
+# Tasks: Chat Enhancements (Avatar, Poll Notification, Toast)
 
-**Input**: Design documents from `/specs/007-chat-completion/`
+## Phase 1: Setup
+- [ ] T001 Verify project state
 
-**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md
+## Phase 2: User Story 1 - Sender Avatar (Priority: P1)
+**Goal**: Display the sender's own avatar on the right side of their messages.
+- [x] T002 [US1] Add avatar block to `MessageBubble.tsx` for `isOwn === true`
+- [x] T003 [US1] Apply `hideAvatar` logic to sender's avatar in `MessageBubble.tsx`
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+## Phase 3: User Story 2 - Poll Vote Notifications (Priority: P2)
+**Goal**: Broadcast a system message when a user votes in a poll.
+- [x] T004 [US2] Update `api.py` `websocket_endpoint` to intercept `poll_vote`
+- [x] T005 [US2] Fetch original poll message and extract `option_text`
+- [x] T006 [US2] Determine action ("voted for" or "changed their vote to") and create system message
+- [x] T007 [US2] Broadcast system message to all participants via `manager.broadcast_to_users`
 
-## Format: `[ID] [P?] [Story] Description`
-
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2)
-- Include exact file paths in descriptions
-
-## Phase 1: Setup (Shared Infrastructure)
-
-**Purpose**: Project initialization and basic structure
-
-- [x] T001 Verify backend dependencies for image upload handling (if needed)
-
----
-
-## Phase 2: Foundational (Blocking Prerequisites)
-
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
-
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete
-
-- [x] T002 Update `Conversation` model to include `avatar_url` in `backend/app/modules/messaging/models.py`
-- [x] T003 Generate Alembic migration for adding `avatar_url` to `messaging_conversations` table
-- [x] T004 Apply database migration using Alembic
-
-**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
-
----
-
-## Phase 3: User Story 1 - Group Chat Details & Settings (Priority: P1) 🎯 MVP
-
-**Goal**: View the details of a group chat to see members, media, and update the group avatar.
-
-**Independent Test**: Click "Group Info" in a group chat, verify participants/media load, and successfully update the group avatar.
-
-### Implementation for User Story 1
-
-- [x] T005 [P] [US1] Create API endpoint `GET /api/messaging/{id}/media` in `backend/app/modules/messaging/router.py`
-- [x] T006 [P] [US1] Create API endpoint `PATCH /api/messaging/{id}/avatar` in `backend/app/modules/messaging/router.py`
-- [x] T007 [P] [US1] Update `GET /api/messaging/{id}` to return participants and avatar in `backend/app/modules/messaging/router.py`
-- [x] T008 [US1] Implement business logic for fetching media/participants and updating avatar in `backend/app/modules/messaging/service.py`
-- [x] T009 [P] [US1] Create `ParticipantList` component in `frontend/src/modules/messaging/components/ParticipantList.tsx`
-- [x] T010 [P] [US1] Create `MediaGallery` component in `frontend/src/modules/messaging/components/MediaGallery.tsx`
-- [x] T011 [US1] Create `ChatDetailsPanel` component in `frontend/src/modules/messaging/components/ChatDetailsPanel.tsx` that integrates participants and media
-- [x] T012 [US1] Add avatar upload functionality to `ChatDetailsPanel.tsx`
-
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
-
----
-
-## Phase 4: User Story 2 - Smooth Messaging Experience (Priority: P1)
-
-**Goal**: Send and receive messages smoothly in real-time, without lag or layout issues.
-
-**Independent Test**: Send a message and verify it appears instantly on the sender's side. Verify no call buttons are visible.
-
-### Implementation for User Story 2
-
-- [x] T013 [P] [US2] Update `frontend/src/modules/messaging/store/ChatContext.tsx` to handle optimistic UI updates for sent messages
-- [x] T014 [US2] Update scroll behavior in the message list component to scroll smoothly on new messages
-- [x] T015 [US2] Remove or hide video/audio call buttons from the chat layout component
-
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
-
----
-
-## Phase 5: Polish & Cross-Cutting Concerns
-
-**Purpose**: Improvements that affect multiple user stories
-
-- [x] T016 Run quickstart.md validation tests
-- [x] T017 Verify responsive design of ChatDetailsPanel on mobile
-
----
+## Phase 4: User Story 3 - Advanced Toast Notifications (Priority: P1)
+**Goal**: Show detailed and clickable toast notifications for new messages.
+- [x] T008 [US3] Extract `groupName` in `ChatContext.tsx`'s `handleNewMessage`
+- [x] T009 [US3] Format toast title with `sender_name`, `groupName`, and `created_at` time
+- [x] T010 [US3] Add `action` button to toast in `ChatContext.tsx` to open the specific chat (`setIsWidgetOpen(true)`, `setActiveConversationId()`)
 
 ## Dependencies & Execution Order
+- T002 and T003 can be executed independently.
+- T004 - T007 should be executed together in the backend.
+- T008 - T010 should be executed together in the frontend.
 
-### Phase Dependencies
+## Phase 5: Poll Management & Bumping (Priority: P1)
+**Goal**: Allow creators to edit/delete polls and bump polls to the bottom when voted on.
+- [x] T011 [US4] Backend: Add websocket handler for `delete_message` in `api.py`
+- [x] T012 [US4] Backend: Add websocket handler for `edit_poll` in `api.py`
+- [x] T013 [US4] Backend: Include `poll_reference_id` in system message metadata when voting
+- [x] T014 [US4] Frontend: Add 3-dot menu to Poll widget in `MessageBubble.tsx` for creator
+- [x] T015 [US4] Frontend: Implement `EditPollModal` and trigger on Edit action
+- [x] T016 [US4] Frontend: Handle `poll_reference_id` to render poll in `MessageBubble.tsx`
+- [x] T017 [US4] Frontend: Handle `message_deleted` and `message_updated` in `ChatContext.tsx`
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - User stories can then proceed in parallel (if staffed)
-- **Polish (Final Phase)**: Depends on all desired user stories being complete
+## Phase 6: Media Gallery UI (Priority: P2)
+**Goal**: Fix the tabs overflow issue in `MediaGallery.tsx`
+- [x] T018 [US5] Frontend: Change tab container classes to `flex-wrap gap-2` in `MediaGallery.tsx`
 
-### User Story Dependencies
-
-- **User Story 1 (P1)**: Can start after Foundational (Phase 2)
-- **User Story 2 (P1)**: Can start after Foundational (Phase 2) - independent of US1
-
-### Parallel Opportunities
-
-- Foundation tasks can be done before user stories.
-- US1 backend endpoints and frontend components can be developed in parallel initially (e.g., mock UI while backend is being built).
-- US2 frontend state management can be built in parallel with US1.
-
----
-
-## Parallel Example: User Story 1
-
-```bash
-# Launch frontend and backend tasks in parallel:
-Task: "Create API endpoint GET /api/messaging/{id}/media in backend/app/modules/messaging/router.py"
-Task: "Create ParticipantList component in frontend/src/modules/messaging/components/ParticipantList.tsx"
-```
+## Phase 7: Chat Notification Redesign & Route Restriction (Priority: P1)
+**Goal**: Restrict chat to dashboard routes and redesign the notification toast.
+- [x] T019 [US6] Frontend: Prevent websocket connection on landing page routes in `ChatContext.tsx`
+- [x] T020 [US6] Frontend: Redesign sonner toast with custom JSX in `ChatContext.tsx`

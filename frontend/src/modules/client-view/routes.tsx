@@ -17,5 +17,6 @@ export const clientRoute = {
         { path: "billing", lazy: () => import("./pages/ClientBillingPage").then(m => ({ Component: m.ClientBillingPage })) },
         { path: "support", lazy: () => import("./pages/ClientSupportPage").then(m => ({ Component: m.ClientSupportPage })) },
         { path: "settings", lazy: () => import("./pages/ClientSettingsPage").then(m => ({ Component: m.ClientSettingsPage })) },
+        { path: "messages", lazy: () => import("../messaging/MessagingPage").then(m => ({ Component: m.MessagingPage })) },
     ],
 };

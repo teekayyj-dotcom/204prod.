@@ -1,116 +1,222 @@
+import { motion, type Variants } from "framer-motion";
+import { SpiralGallery } from "../../../shared/components/SpiralGallery";
 import { useState, useEffect } from "react";
+import { fetchApi } from "../../admin/utils/apiClient";
 
 export function AboutPage() {
-  const [animate, setAnimate] = useState(false);
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const textVariants: Variants = {
+    hidden: { opacity: 0, y: 30, filter: "blur(8px)" },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      filter: "blur(0px)",
+      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+    },
+  };
+
+  const highlightVariants: Variants = {
+    hidden: { opacity: 0, y: 40, filter: "blur(12px)" },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      filter: "blur(0px)",
+      transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] }
+    },
+  };
+
+  const sectionVariants: Variants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { duration: 0.8, ease: "easeOut" } 
+    }
+  };
+
+  const logoVariants: Variants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.6 } }
+  };
+
+  const textArray = [
+    "A", "vision", "is", "only", "as", "powerful", "as", "the", "network", "that", "carries", "it.", 
+    "At", "204PROD.,", "we", "build", "a", 
+    { word: "collective", highlight: true }, "transcending", { word: "boundaries", highlight: true }, ",", 
+    "from", "corporate", "giants", "to", "the", "raw", "pulse", "of", 
+    { word: "underground", highlight: true }, { word: "culture", highlight: true }, ".", 
+    "We", "bridge", "global", "standards", "and", { word: "local", highlight: true }, { word: "soul", highlight: true }, ",", 
+    "ensuring", "every", "alliance", "is", "an", { word: "evolution", highlight: true }, ".", 
+    "Collaborating", "with", "those", "who", "dare", "to", "lead,", "we", "translate", "disparate", "ambitions", "into", "a", 
+    { word: "unified", highlight: true }, { word: "visual", highlight: true }, { word: "language", highlight: true }, ".", 
+    "We", "don't", "just", "reach", "milestones;", "we", "redefine", "the", "trajectory", "of", "storytelling,", "moving", 
+    { word: "4ward", highlight: true }, "with", "every", "partnership", "we", "forge."
+  ];
+
+  const [partners, setPartners] = useState<{ name: string; url: string }[]>([]);
 
   useEffect(() => {
-    // Trigger animations slightly after mount
-    const timer = setTimeout(() => setAnimate(true), 100);
-    return () => clearTimeout(timer);
+    fetchApi('/projects/clients/all')
+      .then((data: any[]) => {
+        const mapped = data
+          .filter(c => c.logo_media_url)
+          .map(c => ({
+            name: c.name,
+            url: c.logo_media_url
+          }));
+        setPartners(mapped);
+      })
+      .catch(err => console.error("Failed to load clients:", err));
   }, []);
 
-  const maskWord = (word: string, delayClass: string) => (
-    <span className="inline-flex overflow-hidden align-bottom pb-[0.2em] mb-[-0.2em]">
-      <span
-        className={`inline-block text-[#BC0A0A] font-semibold transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${delayClass} ${
-          animate ? "translate-y-0" : "translate-y-[120%]"
-        }`}
-      >
-        {word}
-      </span>
-    </span>
-  );
+  const mid = Math.ceil(partners.length / 2);
+  const row1 = partners.slice(0, mid);
+  const row2 = partners.slice(mid);
+
+  const getRepeated = (arr: any[]) => {
+    if (arr.length === 0) return [];
+    let repeated = [...arr];
+    while (repeated.length < 12) {
+      repeated = [...repeated, ...arr];
+    }
+    return repeated;
+  };
+
+  const repeatedRow1 = getRepeated(row1);
+  const repeatedRow2 = getRepeated(row2);
 
   return (
-    <main className="home-shell bg-[#050505] min-h-screen">
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes aboutFadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .about-section {
-          animation: aboutFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0;
-        }
-        .delay-sec-1 { animation-delay: 200ms; }
-        .delay-sec-2 { animation-delay: 400ms; }
-        .delay-sec-3 { animation-delay: 600ms; }
-      `}} />
-      <div className="pt-[120px] md:pt-[180px] px-6 md:px-12 max-w-[1600px] mx-auto pb-24 min-h-[80vh] overflow-hidden">
-        {/* Hero Text */}
-        <h2
-          className="text-[clamp(1.6rem,4vw,3.8rem)] leading-[1.05] tracking-tight font-[450] mb-20 md:mb-28 text-white/90 text-justify md:text-left"
-          style={{ letterSpacing: "-0.03em" }}
-        >
-          A vision is only as powerful as the network that carries it. At 204PROD., we build a{" "}
-          {maskWord("collective", "delay-[700ms]")} transcending{" "}
-          {maskWord("boundaries", "delay-[750ms]")}
-          , from corporate giants to the raw pulse of{" "}
-          {maskWord("underground", "delay-[800ms]")} {maskWord("culture", "delay-[850ms]")}
-          . We bridge global standards and {maskWord("local", "delay-[900ms]")}{" "}
-          {maskWord("soul", "delay-[950ms]")}, ensuring every alliance is an{" "}
-          {maskWord("evolution", "delay-[1000ms]")}. Collaborating with those who dare to lead, we translate
-          disparate ambitions into a {maskWord("unified", "delay-[1050ms]")}{" "}
-          {maskWord("visual", "delay-[1100ms]")} {maskWord("language", "delay-[1150ms]")}. We don't just reach
-          milestones; we redefine the trajectory of storytelling, moving {maskWord("4ward", "delay-[1200ms]")}{" "}
-          with every partnership we forge.
-        </h2>
+    <main className="home-shell bg-[#050505] min-h-screen text-white/90 selection:bg-[#BC0A0A] selection:text-white">
+      <div className="px-6 md:px-12 max-w-[1600px] mx-auto pb-24 overflow-hidden">
+        
+        {/* Animated Hero Text Container - 100vh */}
+        <div className="min-h-[100dvh] flex flex-col justify-center pt-24 pb-12">
+          <motion.h2
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="text-[clamp(1.6rem,4vw,3.8rem)] leading-[1.15] tracking-tight font-[450] text-justify md:text-left flex flex-wrap gap-x-[0.25em] gap-y-2"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+          {textArray.map((item, index) => {
+            if (typeof item === "string") {
+              return (
+                <motion.span key={index} variants={textVariants} className="inline-block">
+                  {item}
+                </motion.span>
+              );
+            } else {
+              return (
+                <span key={index} className="inline-flex overflow-hidden align-bottom">
+                  <motion.span
+                    variants={highlightVariants}
+                    className="inline-block text-[#BC0A0A] font-semibold"
+                  >
+                    {item.word}
+                  </motion.span>
+                </span>
+              );
+            }
+          })}
+          </motion.h2>
+        </div>
 
-        <div className="grid grid-cols-1 gap-20 md:gap-28 mt-12">
+        <div className="flex flex-col gap-24 mt-12 md:mt-24">
+          
           {/* Section: Service */}
-          <section className="about-section delay-sec-1 border-t border-white/10 pt-12">
-            <h3 className="text-3xl md:text-4xl font-light mb-8 text-white uppercase tracking-wider">Service</h3>
-            <p className="text-[10px] md:text-xs uppercase tracking-[0.15em] text-white/70 leading-relaxed text-justify md:text-left max-w-4xl">
+          <motion.section 
+            variants={sectionVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            className="w-full"
+          >
+            <h3 className="text-2xl md:text-3xl font-light mb-6 text-white uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-4 after:left-0 after:w-12 after:h-px after:bg-[#BC0A0A]">
+              Service
+            </h3>
+            <p className="text-sm uppercase tracking-[0.15em] text-white/60 leading-relaxed mt-10 max-w-4xl">
               Our services are a fluid bridge between strategy and art, designed to adapt and elevate. We don't just provide production; we offer a versatile ecosystem of high-end cinematography and photography that transforms abstract brand identities into immersive experiences.
             </p>
-          </section>
+          </motion.section>
 
-          {/* Section: Partners */}
-          <section className="about-section delay-sec-2 border-t border-white/10 pt-12">
-            <h3 className="text-3xl md:text-4xl font-light mb-6 text-white uppercase tracking-wider">Partners</h3>
-            <p className="text-[10px] md:text-xs uppercase tracking-[0.15em] text-white/70 leading-relaxed text-justify md:text-left max-w-4xl mb-12">
-              Collaboration is the heartbeat of our craft. We believe in the power of a shared pulse, where corporate precision meets the raw energy of cultural expression. Every alliance we forge is more than a project—it is a collective step toward a new visual era.
-            </p>
-
-            {/* Client Logos Grid */}
-            <div className="flex flex-wrap justify-start items-center gap-6 md:gap-8">
-              {[
-                { name: "BUV", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/BUV.png?updatedAt=1775621132850" },
-                { name: "HERITIER", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/Heritier.png?updatedAt=1775622723734" },
-                { name: "BA", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/BA.png?updatedAt=1775619884908" },
-                { name: "YASKAWA", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/YASKAWA.png?updatedAt=1775619786172" },
-                { name: "VJE", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/VJE.png?updatedAt=1775619786078" },
-                { name: "GENSTOCK", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/GENSTOCK.png?updatedAt=1775619786019" },
-                { name: "YELCH", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/YELCH.png?updatedAt=1775619785979" },
-                { name: "CASTEM", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/CASTEM.png?updatedAt=1775619785559" },
-                { name: "NGỌC DƯỠNG ĐƯỜNG", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/ND%C4%90.png?updatedAt=1775578052342" },
-                { name: "VINFAST", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/VF.png?updatedAt=1775578052278" },
-                { name: "VIVA MUSICA", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/VIVA.png?updatedAt=1775578052276" },
-                { name: "KNOTE", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/KNOTE.png?updatedAt=1775578052219" },
-                { name: "TECHCOMBANK", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/TECHCOMBANK.png?updatedAt=1775578052249" },
-                { name: "GAFO", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/GAFO.png?updatedAt=1775578052264" },
-                { name: "KIOTVIET", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/KIOTVIET.png?updatedAt=1775578052144" },
-                { name: "CANADA WIND", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/CW.png?updatedAt=1775578052094" },
-                { name: "GREENFIELD", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/GREENFIELD.png?updatedAt=1775578052051" },
-                { name: "CASLA", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/CASLA.png?updatedAt=1775578052019" },
-                { name: "ARTSY", url: "https://ik.imagekit.io/204prod/CLIENT%20LOGO/ARTSY.png?updatedAt=1775578051728" },
-              ].map((logo) => (
-                <div
-                  key={logo.name}
-                  className="flex justify-center items-center opacity-50 hover:opacity-100 transition-opacity duration-300"
+          {/* Section: Client */}
+          <motion.section 
+            variants={sectionVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            className="w-full"
+          >
+            <h3 className="text-2xl md:text-3xl font-light mb-6 text-white uppercase tracking-wider relative after:content-[''] after:absolute after:-bottom-4 after:left-0 after:w-12 after:h-px after:bg-[#BC0A0A]">
+              Client
+            </h3>
+            
+            <div 
+              className="mt-16 md:mt-24 flex flex-col gap-12 relative overflow-hidden"
+              style={{
+                maskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)",
+                WebkitMaskImage: "linear-gradient(to right, transparent, black 15%, black 85%, transparent)"
+              }}
+            >
+              
+              {/* Line 1 - Scrolling Left */}
+              {repeatedRow1.length > 0 && (
+                <motion.div 
+                  className="flex w-max gap-16 md:gap-24 pr-16 md:pr-24"
+                  animate={{ x: ["0%", "-50%"] }}
+                  transition={{ repeat: Infinity, ease: "linear", duration: 35 }}
                 >
-                  <img
-                    src={logo.url}
-                    alt={logo.name}
-                    className="h-10 sm:h-12 md:h-14 w-auto object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                </div>
-              ))}
+                  {[...repeatedRow1, ...repeatedRow1].map((partner, index) => (
+                    <div 
+                      key={`row1-${index}`}
+                      className="w-[120px] md:w-[160px] aspect-[3/2] relative flex items-center justify-center grayscale hover:grayscale-0 transition-all duration-500 opacity-40 hover:opacity-100 flex-shrink-0"
+                    >
+                      <img 
+                        src={partner.url} 
+                        alt={`${partner.name} logo`} 
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* Line 2 - Scrolling Right */}
+              {repeatedRow2.length > 0 && (
+                <motion.div 
+                  className="flex w-max gap-16 md:gap-24 pr-16 md:pr-24"
+                  animate={{ x: ["-50%", "0%"] }}
+                  transition={{ repeat: Infinity, ease: "linear", duration: 40 }}
+                >
+                  {[...repeatedRow2, ...repeatedRow2].map((partner, index) => (
+                    <div 
+                      key={`row2-${index}`}
+                      className="w-[120px] md:w-[160px] aspect-[3/2] relative flex items-center justify-center grayscale hover:grayscale-0 transition-all duration-500 opacity-40 hover:opacity-100 flex-shrink-0"
+                    >
+                      <img 
+                        src={partner.url} 
+                        alt={`${partner.name} logo`} 
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </motion.div>
+              )}
             </div>
-          </section>
-        </div>
+          </motion.section>        </div>
       </div>
     </main>
   );
 }
-

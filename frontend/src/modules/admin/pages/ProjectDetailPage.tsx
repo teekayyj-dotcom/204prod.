@@ -159,6 +159,16 @@ function KanbanTab() {
         fetchTasks();
     }, [id]);
 
+    useEffect(() => {
+        const handleKanbanUpdate = (e: any) => {
+            if (e.detail?.project_slug === id) {
+                fetchTasks();
+            }
+        };
+        window.addEventListener('kanban_update', handleKanbanUpdate);
+        return () => window.removeEventListener('kanban_update', handleKanbanUpdate);
+    }, [id]);
+
     const [dragging, setDragging] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState<string | null>(null);
     const [showAddTask, setShowAddTask] = useState<string | null>(null);
