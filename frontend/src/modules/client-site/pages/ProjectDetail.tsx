@@ -5,10 +5,9 @@ import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import * as THREE from 'three';
 
-gsap.registerPlugin(ScrollTrigger, MorphSVGPlugin);
+gsap.registerPlugin(ScrollTrigger);
 gsap.config({ trialWarn: false });
 
 import { useWorksTransition } from '../components/WorksTransitionContext';
@@ -25,12 +24,8 @@ export function ProjectDetail() {
   const [nextProject, setNextProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const nextSectionRef = useRef<HTMLDivElement>(null);
-  const maskPathRef = useRef<SVGPathElement>(null);
+  const nextSectionRef = useRef<HTMLElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const bgOverlayRef = useRef<HTMLDivElement>(null);
-  const shapeStartRef = useRef<SVGPathElement>(null);
-  const shapeEndRef = useRef<SVGPathElement>(null);
 
   const scrollY = useMotionValue(0);
   const bgY = useTransform(scrollY, [0, 1000], [0, -200]);
@@ -126,56 +121,8 @@ export function ProjectDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (!nextProject) return;
-
-    // Hardcode the morph shapes so we don't need DOM elements for them
-    const pathStart = "M0,290 L1920,290 L1920,790 L0,790 Z";
-    const pathEnd = "M0,0 L1920,0 L1920,1080 L0,1080 Z";
-
-    const ctx = gsap.context(() => {
-      const nextSection = nextSectionRef.current;
-      const maskPath = maskPathRef.current;
-      const wrapper = wrapperRef.current;
-      const bgOverlay = bgOverlayRef.current;
-      const shapeStart = shapeStartRef.current;
-      const shapeEnd = shapeEndRef.current;
-      
-      if (nextSection && maskPath && shapeStart && shapeEnd) {
-        const handleMouseEnter = () => {
-          if (document.body.classList.contains("is-transitioning")) return;
-          gsap.to(maskPath, { duration: 0.6, morphSVG: shapeEnd, ease: "power2.out", overwrite: "auto" });
-          if (wrapper) gsap.to(wrapper, { opacity: 1, duration: 0.6, ease: "power2.out", overwrite: "auto" });
-          if (bgOverlay) gsap.to(bgOverlay, { opacity: 1, duration: 0.6, ease: "power2.out", overwrite: "auto" });
-        };
-        
-        const handleMouseLeave = () => {
-          if (document.body.classList.contains("is-transitioning")) return;
-          gsap.to(maskPath, { duration: 0.6, morphSVG: shapeStart, ease: "power2.out", overwrite: "auto" });
-          if (wrapper) gsap.to(wrapper, { opacity: 0.6, duration: 0.6, ease: "power2.out", overwrite: "auto" });
-          if (bgOverlay) gsap.to(bgOverlay, { opacity: 0, duration: 0.6, ease: "power2.out", overwrite: "auto" });
-        };
-
-        nextSection.addEventListener("mouseenter", handleMouseEnter);
-        nextSection.addEventListener("mouseleave", handleMouseLeave);
-        
-        // Store functions on the element so we can remove them in cleanup
-        (nextSection as any)._handleMouseEnter = handleMouseEnter;
-        (nextSection as any)._handleMouseLeave = handleMouseLeave;
-      }
-    });
-
     return () => {
-       const nextSection = nextSectionRef.current;
-       if (nextSection) {
-         if ((nextSection as any)._handleMouseEnter) {
-           nextSection.removeEventListener("mouseenter", (nextSection as any)._handleMouseEnter);
-         }
-         if ((nextSection as any)._handleMouseLeave) {
-           nextSection.removeEventListener("mouseleave", (nextSection as any)._handleMouseLeave);
-         }
-       }
        document.body.classList.remove("is-transitioning");
-       ctx.revert();
     };
   }, [nextProject]);
 
@@ -184,11 +131,9 @@ export function ProjectDetail() {
     if (!nextProject) return;
 
     const section = nextSectionRef.current;
-    const maskPathTarget = maskPathRef.current;
     const placeholder = document.getElementById("next-project-placeholder");
-    const pathEnd = "M0,0 L1920,0 L1920,1080 L0,1080 Z";
     
-    if (maskPathTarget && section && placeholder) {
+    if (section && placeholder) {
       document.body.classList.add("is-transitioning");
 
       const rect = section.getBoundingClientRect();
@@ -196,18 +141,6 @@ export function ProjectDetail() {
       // 1. Create a clone to animate safely in the body
       const clone = section.cloneNode(true) as HTMLElement;
       document.body.appendChild(clone);
-
-      // Fix SVG ID collisions so the browser doesn't break the clip-path!
-      const uniqueId = Math.random().toString(36).substring(7);
-      const cloneClipPath = clone.querySelector("clipPath");
-      const cloneImage = clone.querySelector("image");
-      const cloneMaskPath = clone.querySelector("#maskpath");
-      
-      if (cloneClipPath && cloneImage && cloneMaskPath) {
-        cloneClipPath.id = `morphClip_${uniqueId}`;
-        cloneImage.setAttribute("clip-path", `url(#${cloneClipPath.id})`);
-        cloneMaskPath.id = `maskpath_${uniqueId}`;
-      }
 
       const tl = gsap.timeline();
 
@@ -264,19 +197,7 @@ export function ProjectDetail() {
         }
       }, 0);
 
-        // 3. Ensure mask is fully expanded. 
-        // Animate the unique clone mask explicitly to the shape end node.
-        if (cloneMaskPath && shapeEndRef.current) {
-          tl.to(
-            cloneMaskPath,
-            {
-              duration: 0.5,
-              morphSVG: shapeEndRef.current,
-              ease: "power2.out"
-            },
-            0
-          );
-        }
+
     } else {
       navigate(`/works/${nextProject.slug}`);
       window.scrollTo(0, 0);
@@ -468,9 +389,9 @@ export function ProjectDetail() {
                       return acc;
                     }, {} as Record<string, string[]>) || {}
                   ).map(([role, names]: [string, any], index: number) => (
-                     <div key={index} className="flex flex-row items-baseline gap-4 pb-4 border-b border-white/5">
-                        <span className="text-[#EB5B00] text-xs font-semibold uppercase tracking-widest min-w-[140px] shrink-0">{role}</span>
-                        <span className="text-white text-base font-medium">{names.join(", ")}</span>
+                     <div key={index} className="grid grid-cols-[120px_1fr] md:grid-cols-[140px_1fr] xl:grid-cols-[160px_1fr] items-baseline gap-4 pb-4 border-b border-white/5">
+                        <span className="text-[#EB5B00] text-xs font-semibold uppercase tracking-widest leading-snug break-words">{role}</span>
+                        <span className="text-white text-base font-medium leading-snug">{names.join(", ")}</span>
                      </div>
                   ))}
                </div>
@@ -508,27 +429,14 @@ export function ProjectDetail() {
             className="relative z-10 w-full h-full bg-black cursor-pointer group next-project-section overflow-hidden"
             onClick={handleNextProjectClick}
           >
-          {/* Background overlay on hover */}
-          <div ref={bgOverlayRef} id="morphing-bg" className="absolute inset-0 bg-white/5 opacity-0 pointer-events-none" />
-
-            {/* Morphing Thumbnail (No sliding, stays centered) */}
-          <div ref={wrapperRef} id="morphing-wrapper" className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none opacity-60">
-             <svg viewBox="0 0 1920 1080" className="absolute inset-0 w-full h-full" preserveAspectRatio="xMidYMid slice">
-               <defs>
-                 <path ref={shapeStartRef} id="maskMorphShapeStart" d="M0,290 L1920,290 L1920,790 L0,790 Z" className="hidden" />
-                 <path ref={shapeEndRef} id="maskMorphShapeEnd" d="M0,0 L1920,0 L1920,1080 L0,1080 Z" className="hidden" />
-                 <clipPath id="morphClip">
-                   <path ref={maskPathRef} id="maskpath" d="M0,290 L1920,290 L1920,790 L0,790 Z" />
-                 </clipPath>
-               </defs>
-               <image 
-                 id="morphing-image"
-                 href={nextProject.cover_media?.url || nextProject.cover_image} 
-                 x="0" y="0" width="1920" height="1080" 
-                 preserveAspectRatio="xMidYMid slice" 
-                 clipPath="url(#morphClip)" 
-               />
-             </svg>
+            {/* Background Image with Object Cover (Avoids cropping/squashing bugs) */}
+          <div ref={wrapperRef} id="morphing-wrapper" className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none opacity-60 transition-opacity duration-700 group-hover:opacity-100">
+             <img 
+               id="morphing-image"
+               src={nextProject.cover_media?.url || nextProject.cover_image} 
+               alt={nextProject.title}
+               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+             />
           </div>
 
           {/* Title (Fixed position) */}
