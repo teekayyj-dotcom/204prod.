@@ -37,13 +37,19 @@ export function CrewDetail({ activeMember, onBack }: CrewDetailProps) {
     e.preventDefault();
     setTransitioningProject(slug);
 
-    let card = e.currentTarget as HTMLElement;
+    let link = e.currentTarget as HTMLElement;
+    let card = link.querySelector('.aspect-video') as HTMLElement || link;
+    
     const rect = card.getBoundingClientRect();
     
     const clone = card.cloneNode(true) as HTMLElement;
+    
+    // Add id so ProjectDetail can find it if needed
+    clone.id = 'floating-cursor-image';
+    
     document.body.appendChild(clone);
     
-    card.style.opacity = '0';
+    link.style.opacity = '0';
     clone.style.transform = 'none';
 
     gsap.set(clone, {
