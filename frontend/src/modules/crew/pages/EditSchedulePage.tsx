@@ -47,8 +47,8 @@ export function EditSchedulePage() {
     e.preventDefault();
 
     const totalShifts = Object.values(scheduleData).flat().length;
-    if (totalShifts < 1 && !state?.isAdminMode) {
-      setErrorMsg(`Vui lòng chọn tối thiểu 1 ca làm việc trong tuần.`);
+    if (totalShifts < 6 && !state?.isAdminMode) {
+      setErrorMsg(`Vui lòng chọn tối thiểu 6 ca làm việc trong tuần.`);
       return;
     }
 
@@ -86,7 +86,7 @@ export function EditSchedulePage() {
   };
 
   const totalShifts = Object.values(scheduleData).flat().length;
-  const isSatisfied = state?.isAdminMode || totalShifts >= 1;
+  const isSatisfied = state?.isAdminMode || totalShifts >= 6;
 
   if (isSuccess) {
     return (
@@ -256,7 +256,7 @@ export function EditSchedulePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || (!state?.isAdminMode && totalShifts < 1)}
+                  disabled={isSubmitting || (!state?.isAdminMode && totalShifts < 6)}
                   className="flex-1 sm:flex-none px-8 py-2.5 rounded-lg bg-[#D4A843] text-black font-bold hover:bg-[#FFE082] transition-colors disabled:opacity-50 disabled:hover:bg-[#D4A843] shadow-[0_0_20px_rgba(212,168,67,0.2)]"
                 >
                   {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
