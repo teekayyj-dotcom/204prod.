@@ -27,7 +27,7 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str, 
         # Verify they are actually active crew/editors
         crew_users = db.query(User).filter(
             User.active == True,
-            User.role.in_(["crew", "editor"]),
+            User.role.in_(["crew", "editor", "outsource"]),
             User.id.in_(crew_ids)
         ).all()
         final_crew_ids = [u.id for u in crew_users]
