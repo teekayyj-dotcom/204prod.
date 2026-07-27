@@ -382,11 +382,14 @@ function ScheduleTab({
       </div>
 
       <div className="w-full overflow-x-auto rounded-xl shadow-2xl" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
-        <div className="min-w-[1000px] grid grid-cols-[250px_repeat(6,minmax(100px,1fr))_80px] text-sm text-neutral-300">
+        <div className="min-w-[800px] sm:min-w-[1000px] grid grid-cols-[70px_repeat(6,minmax(100px,1fr))_80px] sm:grid-cols-[250px_repeat(6,minmax(100px,1fr))_80px] text-sm text-neutral-300">
           
           {/* --- HEADER ROW --- */}
           <div className="contents font-medium text-neutral-500 uppercase text-xs">
-            <div className="p-4 border-b border-neutral-800/50 sticky left-0 z-10" style={{ background: "rgba(25, 18, 18, 1)" }}>Nhân Viên</div>
+            <div className="p-4 border-b border-neutral-800/50 sticky left-0 z-10" style={{ background: "rgba(25, 18, 18, 1)" }}>
+              <span className="hidden sm:inline">Nhân Viên</span>
+              <span className="sm:hidden">NV</span>
+            </div>
             {weekDays.map(d => (
               <div key={d.toISOString()} className="p-4 border-b border-neutral-800/50 text-center">
                 <div>{d.toLocaleDateString("vi-VN", { weekday: 'short' })}</div>
@@ -408,7 +411,7 @@ function ScheduleTab({
                 <div key={idx} className="contents group">
                   <div className="p-4 border-b border-neutral-800/50 flex items-center gap-3 transition-colors group-hover:bg-neutral-900/50 sticky left-0 z-10" style={{ background: "rgba(25, 18, 18, 1)" }}>
                     <Avatar initials={s.avatar || (s.employee_name ? s.employee_name.substring(0,2).toUpperCase() : "NV")} size={8} />
-                    <div>
+                    <div className="hidden sm:block">
                       <div className="font-semibold text-neutral-100">{s.employee_name}</div>
                       <div className="text-[10px] text-neutral-500">{s.role || "Crew"}</div>
                     </div>
@@ -598,10 +601,11 @@ function TimesheetTab() {
           <thead>
             <tr style={{ borderBottom: "1px solid #2A1F1F" }}>
               <th
-                className="px-4 py-3 text-left sticky left-0 z-10"
-                style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", fontSize: "11px", fontWeight: 600, minWidth: "180px" }}
+                className="px-4 py-3 text-left sticky left-0 z-10 min-w-[70px] sm:min-w-[180px]"
+                style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#666", fontSize: "11px", fontWeight: 600 }}
               >
-                NHÂN VIÊN
+                <span className="hidden sm:inline">NHÂN VIÊN</span>
+                <span className="sm:hidden">NV</span>
               </th>
               {dayNumbers.map((d) => (
                 <th
@@ -641,7 +645,7 @@ function TimesheetTab() {
                 >
                   <div className="flex items-center gap-2">
                     <Avatar initials={row.employee.avatar} size={7} />
-                    <div>
+                    <div className="hidden sm:block">
                       <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600 }}>
                         {row.employee.name}
                       </p>
