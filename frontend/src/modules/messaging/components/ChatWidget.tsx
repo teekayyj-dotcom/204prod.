@@ -11,19 +11,7 @@ export function ChatWidget() {
   const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
   if (!isWidgetOpen) {
-    return (
-      <button
-        onClick={() => setIsWidgetOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-xl flex items-center justify-center text-white hover:bg-blue-700 transition-all z-50 focus:outline-none focus:ring-4 focus:ring-blue-300"
-      >
-        <MessageCircle className="w-6 h-6" />
-        {totalUnread > 0 && (
-          <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white">
-            {totalUnread > 99 ? '99+' : totalUnread}
-          </span>
-        )}
-      </button>
-    );
+    return null;
   }
 
   return (

@@ -9,8 +9,10 @@ import {
   ChevronLeft,
   Zap,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { NotificationBell } from "../../../shared/components/NotificationBell";
+import { useChatStore } from "../../messaging/store/ChatContext";
 
 const navItems = [
   {
@@ -55,6 +57,8 @@ export function CrewSidebar({
   onToggleCollapse?: () => void;
 }) {
   const location = useLocation();
+  const { isWidgetOpen, setIsWidgetOpen, conversations } = useChatStore();
+  const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
   return (
     <aside
@@ -176,6 +180,64 @@ export function CrewSidebar({
 
         {/* Divider */}
         <div style={{ margin: "16px 12px", borderTop: "1px solid #2A1F1F" }} />
+
+        {/* Messages Widget Toggle */}
+        <button
+          onClick={() => {
+            setIsWidgetOpen(!isWidgetOpen);
+            if (onClose) onClose();
+          }}
+          className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200`}
+          style={{
+            background: isWidgetOpen ? "#D84040" : "transparent",
+            color: isWidgetOpen ? "#EEEEEE" : "#999",
+          }}
+          onMouseEnter={(e) => {
+            if (!isWidgetOpen) {
+              (e.currentTarget as HTMLElement).style.background = "#2A1F1F";
+              (e.currentTarget as HTMLElement).style.color = "#EEEEEE";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isWidgetOpen) {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color = "#999";
+            }
+          }}
+          title={isCollapsed ? "Tin nhắn" : undefined}
+        >
+          <div className="flex items-center gap-3 relative">
+            <MessageCircle size={17} className="flex-shrink-0" />
+            {totalUnread > 0 && isCollapsed && (
+              <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-red-500 rounded-full border border-[#141010] flex items-center justify-center text-[9px] font-bold text-white z-10">
+                {totalUnread > 99 ? '99+' : totalUnread}
+              </span>
+            )}
+            {!isCollapsed && (
+              <div className="flex flex-col overflow-hidden text-left">
+                <span style={{ fontSize: "13px", fontWeight: isWidgetOpen ? 600 : 400, lineHeight: 1.2 }} className="truncate">
+                  Tin nhắn
+                </span>
+                <span
+                  className="truncate"
+                  style={{
+                    fontSize: "10px",
+                    color: isWidgetOpen ? "rgba(238,238,238,0.65)" : "#666",
+                    letterSpacing: "0.05em",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Messages
+                </span>
+              </div>
+            )}
+          </div>
+          {!isCollapsed && totalUnread > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
+              {totalUnread > 99 ? '99+' : totalUnread}
+            </span>
+          )}
+        </button>
 
       </nav>
 

@@ -169,6 +169,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
              c.id === msg.conversation_id ? { ...c, last_message: msg, unread_count: (c.unread_count || 0) + 1 } : c
           ));
           
+          // Auto pop-up widget if it's closed
+          if (!isWidgetOpenRef.current) {
+            setIsWidgetOpen(true);
+          }
+          
           const text = msg.content || "Sent an attachment";
 
           // OS Notification
