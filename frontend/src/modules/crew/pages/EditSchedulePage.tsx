@@ -47,8 +47,8 @@ export function EditSchedulePage() {
     e.preventDefault();
 
     const totalShifts = Object.values(scheduleData).flat().length;
-    if (!state?.isAdminMode && totalShifts < 6) {
-      setErrorMsg(`Bạn mới chọn ${totalShifts} ca. Vui lòng chọn tối thiểu 6 ca làm việc trong tuần.`);
+    if (totalShifts < 1 && !state?.isAdminMode) {
+      setErrorMsg(`Vui lòng chọn tối thiểu 1 ca làm việc trong tuần.`);
       return;
     }
 
@@ -86,7 +86,7 @@ export function EditSchedulePage() {
   };
 
   const totalShifts = Object.values(scheduleData).flat().length;
-  const isSatisfied = state?.isAdminMode || totalShifts >= 6;
+  const isSatisfied = state?.isAdminMode || totalShifts >= 1;
 
   if (isSuccess) {
     return (
@@ -243,8 +243,8 @@ export function EditSchedulePage() {
               <div className="text-sm text-[#888] flex items-center gap-2">
                 <CheckCircle2 size={16} className={isSatisfied ? "text-emerald-500" : "text-amber-500"} />
                 {isSatisfied 
-                  ? "Đã đạt số lượng ca tối thiểu" 
-                  : `Cần chọn thêm ${6 - totalShifts} ca nữa`}
+                  ? "Đã chọn ca làm việc" 
+                  : `Vui lòng chọn ít nhất 1 ca`}
               </div>
               <div className="flex gap-4 w-full sm:w-auto">
                 <button
@@ -256,7 +256,7 @@ export function EditSchedulePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || (!state?.isAdminMode && totalShifts < 6)}
+                  disabled={isSubmitting || (!state?.isAdminMode && totalShifts < 1)}
                   className="flex-1 sm:flex-none px-8 py-2.5 rounded-lg bg-[#D4A843] text-black font-bold hover:bg-[#FFE082] transition-colors disabled:opacity-50 disabled:hover:bg-[#D4A843] shadow-[0_0_20px_rgba(212,168,67,0.2)]"
                 >
                   {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
