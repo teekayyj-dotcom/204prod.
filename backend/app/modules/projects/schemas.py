@@ -160,13 +160,15 @@ class ProjectFeedbackBase(BaseModel):
 
 
 class ProjectFeedbackCreate(ProjectFeedbackBase):
-    user_id: str = "Client"
+    user_id: str | None = "Client"
+    guest_name: str | None = None
 
 
 class ProjectFeedbackDetail(ProjectFeedbackBase):
     id: int
     project_slug: str
-    user_id: str
+    user_id: str | None = None
+    guest_name: str | None = None
     created_at: datetime
     reply_at: datetime | None = None
 
@@ -257,3 +259,16 @@ class ProjectCommentDetail(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ReviewLinkResponse(BaseModel):
+    token: str
+    url: str
+    project_slug: str
+    video_url: str
+
+class ReviewLinkPublic(BaseModel):
+    token: str
+    project_slug: str
+    video_url: str
+    published: bool

@@ -14,7 +14,9 @@ from app.modules.projects.schemas import (
     ProjectFeedbackCreate,
     ProjectTaskCreate,
     ProjectTaskUpdate,
-    ProjectCommentCreate
+    ProjectCommentCreate,
+    ReviewLinkResponse,
+    ReviewLinkPublic
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -140,6 +142,38 @@ def delete_project_route(slug: str, db: Session = Depends(get_db_session)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return None
 
+
+@router.get("/{slug}/review-link", response_model=ReviewLinkResponse)
+def get_review_link_route(slug: str, video_url: str = Query(...), db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import get_or_create_review_link
+    link = get_or_create_review_link(db, slug, video_url)
+    from app.core.config import settings
+    # Assuming frontend is hosted at frontend_origin
+    frontend_url = settings.frontend_origin.rstrip("/")
+    return {
+        "token": link.token,
+        "url": f"{frontend_url}/review/{link.token}",
+        "project_slug": link.project_slug,
+        "video_url": link.video_url
+    }
+
+@router.get("/public/review/{token}", response_model=ReviewLinkPublic)
+def public_review_link_route(token: str, db: Session = Depends(get_db_session)):
+    from app.modules.projects.service import get_review_link_by_token, get_project_by_slug_orm
+    link = get_review_link_by_token(db, token)
+    if not link:
+        raise HTTPException(status_code=404, detail="Review link not found or expired")
+    
+    project = get_project_by_slug_orm(db, link.project_slug)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return {
+        "token": link.token,
+        "project_slug": link.project_slug,
+        "video_url": link.video_url,
+        "published": project.published
+    }
 
 @router.get("/{slug}/feedback")
 def list_feedback_route(slug: str, video_url: str | None = Query(None), db: Session = Depends(get_db_session)):

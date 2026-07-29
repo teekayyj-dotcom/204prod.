@@ -12,6 +12,7 @@ const router = createBrowserRouter([
   { path: '/change-password', lazy: () => import('../modules/auth/AuthPage').then(m => ({ Component: m.AuthPage })) },
   { path: '/pending', lazy: () => import('../modules/auth/PendingApprovalPage').then(m => ({ Component: m.PendingApprovalPage })) },
   { path: '/messaging', lazy: () => import('../modules/messaging/MessagingPage').then(m => ({ Component: m.MessagingPage })) },
+  { path: '/review/:token', lazy: () => import('../modules/client-view/pages/PublicReviewPage').then(m => ({ Component: m.PublicReviewPage })) },
   clientSiteRoute,
   adminRoute,
   crewRoute,

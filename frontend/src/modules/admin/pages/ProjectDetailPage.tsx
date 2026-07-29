@@ -1642,12 +1642,30 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                     )}
                                     <p style={{ color: "#555", fontSize: "9px", marginBottom: "6px" }}>{file.size} · {file.uploaded}</p>
                                     {file.type === "video" && (
-                                        <button 
-                                            onClick={() => navigate(`/admin/projects/${project.slug}/playback?video=${encodeURIComponent(embedUrlForReview)}`)}
-                                            style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: "rgba(216,64,64,0.15)", color: "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", marginBottom: "5px" }}
-                                        >
-                                            <MonitorPlay size={9} /> Mở Cinema Review
-                                        </button>
+                                        <>
+                                            <button 
+                                                onClick={() => navigate(`/admin/projects/${project.slug}/playback?video=${encodeURIComponent(embedUrlForReview)}`)}
+                                                style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: "rgba(216,64,64,0.15)", color: "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", marginBottom: "5px" }}
+                                            >
+                                                <MonitorPlay size={9} /> Mở Cinema Review
+                                            </button>
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        const res = await fetchApi<any>(`/projects/${project.slug}/review-link?video_url=${encodeURIComponent(embedUrlForReview)}`);
+                                                        if (res.url) {
+                                                            await navigator.clipboard.writeText(res.url);
+                                                            alert("Đã copy link chia sẻ cho khách hàng!");
+                                                        }
+                                                    } catch(err) {
+                                                        alert("Có lỗi khi tạo link chia sẻ.");
+                                                    }
+                                                }}
+                                                style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: "rgba(59,130,246,0.15)", color: "#3b82f6", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", marginBottom: "5px" }}
+                                            >
+                                                <Link2 size={9} /> Copy Link Gửi Khách
+                                            </button>
+                                        </>
                                     )}
                                     <button onClick={() => togglePublish(file.id, file.published)} style={{ width: "100%", padding: "5px 0", borderRadius: "6px", border: "none", background: file.published ? "rgba(76,175,80,0.15)" : "rgba(216,64,64,0.15)", color: file.published ? "#4CAF50" : "#D84040", fontSize: "9px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
                                         {file.published ? <><Unlock size={9} /> Published</> : <><Lock size={9} /> Publish to Client</>}

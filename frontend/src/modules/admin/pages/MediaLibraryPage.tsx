@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
-import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight } from "lucide-react";
+import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight, Link } from "lucide-react";
 import { API_BASE_URL, fetchApi } from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -274,6 +274,25 @@ export function MediaLibraryPage() {
         }
     };
 
+    const handleCopyReviewLink = async (asset: any, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!asset.projectSlug) {
+            alert("Video này chưa được gán cho dự án nào.");
+            return;
+        }
+        try {
+            const videoUrlForReview = asset.url;
+            const res = await fetchApi<any>(`/projects/${asset.projectSlug}/review-link?video_url=${encodeURIComponent(videoUrlForReview)}`);
+            if (res.url) {
+                await navigator.clipboard.writeText(res.url);
+                alert("Đã copy link chia sẻ cho khách hàng!");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Có lỗi khi tạo link chia sẻ.");
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -475,6 +494,11 @@ export function MediaLibraryPage() {
                                         <button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#D84040", color: "#fff" }} onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: asset.id, name: asset.name }); }}>
                                             <Trash2 size={14}/>
                                         </button>
+                                        {asset.type === "video" && (
+                                            <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500 text-white" onClick={(e) => handleCopyReviewLink(asset, e)}>
+                                                <Link size={14}/>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="p-3">
@@ -562,6 +586,11 @@ export function MediaLibraryPage() {
                                                 <button className="w-7 h-7 rounded flex items-center justify-center" style={{ background: "#2A1F1F", color: "#888" }} onMouseEnter={(e) => (e.currentTarget.style.color = "#D84040")} onMouseLeave={(e) => (e.currentTarget.style.color = "#888")} onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: asset.id, name: asset.name }); }}>
                                                     <Trash2 size={13}/>
                                                 </button>
+                                                {asset.type === "video" && (
+                                                    <button className="w-7 h-7 rounded flex items-center justify-center bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors" onClick={(e) => handleCopyReviewLink(asset, e)}>
+                                                        <Link size={13}/>
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

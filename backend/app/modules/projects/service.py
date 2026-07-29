@@ -412,6 +412,7 @@ def create_feedback(db: Session, project_slug: str, req):
         project_slug=project_slug,
         video_url=req.video_url,
         user_id=req.user_id,
+        guest_name=req.guest_name,
         timecode=req.timecode,
         position_x=req.position_x,
         position_y=req.position_y,
@@ -708,3 +709,30 @@ def reject_task_request(db: Session, request_id: str) -> bool:
 
     return True
 
+
+def get_or_create_review_link(db: Session, project_slug: str, video_url: str):
+    import secrets
+    from app.modules.projects.models import ReviewLink
+    link = db.query(ReviewLink).filter(
+        ReviewLink.project_slug == project_slug,
+        ReviewLink.video_url == video_url
+    ).first()
+
+    if link:
+        return link
+
+    token = secrets.token_urlsafe(16)
+    new_link = ReviewLink(
+        token=token,
+        project_slug=project_slug,
+        video_url=video_url
+    )
+    db.add(new_link)
+    db.commit()
+    db.refresh(new_link)
+    return new_link
+
+
+def get_review_link_by_token(db: Session, token: str):
+    from app.modules.projects.models import ReviewLink
+    return db.query(ReviewLink).filter(ReviewLink.token == token).first()

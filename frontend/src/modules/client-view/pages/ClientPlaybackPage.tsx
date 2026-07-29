@@ -41,14 +41,16 @@ interface ProjectData {
     cover_image?: string;
 }
 
-export function ClientPlaybackPage() {
-    const { id } = useParams<{ id: string }>();
+export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName, isGuest }: { guestProjectSlug?: string, guestVideoUrl?: string, guestName?: string, isGuest?: boolean }) {
+    const params = useParams<{ id: string }>();
+    const id = isGuest ? guestProjectSlug : params.id;
     const navigate = useNavigate();
     const location = useLocation();
     const isAdmin = location.pathname.startsWith("/admin");
     
     const userObj = JSON.parse(localStorage.getItem("user") || "{}");
     const [currentUserName, setCurrentUserName] = useState<string>(() => {
+        if (isGuest && guestName) return guestName;
         if (isAdmin) return "Admin";
         return userObj.display_name || userObj.username || "Guest";
     });
@@ -128,7 +130,7 @@ export function ClientPlaybackPage() {
         fetchApi<ProjectData>(`/projects/${id}`)
             .then(async (projData) => {
                 setProject(projData);
-                const currentVideo = videoUrlParam || projData.video_url;
+                const currentVideo = isGuest ? guestVideoUrl : (videoUrlParam || projData.video_url);
                 try {
                     let feedbackUrl = `/projects/${id}/feedback`;
                     if (currentVideo) {
@@ -421,25 +423,26 @@ export function ClientPlaybackPage() {
     }, []);
 
     // Submit new feedback item
-    const handleSubmitComment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!tempPin || !commentText.trim() || !id) return;
-
+    const submitComment = async () => {
+        if (!id || !project || !commentText.trim() || !tempPin) return;
         setSubmittingComment(true);
+        const currentVideo = isGuest ? guestVideoUrl : (new URLSearchParams(location.search).get("video") || project.video_url);
+
         try {
-            const payload = {
+            const reqBody = {
+                video_url: currentVideo,
                 timecode: parseFloat(tempPin.time.toFixed(3)),
                 position_x: parseFloat(tempPin.x.toFixed(3)),
                 position_y: parseFloat(tempPin.y.toFixed(3)),
                 content: commentText.trim(),
-                video_url: videoToPlay,
-                user_id: currentUserName,
-                status: "Open"
+                status: "Open",
+                user_id: isGuest ? "Guest" : (isAdmin ? "Admin" : currentUserName),
+                guest_name: isGuest ? guestName : undefined
             };
 
             const created = await fetchApi<FeedbackItem>(`/projects/${id}/feedback`, {
                 method: "POST",
-                body: JSON.stringify(payload)
+                body: JSON.stringify(reqBody)
             });
 
             setFeedbacks(prev => [...prev, created].sort((a, b) => a.timecode - b.timecode));
@@ -453,24 +456,31 @@ export function ClientPlaybackPage() {
         }
     };
 
-    const handleSidebarCommentSubmit = async (e: React.FormEvent) => {
+    const handleSubmitComment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!sidebarComment.trim() || !id) return;
+        await submitComment();
+    };
+
+    const submitSidebarComment = async () => {
+        if (!id || !project || !sidebarComment.trim()) return;
+        setSubmittingComment(true);
+        const currentVideo = isGuest ? guestVideoUrl : (new URLSearchParams(location.search).get("video") || project.video_url);
 
         try {
-            const payload = {
+            const reqBody = {
+                video_url: currentVideo,
                 timecode: parseFloat(currentTime.toFixed(3)),
                 position_x: -1,
                 position_y: -1,
                 content: sidebarComment.trim(),
-                video_url: videoToPlay,
-                user_id: currentUserName,
-                status: "Open"
+                status: "Open",
+                user_id: isGuest ? "Guest" : (isAdmin ? "Admin" : currentUserName),
+                guest_name: isGuest ? guestName : undefined
             };
 
             const created = await fetchApi<FeedbackItem>(`/projects/${id}/feedback`, {
                 method: "POST",
-                body: JSON.stringify(payload)
+                body: JSON.stringify(reqBody)
             });
 
             setFeedbacks(prev => [...prev, created].sort((a, b) => a.timecode - b.timecode));
@@ -478,7 +488,14 @@ export function ClientPlaybackPage() {
         } catch (err) {
             console.error("Failed to save sidebar feedback comment:", err);
             alert("Không thể lưu góp ý. Vui lòng thử lại.");
+        } finally {
+            setSubmittingComment(false);
         }
+    };
+
+    const handleSidebarCommentSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await submitSidebarComment();
     };
 
     const handleSaveReply = async (fbId: number) => {
@@ -491,7 +508,7 @@ export function ClientPlaybackPage() {
                 },
                 body: JSON.stringify({
                     reply_content: replyText.trim(),
-                    reply_author: currentUserName
+                    reply_author: isGuest ? (guestName || "Guest") : currentUserName
                 })
             });
             setFeedbacks(prev => prev.map(f => f.id === fbId ? updated : f));
@@ -564,7 +581,7 @@ export function ClientPlaybackPage() {
     // Read selected video from query parameters if present
     const searchParamsParams = new URLSearchParams(location.search);
     const videoUrlParamFallback = searchParamsParams.get("video");
-    const videoToPlay = videoUrlParamFallback || project.video_url;
+    const videoToPlay = isGuest ? guestVideoUrl : (videoUrlParamFallback || project.video_url);
 
     // Detect YouTube / Vimeo embed (these need an iframe)
     const ytMatch = videoToPlay?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
@@ -601,12 +618,14 @@ export function ClientPlaybackPage() {
                 {/* Top Header */}
                 <div className="flex items-center justify-between mb-4 z-10">
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate(isAdmin ? `/admin/projects/${project.slug}` : `/client/projects/${project.slug}`)}
-                            className="w-9 h-9 rounded-lg flex items-center justify-center bg-[#141010] border border-[#2A1F1F] text-gray-400 hover:text-white"
-                        >
-                            <ArrowLeft size={16} />
-                        </button>
+                        {!isGuest && (
+                            <button
+                                onClick={() => navigate(isAdmin ? `/admin/projects/${project.slug}` : `/client/projects/${project.slug}`)}
+                                className="w-9 h-9 rounded-lg flex items-center justify-center bg-[#141010] border border-[#2A1F1F] text-gray-400 hover:text-white"
+                            >
+                                <ArrowLeft size={16} />
+                            </button>
+                        )}
                         <div>
                             <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Phòng chiếu phản hồi</span>
                             <h1 className="text-sm font-bold">{project.title}</h1>
@@ -937,9 +956,14 @@ export function ClientPlaybackPage() {
                                         <span className="font-bold text-[#FFC107] font-mono text-sm">
                                             {formatTimecode(fb.timecode)}
                                         </span>
-                                        <span className="text-[12px] uppercase tracking-wider text-gray-400 font-bold">
-                                            {fb.user_id}
-                                        </span>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-semibold text-sm">
+                                                {fb.user_id === "Guest" && fb.guest_name ? `${fb.guest_name} (Guest)` : fb.user_id}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500">
+                                                {new Date(fb.created_at).toLocaleString()}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center gap-1">

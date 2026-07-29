@@ -144,6 +144,26 @@ class ProjectGalleryImage(Base):
     media_asset: Mapped["MediaAsset"] = relationship(back_populates="gallery_images")
 
 
+class ReviewLink(Base):
+    __tablename__ = "review_links"
+
+    token: Mapped[str] = mapped_column(String(50), primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    video_url: Mapped[str] = mapped_column(String(500), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    project: Mapped[Project] = relationship()
+
+
 class ProjectFeedback(Base):
     __tablename__ = "project_feedbacks"
 
@@ -155,7 +175,8 @@ class ProjectFeedback(Base):
         index=True,
     )
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True, index=True)
-    user_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    guest_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
     timecode: Mapped[float] = mapped_column(Float, nullable=False)
     position_x: Mapped[float] = mapped_column(Float, nullable=False)
     position_y: Mapped[float] = mapped_column(Float, nullable=False)
