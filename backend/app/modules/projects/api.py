@@ -173,7 +173,7 @@ def public_review_link_route(token: str, db: Session = Depends(get_db_session)):
 
     is_published = project.published
     gallery_img = db.query(ProjectGalleryImage).join(MediaAsset).filter(
-        ProjectGalleryImage.project_id == project.id,
+        ProjectGalleryImage.project_slug == link.project_slug,
         MediaAsset.url == link.video_url
     ).first()
     
