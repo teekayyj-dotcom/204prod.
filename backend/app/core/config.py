@@ -6,7 +6,7 @@ import os
 class Settings:
     app_name: str = os.getenv("APP_NAME", "204PROD API")
     api_v1_prefix: str = os.getenv("API_V1_PREFIX", "/api/v1")
-    frontend_origin: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+    frontend_origin: str = os.getenv("FRONTEND_ORIGIN", "https://204prod.vn")
     database_url: str = os.getenv(
         "DATABASE_URL",
         "mysql+pymysql://"
