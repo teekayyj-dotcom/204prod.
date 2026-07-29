@@ -9,6 +9,7 @@
 **Input**: User description: "sửa lỗi hardcode... phân loại media... phóng to khung chat... xóa tiền tố Project... Admin đổi tên nhóm... Admin tạo nhóm và add thành viên... User tạo vote, deadline... bỏ chế độ online/offline... searchbar tìm user... upload ảnh lên R2 định dạng webp theo thư mục, video lên bunny..."
 New Input: "không hiện icon message ở góc màn hình như hiện tại. để 1 box message ở side bar. Khi có tin nhắn mới thì box chat sẽ tự pop up ở góc màn hình"
 New Input: "Tối ưu flow sử dụng của chat box, bất cứ user nào có trong kanban hoặc crew được assign đều xem chat được (tương tự với các crew xem được các project mà họ đã được assign)"
+New Input: "Khi admin/crew up file lên hệ thống để review, hãy tự động tối giản path của cinemareviewe và admin/crew có thể share link đó cho bất cứ ai (trong trường hợp đã được admin publish trên hệ thống). Người dùng thứ 3 (người truy cập link được gửi) có thể chọn giữa option đăng nhập (nếu bấm vào link mà đã đăng nhập trong hệ thống) thì được đưa thẳng tới cinemariew, trường hợp chưa đăng nhập hoặc không muốn đăng nhập, hãy để user nhập username vào và comment với username đó."
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 3 - Advanced Chat Details & Media (Priority: P1)
@@ -42,6 +43,14 @@ As the system, I must optimize media storage by routing to the correct CDN and c
 2. **Given** an image is uploaded to R2, **Then** it must be stored in a directory specific to the chat (e.g., `messaging/chat_{id}/images/`).
 3. **Given** a video is uploaded, **Then** it must be uploaded to Bunny.net instead of R2.
 
+### User Story 7 - Cinemareview Public Link Sharing (Priority: P1)
+As an admin or crew, I want to share a simplified review link so that third-party users can review and leave feedback.
+**Acceptance Scenarios**:
+1. **Given** a video is published for review, **Then** the system automatically generates a simplified, shareable path (e.g., `/review/{unique_token}`).
+2. **Given** an external user visits the shared link, **When** they are not logged in, **Then** they are prompted to either log in or enter a guest username.
+3. **Given** an external user enters a guest username, **When** they submit feedback, **Then** the feedback is recorded using their provided guest name.
+4. **Given** a user clicks the shared link, **When** they are already logged in, **Then** they bypass the guest prompt and enter the review as their authenticated account.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -60,6 +69,10 @@ As the system, I must optimize media storage by routing to the correct CDN and c
 - **FR-019**: Add a message box/button to the application sidebars (AdminSidebar, CrewSidebar, etc.) to toggle the chat widget.
 - **FR-020**: The chat widget must automatically pop open when a new message is received and the widget is currently closed.
 - **FR-021**: Automatically sync project group chat participants with users assigned to the project (via ProjectCredit) and Kanban tasks (via ProjectTask assignees). The group chat must be reliably linked to the project (e.g. via `project_slug`).
+- **FR-022**: Generate a unique, simplified sharing token/link for playback reviews (e.g. `/review/{token}`) when a file is uploaded for review.
+- **FR-023**: Expose a public route for the review link that validates the token and checks if the review is published by an admin.
+- **FR-024**: Provide a guest login UI on the public review page if the user is unauthenticated, allowing them to enter a display name.
+- **FR-025**: Modify the feedback submission logic to accept and display guest usernames.
 
 ### Key Entities
 - **Message**: Needs support for custom message types (Poll/Vote, Deadline).
