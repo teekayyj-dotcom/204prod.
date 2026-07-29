@@ -168,11 +168,25 @@ def public_review_link_route(token: str, db: Session = Depends(get_db_session)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    from app.modules.projects.models import ProjectGalleryImage
+    from app.modules.media.models import MediaAsset
+
+    is_published = project.published
+    gallery_img = db.query(ProjectGalleryImage).join(MediaAsset).filter(
+        ProjectGalleryImage.project_id == project.id,
+        MediaAsset.url == link.video_url
+    ).first()
+    
+    if gallery_img:
+        is_published = gallery_img.published
+    else:
+        is_published = True
+
     return {
         "token": link.token,
         "project_slug": link.project_slug,
         "video_url": link.video_url,
-        "published": project.published
+        "published": is_published
     }
 
 @router.get("/{slug}/feedback")
