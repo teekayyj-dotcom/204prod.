@@ -1654,7 +1654,11 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                                     try {
                                                         const res = await fetchApi<any>(`/projects/${project.slug}/review-link?video_url=${encodeURIComponent(embedUrlForReview)}`);
                                                         if (res.url) {
-                                                            await navigator.clipboard.writeText(res.url);
+                                                            let finalUrl = res.url;
+                                                            if (finalUrl.includes("localhost") && window.location.hostname !== "localhost") {
+                                                                finalUrl = finalUrl.replace(/http:\/\/localhost:\d+/, window.location.origin);
+                                                            }
+                                                            await navigator.clipboard.writeText(finalUrl);
                                                             alert("Đã copy link chia sẻ cho khách hàng!");
                                                         }
                                                     } catch(err) {
