@@ -287,3 +287,65 @@ class ProjectComment(Base):
     )
 
     project: Mapped[Project] = relationship()
+
+class PhotoAlbum(Base):
+    __tablename__ = "photo_albums"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    project_slug: Mapped[str] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    gdrive_folder_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    background_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    short_token: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    project: Mapped[Project] = relationship()
+    photos: Mapped[list["AlbumPhoto"]] = relationship("AlbumPhoto", back_populates="album", cascade="all, delete-orphan")
+
+
+class AlbumPhoto(Base):
+    __tablename__ = "album_photos"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    album_id: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("photo_albums.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    file_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    thumbnail_url: Mapped[str] = mapped_column(Text, nullable=False)
+    web_content_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    album: Mapped[PhotoAlbum] = relationship(back_populates="photos")
+    interactions: Mapped[list["AlbumInteraction"]] = relationship("AlbumInteraction", back_populates="photo", cascade="all, delete-orphan")
+
+
+class AlbumInteraction(Base):
+    __tablename__ = "album_interactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    photo_id: Mapped[str] = mapped_column(
+        String(100),
+        ForeignKey("album_photos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    client_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    interaction_type: Mapped[str] = mapped_column(String(50), nullable=False) # 'like', 'star', 'comment'
+    comment_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    photo: Mapped[AlbumPhoto] = relationship(back_populates="interactions")

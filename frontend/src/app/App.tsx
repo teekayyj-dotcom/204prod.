@@ -13,6 +13,7 @@ const router = createBrowserRouter([
   { path: '/pending', lazy: () => import('../modules/auth/PendingApprovalPage').then(m => ({ Component: m.PendingApprovalPage })) },
   { path: '/messaging', lazy: () => import('../modules/messaging/MessagingPage').then(m => ({ Component: m.MessagingPage })) },
   { path: '/review/:token', lazy: () => import('../modules/client-view/pages/PublicReviewPage').then(m => ({ Component: m.PublicReviewPage })) },
+  { path: '/album/:token', lazy: () => import('../modules/client-view/pages/PublicAlbumPage').then(m => ({ Component: m.PublicAlbumPage })) },
   clientSiteRoute,
   adminRoute,
   crewRoute,

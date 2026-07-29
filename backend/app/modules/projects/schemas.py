@@ -272,3 +272,40 @@ class ReviewLinkPublic(BaseModel):
     project_slug: str
     video_url: str
     published: bool
+
+class AlbumInteractionCreate(BaseModel):
+    client_name: str
+    interaction_type: str
+    comment_text: str | None = None
+
+class AlbumInteractionResponse(BaseModel):
+    id: int
+    photo_id: str
+    client_name: str
+    interaction_type: str
+    comment_text: str | None = None
+    created_at: datetime
+
+class AlbumPhotoResponse(BaseModel):
+    id: str
+    album_id: str
+    file_id: str
+    thumbnail_url: str
+    web_content_url: str | None = None
+    created_at: datetime
+    interactions: list[AlbumInteractionResponse] = []
+
+class PhotoAlbumCreate(BaseModel):
+    title: str
+    gdrive_folder_id: str
+    background_url: str | None = None
+
+class PhotoAlbumResponse(BaseModel):
+    id: str
+    project_slug: str
+    title: str
+    gdrive_folder_id: str
+    background_url: str | None = None
+    short_token: str
+    created_at: datetime
+    photos: list[AlbumPhotoResponse] = []
