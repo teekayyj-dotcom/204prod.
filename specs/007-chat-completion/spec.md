@@ -8,7 +8,7 @@
 
 **Input**: User description: "sửa lỗi hardcode... phân loại media... phóng to khung chat... xóa tiền tố Project... Admin đổi tên nhóm... Admin tạo nhóm và add thành viên... User tạo vote, deadline... bỏ chế độ online/offline... searchbar tìm user... upload ảnh lên R2 định dạng webp theo thư mục, video lên bunny..."
 New Input: "không hiện icon message ở góc màn hình như hiện tại. để 1 box message ở side bar. Khi có tin nhắn mới thì box chat sẽ tự pop up ở góc màn hình"
-
+New Input: "Tối ưu flow sử dụng của chat box, bất cứ user nào có trong kanban hoặc crew được assign đều xem chat được (tương tự với các crew xem được các project mà họ đã được assign)"
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 3 - Advanced Chat Details & Media (Priority: P1)
@@ -22,11 +22,12 @@ As a user, I want a well-organized media view and an immersive chat experience.
 6. **Given** the main layout, **Then** there is no floating message icon in the bottom corner; instead, a message box/button is available in the sidebar.
 7. **Given** I receive a new message, **Then** the chat widget automatically pops up in the corner if it's currently closed.
 
-### User Story 4 - Admin Group Management (Priority: P1)
-As an admin, I want to manage groups effectively.
+### User Story 4 - Admin Group Management & Access Control (Priority: P1)
+As an admin, I want to manage groups effectively. As a user, I want to automatically access chats for projects I am involved in.
 **Acceptance Scenarios**:
 1. **Given** I am an admin, **When** I view group details, **Then** I can change the group chat name.
 2. **Given** I am an admin, **When** I want to create a chat, **Then** I can create a new group chat and add multiple members.
+3. **Given** a user is assigned to a project via Kanban or Crew list, **Then** they automatically gain access to view and participate in that project's group chat.
 
 ### User Story 5 - Interactive Chat Options (Priority: P2)
 As a user, I want to create interactive widgets in the chat like votes or deadline reminders.
@@ -58,6 +59,7 @@ As the system, I must optimize media storage by routing to the correct CDN and c
 - **FR-018**: Remove the floating chat icon from the bottom corner of the screen.
 - **FR-019**: Add a message box/button to the application sidebars (AdminSidebar, CrewSidebar, etc.) to toggle the chat widget.
 - **FR-020**: The chat widget must automatically pop open when a new message is received and the widget is currently closed.
+- **FR-021**: Automatically sync project group chat participants with users assigned to the project (via ProjectCredit) and Kanban tasks (via ProjectTask assignees). The group chat must be reliably linked to the project (e.g. via `project_slug`).
 
 ### Key Entities
 - **Message**: Needs support for custom message types (Poll/Vote, Deadline).

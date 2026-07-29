@@ -14,6 +14,12 @@ class Conversation(Base):
     is_group: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    project_slug: Mapped[Optional[str]] = mapped_column(
+        String(160), 
+        ForeignKey("projects.slug", ondelete="SET NULL"), 
+        nullable=True, 
+        index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

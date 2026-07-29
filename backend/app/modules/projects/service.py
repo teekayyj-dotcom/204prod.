@@ -99,12 +99,7 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
     
     try:
         from app.modules.messaging.service import sync_project_group_chat
-        crew_ids = []
-        if project.structured_credits:
-            for cred in project.structured_credits:
-                if cred.crew_id:
-                    crew_ids.append(cred.crew_id)
-        sync_project_group_chat(db, db_project.slug, db_project.title, crew_ids=crew_ids)
+        sync_project_group_chat(db, db_project.slug, db_project.title)
     except Exception as e:
         print(f"Error syncing project group chat: {e}")
         
@@ -199,10 +194,7 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
     
     try:
         from app.modules.messaging.service import sync_project_group_chat
-        from app.modules.projects.models import ProjectCredit
-        db_credits = db.query(ProjectCredit).filter(ProjectCredit.project_slug == existing_project.slug).all()
-        crew_ids = [c.crew_id for c in db_credits if c.crew_id is not None]
-        sync_project_group_chat(db, existing_project.slug, existing_project.title, crew_ids=crew_ids)
+        sync_project_group_chat(db, existing_project.slug, existing_project.title)
     except Exception as e:
         print(f"Error syncing project group chat: {e}")
 
@@ -572,6 +564,11 @@ def create_project_task(db: Session, project_slug: str, task: ProjectTaskCreate)
     db.commit()
     db.refresh(db_task)
     broadcast_kanban_update(db, project_slug, db_task, "create")
+    try:
+        from app.modules.messaging.service import sync_project_group_chat
+        sync_project_group_chat(db, project_slug, db_task.project_title)
+    except Exception as e:
+        print(f"Error syncing project group chat: {e}")
     return db_task
 
 
@@ -587,6 +584,11 @@ def update_project_task(db: Session, task_id: str, task_update: ProjectTaskUpdat
     db.commit()
     db.refresh(db_task)
     broadcast_kanban_update(db, db_task.project_slug, db_task, "update")
+    try:
+        from app.modules.messaging.service import sync_project_group_chat
+        sync_project_group_chat(db, db_task.project_slug, db_task.project_title)
+    except Exception as e:
+        print(f"Error syncing project group chat: {e}")
     return db_task
 
 
@@ -596,9 +598,15 @@ def delete_project_task(db: Session, task_id: str) -> bool:
     if not db_task:
         return False
     project_slug = db_task.project_slug
+    project_title = db_task.project_title
     db.delete(db_task)
     db.commit()
     broadcast_kanban_update(db, project_slug, action="delete")
+    try:
+        from app.modules.messaging.service import sync_project_group_chat
+        sync_project_group_chat(db, project_slug, project_title)
+    except Exception as e:
+        print(f"Error syncing project group chat: {e}")
     return True
 
 
