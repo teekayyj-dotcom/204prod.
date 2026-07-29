@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchApi } from "../../../utils/apiClient";
+import { fetchApi } from "../utils/apiClient";
 import { ClientPlaybackPage } from "./ClientPlaybackPage";
 import { Loader2, ArrowRight } from "lucide-react";
 
