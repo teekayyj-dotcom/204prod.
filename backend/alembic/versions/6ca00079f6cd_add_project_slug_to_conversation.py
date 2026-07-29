@@ -17,10 +17,16 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+from sqlalchemy.engine.reflection import Inspector
+
 def upgrade() -> None:
-    op.add_column('messaging_conversations', sa.Column('project_slug', sa.String(length=160), nullable=True))
-    op.create_index(op.f('ix_messaging_conversations_project_slug'), 'messaging_conversations', ['project_slug'], unique=False)
-    op.create_foreign_key('fk_messaging_conversations_project_slug', 'messaging_conversations', 'projects', ['project_slug'], ['slug'], ondelete='SET NULL')
+    conn = op.get_bind()
+    inspector = Inspector.from_engine(conn)
+    columns = [c['name'] for c in inspector.get_columns('messaging_conversations')]
+    if 'project_slug' not in columns:
+        op.add_column('messaging_conversations', sa.Column('project_slug', sa.String(length=160), nullable=True))
+        op.create_index(op.f('ix_messaging_conversations_project_slug'), 'messaging_conversations', ['project_slug'], unique=False)
+        op.create_foreign_key('fk_messaging_conversations_project_slug', 'messaging_conversations', 'projects', ['project_slug'], ['slug'], ondelete='SET NULL')
 
 
 def downgrade() -> None:
