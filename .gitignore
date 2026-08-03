@@ -16,3 +16,4 @@ node_modules/
 backend/uploads/
 frontend/eg/
 backend/credentials.json
+backend/system-*.json

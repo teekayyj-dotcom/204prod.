@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { fetchApi } from "../../../utils/apiClient";
+import { fetchApi } from "../utils/apiClient";
 import { Loader2, Heart, Star, MessageSquare, X, Send } from "lucide-react";
 
 export function PublicAlbumPage() {
