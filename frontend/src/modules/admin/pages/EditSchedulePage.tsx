@@ -1,21 +1,34 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Calendar, Info, CheckCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Calendar, Info, CheckCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { vi } from "date-fns/locale";
 import { fetchApi } from "../utils/apiClient";
+
+interface CrewMemberItem {
+  id?: number;
+  name: string;
+  avatar?: string;
+  role?: string;
+  email?: string;
+}
 
 export function EditSchedulePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as {
     employeeId?: number;
-    employeeName: string;
+    employeeName?: string;
     avatar?: string;
     scheduleData?: Record<string, string[]>;
     weekStart?: string;
     isAdminMode?: boolean;
-  };
+  } | null;
+
+  const [crewList, setCrewList] = useState<CrewMemberItem[]>([]);
+  const [selectedMember, setSelectedMember] = useState<CrewMemberItem | null>(null);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -30,6 +43,112 @@ export function EditSchedulePage() {
   );
 
   const daysOfWeek = Array.from({ length: 6 }).map((_, i) => addDays(selectedWeekStart, i));
+
+  // Load schedule for a specific member and week
+  const loadMemberSchedule = async (member: CrewMemberItem, weekStart: Date) => {
+    setLoadingSchedule(true);
+    try {
+      const weekStartStr = format(weekStart, "yyyy-MM-dd");
+      const schedules = await fetchApi<any[]>(`/hr/work-schedules?week_start_date=${weekStartStr}`);
+      let existing = null;
+      if (member.id) {
+        existing = schedules.find(s => s.employee_id === member.id);
+      }
+      if (!existing && member.name) {
+        existing = schedules.find(s => s.employee_name?.toLowerCase() === member.name?.toLowerCase());
+      }
+      setScheduleData(existing ? (existing.schedule_data || {}) : {});
+    } catch (e) {
+      console.error("Failed to load schedule for member:", e);
+    } finally {
+      setLoadingSchedule(false);
+    }
+  };
+
+  // Initial load of crew members and auto-selecting the appropriate user
+  useEffect(() => {
+    const loadCrewAndInit = async () => {
+      setLoadingMembers(true);
+      try {
+        const members = await fetchApi<CrewMemberItem[]>("/crew");
+        const list = members || [];
+        setCrewList(list);
+
+        const userJson = localStorage.getItem("user");
+        const currentUser = userJson ? JSON.parse(userJson) : null;
+
+        let initialMember: CrewMemberItem | null = null;
+
+        // 1. Check if passed via route state
+        if (state?.employeeId) {
+          initialMember = list.find(m => m.id === state.employeeId) || null;
+        } else if (state?.employeeName) {
+          initialMember = list.find(m => m.name?.toLowerCase() === state.employeeName?.toLowerCase()) || null;
+        }
+
+        // 2. Check if matches logged in user
+        if (!initialMember && currentUser) {
+          if (currentUser.email) {
+            initialMember = list.find(m => m.email?.toLowerCase() === currentUser.email.toLowerCase()) || null;
+          }
+          if (!initialMember && (currentUser.display_name || currentUser.username)) {
+            const cName = (currentUser.display_name || currentUser.username || "").toLowerCase();
+            initialMember = list.find(m => m.name?.toLowerCase() === cName) || null;
+          }
+        }
+
+        // 3. Fallback to state or first member in list
+        if (!initialMember) {
+          if (state?.employeeName) {
+            initialMember = {
+              id: state.employeeId,
+              name: state.employeeName,
+              avatar: state.avatar,
+              role: "Nhân sự"
+            };
+          } else if (list.length > 0) {
+            initialMember = list[0];
+          } else if (currentUser) {
+            initialMember = {
+              id: currentUser.id,
+              name: currentUser.display_name || currentUser.username || "Admin",
+              avatar: currentUser.avatar || "",
+              role: "Admin"
+            };
+          }
+        }
+
+        setSelectedMember(initialMember);
+
+        // If we have initialMember and scheduleData wasn't passed directly in state, fetch existing schedule
+        if (initialMember && (!state?.scheduleData || Object.keys(state.scheduleData).length === 0)) {
+          loadMemberSchedule(initialMember, selectedWeekStart);
+        }
+      } catch (err) {
+        console.error("Failed to load crew members:", err);
+      } finally {
+        setLoadingMembers(false);
+      }
+    };
+
+    loadCrewAndInit();
+  }, []);
+
+  const handleMemberChange = (memberIdStr: string) => {
+    const memId = parseInt(memberIdStr, 10);
+    const mem = crewList.find(m => m.id === memId);
+    if (mem) {
+      setSelectedMember(mem);
+      loadMemberSchedule(mem, selectedWeekStart);
+    }
+  };
+
+  const handleWeekChange = (newWeekStart: Date) => {
+    setSelectedWeekStart(newWeekStart);
+    if (selectedMember) {
+      loadMemberSchedule(selectedMember, newWeekStart);
+    }
+  };
 
   const handleToggle = (dateStr: string, shift: string) => {
     setErrorMsg("");
@@ -46,8 +165,13 @@ export function EditSchedulePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!selectedMember || !selectedMember.name) {
+      setErrorMsg("Vui lòng chọn nhân sự.");
+      return;
+    }
+
     const totalShifts = Object.values(scheduleData).flat().length;
-    if (totalShifts < 6 && !state?.isAdminMode) {
+    if (totalShifts < 6 && state?.isAdminMode === false) {
       setErrorMsg(`Vui lòng chọn tối thiểu 6 ca làm việc trong tuần.`);
       return;
     }
@@ -56,13 +180,12 @@ export function EditSchedulePage() {
     setErrorMsg("");
     
     // Default avatar handling
-    const userJson = localStorage.getItem("user");
-    const defaultAvatar = userJson ? JSON.parse(userJson).avatar : "https://i.pravatar.cc/150?u=crew";
-    const avatar = state?.avatar || defaultAvatar;
+    const defaultAvatar = "https://i.pravatar.cc/150?u=crew";
+    const avatar = selectedMember.avatar || defaultAvatar;
 
     const payload = {
-      employee_id: state?.employeeId,
-      employee_name: state?.employeeName || "Lê Tuấn Kiệt",
+      employee_id: selectedMember.id,
+      employee_name: selectedMember.name,
       avatar: avatar,
       week_start_date: format(selectedWeekStart, "yyyy-MM-dd"),
       schedule_data: scheduleData
@@ -76,7 +199,7 @@ export function EditSchedulePage() {
       setIsSuccess(true);
       setTimeout(() => {
         navigate("/admin/hr/attendance");
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error(error);
       setErrorMsg("Đã xảy ra lỗi khi đăng ký ca làm. Vui lòng thử lại.");
@@ -86,7 +209,7 @@ export function EditSchedulePage() {
   };
 
   const totalShifts = Object.values(scheduleData).flat().length;
-  const isSatisfied = state?.isAdminMode || totalShifts >= 6;
+  const isSatisfied = totalShifts >= 6 || state?.isAdminMode !== false;
 
   if (isSuccess) {
     return (
@@ -120,22 +243,43 @@ export function EditSchedulePage() {
           <form onSubmit={handleSubmit} className="bg-[#141010] border border-[#2A1F1F] rounded-xl p-6 lg:p-8 flex flex-col h-full shadow-lg">
             
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-[#2A1F1F] gap-6">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
                 {(() => {
-                  const avatar = state?.avatar || "";
+                  const avatar = selectedMember?.avatar || "";
                   const isUrl = avatar && (avatar.startsWith("http") || avatar.startsWith("/") || avatar.includes(".") || avatar.includes("uploads"));
                   if (isUrl) {
-                    return <img src={avatar} alt={state?.employeeName} className="w-14 h-14 rounded-full object-cover border-2 border-[#2A1F1F]" />;
+                    return <img src={avatar} alt={selectedMember?.name} className="w-14 h-14 rounded-full object-cover border-2 border-[#2A1F1F]" />;
                   }
                   return (
                     <div className="w-14 h-14 rounded-full bg-[#2A1F1F] flex items-center justify-center text-[#E5E5E5] font-bold text-xl border-2 border-[#3A2F2F]">
-                      {avatar || state?.employeeName?.substring(0,2).toUpperCase() || "UN"}
+                      {avatar || selectedMember?.name?.substring(0,2).toUpperCase() || "NV"}
                     </div>
                   );
                 })()}
-                <div>
+                <div className="flex-1 max-w-sm">
                   <div className="text-xs text-[#A3A3A3] font-medium tracking-wide uppercase mb-1">Nhân sự</div>
-                  <div className="font-bold text-[#E5E5E5] text-xl">{state?.employeeName || "Unknown"}</div>
+                  {crewList.length > 0 ? (
+                    <div className="relative">
+                      <select
+                        value={selectedMember?.id || ""}
+                        onChange={(e) => handleMemberChange(e.target.value)}
+                        className="w-full appearance-none bg-[#1A1515] border border-[#2A1F1F] rounded-lg px-3 py-2 text-[#E5E5E5] text-base font-bold focus:outline-none focus:border-[#D4A843] transition-colors cursor-pointer"
+                      >
+                        {crewList.map(c => (
+                          <option key={c.id} value={c.id} className="bg-[#1A1515] text-[#E5E5E5]">
+                            {c.name} {c.role ? `(${c.role})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="font-bold text-[#E5E5E5] text-xl">
+                      {loadingMembers ? "Đang tải..." : (selectedMember?.name || "Chưa chọn nhân sự")}
+                    </div>
+                  )}
+                  {selectedMember?.role && (
+                    <div className="text-xs text-[#888] mt-1">{selectedMember.role}</div>
+                  )}
                 </div>
               </div>
               
@@ -146,9 +290,9 @@ export function EditSchedulePage() {
                 <div className="relative">
                   <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#D4A843]" />
                   <select 
-                    className="w-full md:w-64 appearance-none bg-[#1A1515] border border-[#2A1F1F] rounded-lg pl-10 pr-4 py-2.5 text-[#E5E5E5] text-sm focus:outline-none focus:border-[#D4A843] transition-colors"
+                    className="w-full md:w-64 appearance-none bg-[#1A1515] border border-[#2A1F1F] rounded-lg pl-10 pr-4 py-2.5 text-[#E5E5E5] text-sm focus:outline-none focus:border-[#D4A843] transition-colors cursor-pointer"
                     value={format(selectedWeekStart, "yyyy-MM-dd")}
-                    onChange={(e) => setSelectedWeekStart(new Date(e.target.value))}
+                    onChange={(e) => handleWeekChange(new Date(e.target.value))}
                   >
                     <option value={format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd")} className="bg-[#1A1515] text-[#E5E5E5]">
                       Tuần này ({format(startOfWeek(new Date(), { weekStartsOn: 1 }), "dd/MM")} - {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 6), "dd/MM")})
@@ -162,7 +306,12 @@ export function EditSchedulePage() {
             </div>
 
             {/* Table */}
-            <div className="border border-[#2A1F1F] rounded-xl overflow-hidden bg-[#0A0707] shadow-inner mb-8">
+            <div className="border border-[#2A1F1F] rounded-xl overflow-hidden bg-[#0A0707] shadow-inner mb-8 relative">
+              {loadingSchedule && (
+                <div className="absolute inset-0 bg-[#0A0707]/70 backdrop-blur-xs flex items-center justify-center z-20">
+                  <Loader2 className="animate-spin text-[#D4A843]" size={28} />
+                </div>
+              )}
               <table className="w-full text-left">
                 <thead className="bg-[#1A1515] border-b border-[#2A1F1F]">
                   <tr>
@@ -242,9 +391,9 @@ export function EditSchedulePage() {
             <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#2A1F1F]">
               <div className="text-sm text-[#888] flex items-center gap-2">
                 <CheckCircle2 size={16} className={isSatisfied ? "text-emerald-500" : "text-amber-500"} />
-                {isSatisfied 
-                  ? "Đã chọn ca làm việc" 
-                  : `Vui lòng chọn ít nhất 1 ca`}
+                {totalShifts > 0 
+                  ? `Đã chọn ${totalShifts} ca làm việc` 
+                  : `Chưa chọn ca làm việc nào`}
               </div>
               <div className="flex gap-4 w-full sm:w-auto">
                 <button
@@ -256,7 +405,7 @@ export function EditSchedulePage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || (!state?.isAdminMode && totalShifts < 6)}
+                  disabled={isSubmitting || !selectedMember}
                   className="flex-1 sm:flex-none px-8 py-2.5 rounded-lg bg-[#D4A843] text-black font-bold hover:bg-[#FFE082] transition-colors disabled:opacity-50 disabled:hover:bg-[#D4A843] shadow-[0_0_20px_rgba(212,168,67,0.2)]"
                 >
                   {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
@@ -280,12 +429,12 @@ export function EditSchedulePage() {
               </div>
               <div className="w-full bg-[#1A1515] rounded-full h-2 mb-3 overflow-hidden border border-[#2A1F1F]">
                 <div 
-                  className={`h-full rounded-full transition-all duration-500 ${isSatisfied ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                  className={`h-full rounded-full transition-all duration-500 ${totalShifts >= 6 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
                   style={{ width: `${Math.min(100, (totalShifts / 6) * 100)}%` }}
                 ></div>
               </div>
               <div className="text-xs text-[#888]">
-                Tiến độ đăng ký trong tuần
+                {totalShifts >= 6 ? "Đã đạt mục tiêu tối thiểu (6 ca/tuần)" : "Tiến độ đăng ký trong tuần (khuyến nghị >= 6 ca)"}
               </div>
             </div>
           </div>
@@ -324,7 +473,7 @@ export function EditSchedulePage() {
                 </div>
                 <div>
                   <p className="text-sm text-[#E5E5E5] font-medium mb-1">Nghĩa vụ Check-in</p>
-                  <p className="text-xs text-[#888] leading-relaxed">Nếu bạn không chấm công vào ca đã đăng ký, hệ thống sẽ tự động tính là vắng mặt không phép.</p>
+                  <p className="text-xs text-[#888] leading-relaxed">Nếu không chấm công vào ca đã đăng ký, hệ thống sẽ tự động tính là vắng mặt không phép.</p>
                 </div>
               </div>
             </div>
@@ -333,10 +482,10 @@ export function EditSchedulePage() {
           <div className="bg-[#D84040]/5 border border-[#D84040]/20 rounded-xl p-5 shadow-lg">
             <h4 className="flex items-center gap-2 text-sm font-semibold text-[#D84040] mb-2">
               <Info size={14} />
-              Mẹo
+              Chế độ Quản trị (Admin)
             </h4>
             <p className="text-xs text-[#A3A3A3] leading-relaxed">
-              Quản lý cẩn thận lịch của bạn. Bạn luôn có thể sửa lại lịch trước khi tuần mới bắt đầu, nhưng không thể đổi khi ca làm đã qua.
+              Bạn có thể linh hoạt chuyển đổi giữa các nhân sự từ danh sách trên để xem hoặc chỉnh sửa lịch làm việc hàng tuần thay cho nhân viên.
             </p>
           </div>
 

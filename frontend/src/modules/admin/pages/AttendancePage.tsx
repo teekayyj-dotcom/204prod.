@@ -1449,7 +1449,7 @@ export function AttendancePage() {
           </div>
         </div>
         <button
-          onClick={() => navigate("/admin/hr/attendance/edit")}
+          onClick={() => navigate("/admin/hr/attendance/edit", { state: { isAdminMode: true } })}
           className="flex items-center gap-2 px-4 py-2 rounded-lg transition-opacity hover:opacity-80"
           style={{ background: "#D4A843", color: "#000", fontSize: "13px", fontWeight: 600 }}
         >
