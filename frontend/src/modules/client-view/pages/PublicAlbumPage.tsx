@@ -56,6 +56,7 @@ export function PublicAlbumPage() {
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const [highResLoaded, setHighResLoaded] = useState(false);
     const [commentText, setCommentText] = useState("");
+    const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
     useEffect(() => {
         if (!token) return;
@@ -124,11 +125,20 @@ export function PublicAlbumPage() {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (selectedPhotoIndex === null || !album?.photos) return;
+            
+            // Do not navigate if user is focused inside an input or textarea
+            const target = e.target as HTMLElement | null;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+                return;
+            }
+
             const total = album.photos.length;
 
             if (e.key === "ArrowRight") {
+                e.preventDefault();
                 setSelectedPhotoIndex((prev) => (prev !== null ? (prev + 1) % total : 0));
             } else if (e.key === "ArrowLeft") {
+                e.preventDefault();
                 setSelectedPhotoIndex((prev) => (prev !== null ? (prev - 1 + total) % total : 0));
             } else if (e.key === "Escape") {
                 setSelectedPhotoIndex(null);
@@ -149,6 +159,22 @@ export function PublicAlbumPage() {
         if (selectedPhotoIndex !== null && album?.photos) {
             setSelectedPhotoIndex((selectedPhotoIndex - 1 + album.photos.length) % album.photos.length);
         }
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchStartX(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX === null) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchStartX - touchEndX;
+        if (diff > 50) {
+            handleNext();
+        } else if (diff < -50) {
+            handlePrev();
+        }
+        setTouchStartX(null);
     };
 
     const handleInteract = async (photoId: string, type: 'like' | 'star' | 'comment', text?: string) => {
@@ -347,7 +373,11 @@ export function PublicAlbumPage() {
                     </button>
                     
                     {/* Main Image Stage */}
-                    <div className="flex-1 flex items-center justify-center p-2 sm:p-4 md:p-8 min-h-0 overflow-hidden relative select-none">
+                    <div 
+                        className="flex-1 flex items-center justify-center p-2 sm:p-4 md:p-8 min-h-0 overflow-hidden relative select-none"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                    >
                         {/* Previous Button */}
                         <button
                             onClick={(e) => { e.stopPropagation(); handlePrev(); }}
