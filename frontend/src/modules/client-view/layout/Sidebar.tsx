@@ -16,8 +16,11 @@ const navItems = [
     { label: "Dự án của tôi", icon: Briefcase, path: "/client/projects" },
     { label: "Kho Demo / Xét duyệt", icon: MonitorPlay, path: "/client/demos" },
     { label: "Hóa đơn & Thanh toán", icon: Receipt, path: "/client/billing" },
-    { label: "Tin nhắn", icon: MessageCircle, path: "/client/messages" },
     { label: "Hỗ trợ", icon: Headphones, path: "/client/support" },
+];
+
+const bottomNavItems = [
+    { label: "Tin nhắn", icon: MessageCircle, path: "/client/messages" },
 ];
 
 import { X, ChevronLeft } from "lucide-react";
@@ -75,6 +78,51 @@ export function Sidebar({
 
                 {/* Flat nav items */}
                 {navItems.map((item) => {
+                    const isActive =
+                        item.path === "/client"
+                            ? location.pathname === "/client"
+                            : location.pathname.startsWith(item.path);
+                    return (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            onClick={onClose}
+                            className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg group transition-all duration-200`}
+                            style={{
+                                background: isActive ? "#D84040" : "transparent",
+                                color: isActive ? "#EEEEEE" : "#999",
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isActive) {
+                                    (e.currentTarget as HTMLElement).style.background = "#2A1F1F";
+                                    (e.currentTarget as HTMLElement).style.color = "#EEEEEE";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isActive) {
+                                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                                    (e.currentTarget as HTMLElement).style.color = "#999";
+                                }
+                            }}
+                        >
+                            <div className="flex items-center gap-3" title={isCollapsed ? item.label : undefined}>
+                                <item.icon size={17} className="flex-shrink-0" />
+                                {!isCollapsed && (
+                                    <span style={{ fontSize: "14px", fontWeight: isActive ? 600 : 400 }} className="truncate">
+                                        {item.label}
+                                    </span>
+                                )}
+                            </div>
+                            {!isCollapsed && isActive && <ChevronRight size={14} className="flex-shrink-0" />}
+                        </NavLink>
+                    );
+                })}
+
+                {/* Divider */}
+                <div style={{ margin: "16px 12px", borderTop: "1px solid #2A1F1F" }} />
+
+                {/* Bottom flat items */}
+                {bottomNavItems.map((item) => {
                     const isActive =
                         item.path === "/client"
                             ? location.pathname === "/client"

@@ -41,6 +41,9 @@ const navItems = [
     path: "/crew-dashboard/media",
     exact: false,
   },
+];
+
+const bottomNavItems = [
   {
     label: "Tin nhắn",
     sublabel: "Messages",
@@ -183,7 +186,61 @@ export function CrewSidebar({
         {/* Divider */}
         <div style={{ margin: "16px 12px", borderTop: "1px solid #2A1F1F" }} />
 
+        {/* Bottom flat items */}
+        {bottomNavItems.map((item) => {
+          const isActive = item.exact
+            ? location.pathname === item.path
+            : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
 
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={onClose}
+              className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg group transition-all duration-200`}
+              style={{
+                background: isActive ? "#D84040" : "transparent",
+                color: isActive ? "#EEEEEE" : "#999",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLElement).style.background = "#2A1F1F";
+                  (e.currentTarget as HTMLElement).style.color = "#EEEEEE";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "#999";
+                }
+              }}
+              title={isCollapsed ? `${item.label} - ${item.sublabel}` : undefined}
+            >
+              <div className="flex items-center gap-3">
+                <item.icon size={17} className="flex-shrink-0" />
+                {!isCollapsed && (
+                  <div className="flex flex-col overflow-hidden">
+                    <span style={{ fontSize: "13px", fontWeight: isActive ? 600 : 400, lineHeight: 1.2 }} className="truncate">
+                      {item.label}
+                    </span>
+                    <span
+                      className="truncate"
+                      style={{
+                        fontSize: "10px",
+                        color: isActive ? "rgba(238,238,238,0.65)" : "#666",
+                        letterSpacing: "0.05em",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {item.sublabel}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {!isCollapsed && isActive && <ChevronRight size={14} className="flex-shrink-0" />}
+            </NavLink>
+          );
+        })}
 
       </nav>
 

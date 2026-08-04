@@ -26,10 +26,10 @@ import { NotificationBell } from "../../../shared/components/NotificationBell";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { label: "Projects", icon: Briefcase, path: "/admin/projects" },
-  { label: "Tin nhắn", icon: MessageCircle, path: "/admin/messages" },
 ];
 
 const bottomNavItems = [
+  { label: "Tin nhắn", icon: MessageCircle, path: "/admin/messages" },
   { label: "Media Library", icon: ImageIcon, path: "/admin/media" },
 ];
 
