@@ -63,7 +63,7 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
         const isOwn = msg.sender_id === currentUserId;
         const sender = conversation.participants.find(p => p.user_id === msg.sender_id);
         const senderName = msg.sender_name || sender?.display_name || (isOwn ? (u.display_name || u.username) : `User ${msg.sender_id}`);
-        const finalSenderAvatar = isOwn ? (currentUserAvatar || sender?.avatar_url) : sender?.avatar_url;
+        const finalSenderAvatar = sender?.avatar_url || (isOwn ? currentUserAvatar : undefined);
         
         // Determine if we should hide the timestamp
         let hideTimestamp = false;

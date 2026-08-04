@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useChatStore, Conversation } from "../store/ChatContext";
 import { Users, Search, Plus, MessageSquare } from "lucide-react";
 import { wsService } from "../services/websocket";
-import { CreateGroupModal } from "./CreateGroupModal";
 import { NewChatModal } from "./NewChatModal";
 import { messagingApi } from "../services/api";
 import { ensureUTC } from "../utils/time";
@@ -10,7 +9,6 @@ import { ensureUTC } from "../utils/time";
 export function ChatSidebar() {
   const { conversations, activeConversationId, setActiveConversationId, setConversations } = useChatStore();
   const [search, setSearch] = useState("");
-  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showNewChat, setShowNewChat] = useState(false);
 
   const filtered = conversations.filter(c => 
@@ -32,17 +30,10 @@ export function ChatSidebar() {
         <div className="flex items-center gap-1">
           <button 
             onClick={() => setShowNewChat(true)}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-            title="New Message"
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors bg-blue-50 text-blue-600"
+            title="New Conversation"
           >
-            <MessageSquare className="w-5 h-5 text-slate-600" />
-          </button>
-          <button 
-            onClick={() => setShowCreateGroup(true)}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-            title="Create Group"
-          >
-            <Plus className="w-5 h-5 text-slate-600" />
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -144,22 +135,7 @@ export function ChatSidebar() {
         )}
       </div>
 
-      {showCreateGroup && (
-        <CreateGroupModal 
-          onClose={() => setShowCreateGroup(false)}
-          onSuccess={(newId) => {
-            setShowCreateGroup(false);
-            // Re-fetch conversations to include the new group, or we could just update the context
-            const fetchHistory = async () => {
-              const token = localStorage.getItem("token") || "";
-              const data = await messagingApi.getConversations(token);
-              setConversations(data);
-              setActiveConversationId(newId);
-            };
-            fetchHistory();
-          }}
-        />
-      )}
+
       {showNewChat && (
         <NewChatModal 
           onClose={() => setShowNewChat(false)}

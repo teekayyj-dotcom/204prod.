@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Search, Loader2, MessageSquare } from "lucide-react";
+import { X, Search, Loader2, MessageSquare, Users } from "lucide-react";
 import { messagingApi } from "../services/api";
 
 interface User {
@@ -17,7 +17,8 @@ interface Props {
 export function NewChatModal({ onClose, onSuccess }: Props) {
   const [search, setSearch] = useState("");
   const [contacts, setContacts] = useState<User[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -41,10 +42,24 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
     return () => clearTimeout(timer);
   }, [search]);
 
+  const toggleSelect = (id: number) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!selectedId) {
-      setError("Please select a user to start messaging.");
+    if (selectedIds.size === 0) {
+      setError("Please select at least one user.");
+      return;
+    }
+    if (selectedIds.size > 1 && !name.trim()) {
+      setError("Please provide a group name.");
       return;
     }
 
@@ -52,8 +67,10 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
     setError("");
     try {
       const token = localStorage.getItem("token") || "";
-      // isGroup=false, name=null for 1-on-1 chats
-      const conv = await messagingApi.createConversation(false, [selectedId], null, token);
+      const isGroup = selectedIds.size > 1;
+      const convName = isGroup ? name.trim() : null;
+      
+      const conv = await messagingApi.createConversation(isGroup, Array.from(selectedIds), convName, token);
       onSuccess(conv.id);
     } catch (err: any) {
       setError(err.message || "Failed to create conversation");
@@ -75,6 +92,19 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
               {error}
+            </div>
+          )}
+
+          {selectedIds.size > 1 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Group Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Project Alpha Team"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
             </div>
           )}
 
@@ -102,7 +132,7 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
                   <li 
                     key={user.id} 
                     className="flex items-center justify-between p-3 hover:bg-slate-50 cursor-pointer transition-colors"
-                    onClick={() => setSelectedId(user.id)}
+                    onClick={() => toggleSelect(user.id)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 overflow-hidden text-xs font-medium">
@@ -117,8 +147,8 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
                         <div className="text-xs text-slate-500 capitalize">{user.role}</div>
                       </div>
                     </div>
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedId === user.id ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
-                      {selectedId === user.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedIds.has(user.id) ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                      {selectedIds.has(user.id) && <div className="w-2.5 h-2.5 bg-white rounded-sm" />}
                     </div>
                   </li>
                 ))}
@@ -131,22 +161,27 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || !selectedId}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
-            Start Chat
-          </button>
+        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center gap-2">
+          <div className="text-xs text-slate-500">
+            {selectedIds.size} selected
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || selectedIds.size === 0 || (selectedIds.size > 1 && !name.trim())}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (selectedIds.size > 1 ? <Users className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />)}
+              {selectedIds.size > 1 ? "Create Group" : "Start Chat"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
