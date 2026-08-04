@@ -8,8 +8,6 @@ services:
     restart: always
     env_file:
       - .env
-    volumes:
-      - ./system-204prod-93a59085020c.json:/app/system-204prod-93a59085020c.json:ro
 
   mysql:
     image: mysql:8.0

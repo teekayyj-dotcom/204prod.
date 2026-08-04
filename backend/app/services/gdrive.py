@@ -50,7 +50,7 @@ def get_drive_service():
     if not creds:
         for env_path_var in ["GDRIVE_SERVICE_ACCOUNT_FILE", "GOOGLE_APPLICATION_CREDENTIALS", "FIREBASE_SERVICE_ACCOUNT_PATH"]:
             path = os.getenv(env_path_var)
-            if path and os.path.exists(path):
+            if path and os.path.isfile(path):
                 try:
                     creds = service_account.Credentials.from_service_account_file(path, scopes=SCOPES)
                     if creds:
@@ -81,7 +81,7 @@ def get_drive_service():
                 candidate_paths.append(f)
 
         for path in candidate_paths:
-            if os.path.exists(path):
+            if os.path.isfile(path):
                 try:
                     creds = service_account.Credentials.from_service_account_file(path, scopes=SCOPES)
                     if creds:
