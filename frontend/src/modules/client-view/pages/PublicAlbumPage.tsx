@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { fetchApi } from "../utils/apiClient";
 import { 
@@ -38,11 +38,14 @@ function formatLiveTime(dateStr: string) {
     return `${date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
+type SortType = 'all' | 'liked' | 'starred' | 'commented' | 'total';
+
 export function PublicAlbumPage() {
     const { token } = useParams<{ token: string }>();
     const [album, setAlbum] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [sortBy, setSortBy] = useState<SortType>('all');
     
     // Auto-detect logged-in user (Admin, Crew, Client) or remembered guest
     const getInitialUser = () => {
@@ -102,7 +105,6 @@ export function PublicAlbumPage() {
                     if (res && res.photos) {
                         setAlbum((prev: any) => {
                             if (!prev) return res;
-                            // Check if any interactions changed
                             const prevInteractions = JSON.stringify(prev.photos.map((p: any) => p.interactions));
                             const newInteractions = JSON.stringify(res.photos.map((p: any) => p.interactions));
                             if (prevInteractions !== newInteractions) {
@@ -128,6 +130,54 @@ export function PublicAlbumPage() {
         return () => clearInterval(interval);
     }, []);
 
+    // Summary counts
+    const totalLikes = useMemo(() => {
+        return album?.photos?.reduce((sum: number, p: any) => sum + (p.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0), 0) || 0;
+    }, [album]);
+
+    const totalStars = useMemo(() => {
+        return album?.photos?.reduce((sum: number, p: any) => sum + (p.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0), 0) || 0;
+    }, [album]);
+
+    const totalComments = useMemo(() => {
+        return album?.photos?.reduce((sum: number, p: any) => sum + (p.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0), 0) || 0;
+    }, [album]);
+
+    // Sorted Photos based on active sort box
+    const sortedPhotos = useMemo(() => {
+        if (!album?.photos) return [];
+        const list = [...album.photos];
+        if (sortBy === 'liked') {
+            return list.sort((a, b) => {
+                const countA = a.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
+                const countB = b.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
+                return countB - countA;
+            });
+        }
+        if (sortBy === 'starred') {
+            return list.sort((a, b) => {
+                const countA = a.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
+                const countB = b.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
+                return countB - countA;
+            });
+        }
+        if (sortBy === 'commented') {
+            return list.sort((a, b) => {
+                const countA = a.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0;
+                const countB = b.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0;
+                return countB - countA;
+            });
+        }
+        if (sortBy === 'total') {
+            return list.sort((a, b) => {
+                const countA = a.interactions?.length || 0;
+                const countB = b.interactions?.length || 0;
+                return countB - countA;
+            });
+        }
+        return list;
+    }, [album, sortBy]);
+
     const handleStartViewing = (name?: string) => {
         const finalName = (name !== undefined ? name : clientName).trim() || "Khách xem";
         setClientName(finalName);
@@ -151,7 +201,7 @@ export function PublicAlbumPage() {
         return photo.web_content_url || "";
     }, []);
 
-    const selectedPhoto = selectedPhotoIndex !== null && album?.photos ? album.photos[selectedPhotoIndex] : null;
+    const selectedPhoto = selectedPhotoIndex !== null && sortedPhotos ? sortedPhotos[selectedPhotoIndex] : null;
 
     // Reset high-res loaded status when active photo changes
     useEffect(() => {
@@ -164,11 +214,11 @@ export function PublicAlbumPage() {
             img.onload = () => setHighResLoaded(true);
 
             // Preload next and previous images in background for instant navigation
-            if (album?.photos) {
-                const total = album.photos.length;
+            if (sortedPhotos) {
+                const total = sortedPhotos.length;
                 if (selectedPhotoIndex !== null) {
-                    const nextPhoto = album.photos[(selectedPhotoIndex + 1) % total];
-                    const prevPhoto = album.photos[(selectedPhotoIndex - 1 + total) % total];
+                    const nextPhoto = sortedPhotos[(selectedPhotoIndex + 1) % total];
+                    const prevPhoto = sortedPhotos[(selectedPhotoIndex - 1 + total) % total];
                     
                     if (nextPhoto) {
                         const nextImg = new Image();
@@ -181,12 +231,12 @@ export function PublicAlbumPage() {
                 }
             }
         }
-    }, [selectedPhotoIndex, selectedPhoto, album, getPhotoUrl]);
+    }, [selectedPhotoIndex, selectedPhoto, sortedPhotos, getPhotoUrl]);
 
     // Keyboard navigation (Left, Right, Escape)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (selectedPhotoIndex === null || !album?.photos) return;
+            if (selectedPhotoIndex === null || !sortedPhotos || sortedPhotos.length === 0) return;
             
             // Do not navigate if user is focused inside an input or textarea
             const target = e.target as HTMLElement | null;
@@ -194,7 +244,7 @@ export function PublicAlbumPage() {
                 return;
             }
 
-            const total = album.photos.length;
+            const total = sortedPhotos.length;
 
             if (e.key === "ArrowRight") {
                 e.preventDefault();
@@ -209,17 +259,17 @@ export function PublicAlbumPage() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedPhotoIndex, album]);
+    }, [selectedPhotoIndex, sortedPhotos]);
 
     const handleNext = () => {
-        if (selectedPhotoIndex !== null && album?.photos) {
-            setSelectedPhotoIndex((selectedPhotoIndex + 1) % album.photos.length);
+        if (selectedPhotoIndex !== null && sortedPhotos && sortedPhotos.length > 0) {
+            setSelectedPhotoIndex((selectedPhotoIndex + 1) % sortedPhotos.length);
         }
     };
 
     const handlePrev = () => {
-        if (selectedPhotoIndex !== null && album?.photos) {
-            setSelectedPhotoIndex((selectedPhotoIndex - 1 + album.photos.length) % album.photos.length);
+        if (selectedPhotoIndex !== null && sortedPhotos && sortedPhotos.length > 0) {
+            setSelectedPhotoIndex((selectedPhotoIndex - 1 + sortedPhotos.length) % sortedPhotos.length);
         }
     };
 
@@ -393,18 +443,14 @@ export function PublicAlbumPage() {
 
     return (
         <div className="min-h-screen bg-[#0a0808] text-white p-4 md:p-8">
-            <div className="max-w-7xl mx-auto">
-                <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b border-white/10 pb-6 gap-4">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header Info */}
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-6 gap-4">
                     <div>
                         <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                            <span>204PROD ALBUM</span>
+                            <span className="font-semibold text-gray-300">204PROD ALBUM</span>
                             <span>•</span>
-                            <span>{album.photos?.length || 0} Photos</span>
-                            <span>•</span>
-                            <span className="text-green-400 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                                Live Sync
-                            </span>
+                            <span>{album.photos?.length || 0} Ảnh</span>
                         </div>
                         <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white">{album.title}</h1>
                         <p className="text-gray-400 mt-1.5 text-sm">
@@ -417,11 +463,88 @@ export function PublicAlbumPage() {
                             </button>
                         </p>
                     </div>
+
+                    {/* Interaction Sorting Boxes */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button 
+                            onClick={() => setSortBy('all')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
+                                sortBy === 'all' 
+                                    ? "bg-white text-black border-white shadow-lg" 
+                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                        >
+                            <span>Tất cả</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'all' ? "bg-black/10 text-black font-bold" : "bg-white/10 text-white/60"}`}>
+                                {album.photos?.length || 0}
+                            </span>
+                        </button>
+
+                        <button 
+                            onClick={() => setSortBy('liked')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
+                                sortBy === 'liked' 
+                                    ? "bg-red-500 text-white border-red-400 shadow-lg shadow-red-500/20 font-bold" 
+                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                        >
+                            <Heart size={14} className={sortBy === 'liked' ? "fill-white text-white" : "text-red-400"} />
+                            <span>Liked</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'liked' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                                {totalLikes}
+                            </span>
+                        </button>
+
+                        <button 
+                            onClick={() => setSortBy('starred')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
+                                sortBy === 'starred' 
+                                    ? "bg-yellow-500 text-black border-yellow-400 shadow-lg shadow-yellow-500/20 font-bold" 
+                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                        >
+                            <Star size={14} className={sortBy === 'starred' ? "fill-black text-black" : "text-yellow-400"} />
+                            <span>Starred</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'starred' ? "bg-black/20 text-black font-bold" : "bg-white/10 text-white/60"}`}>
+                                {totalStars}
+                            </span>
+                        </button>
+
+                        <button 
+                            onClick={() => setSortBy('commented')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
+                                sortBy === 'commented' 
+                                    ? "bg-[#D84040] text-white border-red-500 shadow-lg shadow-red-500/20 font-bold" 
+                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                        >
+                            <MessageSquare size={14} className={sortBy === 'commented' ? "text-white" : "text-[#D84040]"} />
+                            <span>Commented</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'commented' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                                {totalComments}
+                            </span>
+                        </button>
+
+                        <button 
+                            onClick={() => setSortBy('total')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
+                                sortBy === 'total' 
+                                    ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-500/20 font-bold" 
+                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                        >
+                            <Sparkles size={14} className={sortBy === 'total' ? "text-white" : "text-purple-400"} />
+                            <span>Top tương tác</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'total' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                                {totalLikes + totalStars + totalComments}
+                            </span>
+                        </button>
+                    </div>
                 </header>
                 
                 {/* Masonry / Columns Grid */}
                 <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
-                    {album.photos?.map((photo: any, idx: number) => {
+                    {sortedPhotos.map((photo: any, idx: number) => {
                         const imgThumb = getPhotoUrl(photo, false);
                         const likeCount = photo.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
                         const starCount = photo.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
@@ -479,7 +602,7 @@ export function PublicAlbumPage() {
                     {/* Top Bar Controls */}
                     <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
                         <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-white/80 font-medium">
-                            {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} / {album.photos?.length || 0}
+                            {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} / {sortedPhotos.length}
                         </div>
                         {highResLoaded && (
                             <span className="flex items-center gap-1 text-[11px] text-green-400/90 bg-green-950/40 px-2.5 py-1 rounded-full border border-green-800/40">
