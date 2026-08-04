@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, WebSocket, WebSocketDisconnect, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, desc
+from sqlalchemy import or_, and_, desc, func
 
 from app.db.session import get_db_session
 from app.modules.users.models import User
@@ -126,7 +126,7 @@ def create_conversation(
             Conversation.is_group == False
         ).filter(
             ConversationParticipant.user_id.in_(user_list)
-        ).group_by(Conversation.id).having(db.func.count() == 2).first()
+        ).group_by(Conversation.id).having(func.count() == 2).first()
         if existing:
             return existing
 
