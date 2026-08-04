@@ -1972,6 +1972,50 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                     )}
                 </div>
             )}
+
+            <DeleteConfirmModal 
+                isOpen={!!deletingAlbum} 
+                itemType="album" 
+                itemName={deletingAlbum?.title ?? ""} 
+                onConfirm={handleDeleteAlbum} 
+                onCancel={() => setDeletingAlbum(null)} 
+            />
+
+            {editingAlbum && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+                    <div style={{ background: "#1D1616", borderRadius: "12px", border: "1px solid #2A1F1F", width: "100%", maxWidth: "450px", overflow: "hidden" }}>
+                        <div style={{ padding: "20px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 700, margin: 0 }}>Sửa thông tin Album</h3>
+                            <button onClick={() => setEditingAlbum(null)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", display: "flex" }}><X size={18}/></button>
+                        </div>
+                        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
+                            <div>
+                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Tên Album *</label>
+                                <input type="text" value={editAlbumTitle} onChange={e => setEditAlbumTitle(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Link Google Drive *</label>
+                                <input type="text" value={editAlbumLink} onChange={e => setEditAlbumLink(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Link Ảnh Background (Tùy chọn)</label>
+                                <input type="text" value={editAlbumBg} onChange={e => setEditAlbumBg(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
+                            </div>
+                        </div>
+                        <div style={{ padding: "15px 20px", borderTop: "1px solid #2A1F1F", display: "flex", justifyContent: "flex-end", gap: "10px", background: "rgba(0,0,0,0.2)" }}>
+                            <button onClick={() => setEditingAlbum(null)} style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", color: "#888", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Huỷ</button>
+                            <button 
+                                onClick={handleUpdateAlbum} 
+                                disabled={isEditingAlbum}
+                                style={{ padding: "8px 16px", borderRadius: "6px", background: "#D84040", color: "#fff", border: "none", cursor: isEditingAlbum ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", opacity: isEditingAlbum ? 0.7 : 1 }}
+                            >
+                                {isEditingAlbum ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
+                                Lưu thay đổi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -3713,50 +3757,6 @@ export function ProjectDetailPage() {
                         }, 0);
                     }}
                 />
-            )}
-
-            <DeleteConfirmModal 
-                isOpen={!!deletingAlbum} 
-                itemType="album" 
-                itemName={deletingAlbum?.title ?? ""} 
-                onConfirm={handleDeleteAlbum} 
-                onCancel={() => setDeletingAlbum(null)} 
-            />
-
-            {editingAlbum && (
-                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-                    <div style={{ background: "#1D1616", borderRadius: "12px", border: "1px solid #2A1F1F", width: "100%", maxWidth: "450px", overflow: "hidden" }}>
-                        <div style={{ padding: "20px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 700, margin: 0 }}>Sửa thông tin Album</h3>
-                            <button onClick={() => setEditingAlbum(null)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", display: "flex" }}><X size={18}/></button>
-                        </div>
-                        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
-                            <div>
-                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Tên Album *</label>
-                                <input type="text" value={editAlbumTitle} onChange={e => setEditAlbumTitle(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
-                            </div>
-                            <div>
-                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Link Google Drive *</label>
-                                <input type="text" value={editAlbumLink} onChange={e => setEditAlbumLink(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
-                            </div>
-                            <div>
-                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Link Ảnh Background (Tùy chọn)</label>
-                                <input type="text" value={editAlbumBg} onChange={e => setEditAlbumBg(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
-                            </div>
-                        </div>
-                        <div style={{ padding: "15px 20px", borderTop: "1px solid #2A1F1F", display: "flex", justifyContent: "flex-end", gap: "10px", background: "rgba(0,0,0,0.2)" }}>
-                            <button onClick={() => setEditingAlbum(null)} style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", color: "#888", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Huỷ</button>
-                            <button 
-                                onClick={handleUpdateAlbum} 
-                                disabled={isEditingAlbum}
-                                style={{ padding: "8px 16px", borderRadius: "6px", background: "#D84040", color: "#fff", border: "none", cursor: isEditingAlbum ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", opacity: isEditingAlbum ? 0.7 : 1 }}
-                            >
-                                {isEditingAlbum ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
-                                Lưu thay đổi
-                            </button>
-                        </div>
-                    </div>
-                </div>
             )}
         </div>);
 }
