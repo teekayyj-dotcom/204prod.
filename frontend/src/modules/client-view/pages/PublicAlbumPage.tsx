@@ -38,14 +38,14 @@ function formatLiveTime(dateStr: string) {
     return `${date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-type SortType = 'all' | 'liked' | 'starred' | 'commented' | 'total';
+type FilterType = 'all' | 'liked' | 'starred' | 'commented';
 
 export function PublicAlbumPage() {
     const { token } = useParams<{ token: string }>();
     const [album, setAlbum] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [sortBy, setSortBy] = useState<SortType>('all');
+    const [filterBy, setFilterBy] = useState<FilterType>('all');
     
     // Auto-detect logged-in user (Admin, Crew, Client) or remembered guest
     const getInitialUser = () => {
@@ -130,53 +130,33 @@ export function PublicAlbumPage() {
         return () => clearInterval(interval);
     }, []);
 
-    // Summary counts
-    const totalLikes = useMemo(() => {
-        return album?.photos?.reduce((sum: number, p: any) => sum + (p.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0), 0) || 0;
+    // Unique photos count for each category
+    const likedPhotosCount = useMemo(() => {
+        return album?.photos?.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'like')).length || 0;
     }, [album]);
 
-    const totalStars = useMemo(() => {
-        return album?.photos?.reduce((sum: number, p: any) => sum + (p.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0), 0) || 0;
+    const starredPhotosCount = useMemo(() => {
+        return album?.photos?.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'star')).length || 0;
     }, [album]);
 
-    const totalComments = useMemo(() => {
-        return album?.photos?.reduce((sum: number, p: any) => sum + (p.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0), 0) || 0;
+    const commentedPhotosCount = useMemo(() => {
+        return album?.photos?.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'comment')).length || 0;
     }, [album]);
 
-    // Sorted Photos based on active sort box
-    const sortedPhotos = useMemo(() => {
+    // Filtered Photos list strictly matching the selected category
+    const filteredPhotos = useMemo(() => {
         if (!album?.photos) return [];
-        const list = [...album.photos];
-        if (sortBy === 'liked') {
-            return list.sort((a, b) => {
-                const countA = a.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
-                const countB = b.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
-                return countB - countA;
-            });
+        if (filterBy === 'liked') {
+            return album.photos.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'like'));
         }
-        if (sortBy === 'starred') {
-            return list.sort((a, b) => {
-                const countA = a.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
-                const countB = b.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
-                return countB - countA;
-            });
+        if (filterBy === 'starred') {
+            return album.photos.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'star'));
         }
-        if (sortBy === 'commented') {
-            return list.sort((a, b) => {
-                const countA = a.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0;
-                const countB = b.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0;
-                return countB - countA;
-            });
+        if (filterBy === 'commented') {
+            return album.photos.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'comment'));
         }
-        if (sortBy === 'total') {
-            return list.sort((a, b) => {
-                const countA = a.interactions?.length || 0;
-                const countB = b.interactions?.length || 0;
-                return countB - countA;
-            });
-        }
-        return list;
-    }, [album, sortBy]);
+        return album.photos;
+    }, [album, filterBy]);
 
     const handleStartViewing = (name?: string) => {
         const finalName = (name !== undefined ? name : clientName).trim() || "Khách xem";
@@ -201,7 +181,7 @@ export function PublicAlbumPage() {
         return photo.web_content_url || "";
     }, []);
 
-    const selectedPhoto = selectedPhotoIndex !== null && sortedPhotos ? sortedPhotos[selectedPhotoIndex] : null;
+    const selectedPhoto = selectedPhotoIndex !== null && filteredPhotos ? filteredPhotos[selectedPhotoIndex] : null;
 
     // Reset high-res loaded status when active photo changes
     useEffect(() => {
@@ -214,11 +194,11 @@ export function PublicAlbumPage() {
             img.onload = () => setHighResLoaded(true);
 
             // Preload next and previous images in background for instant navigation
-            if (sortedPhotos) {
-                const total = sortedPhotos.length;
+            if (filteredPhotos && filteredPhotos.length > 0) {
+                const total = filteredPhotos.length;
                 if (selectedPhotoIndex !== null) {
-                    const nextPhoto = sortedPhotos[(selectedPhotoIndex + 1) % total];
-                    const prevPhoto = sortedPhotos[(selectedPhotoIndex - 1 + total) % total];
+                    const nextPhoto = filteredPhotos[(selectedPhotoIndex + 1) % total];
+                    const prevPhoto = filteredPhotos[(selectedPhotoIndex - 1 + total) % total];
                     
                     if (nextPhoto) {
                         const nextImg = new Image();
@@ -231,12 +211,12 @@ export function PublicAlbumPage() {
                 }
             }
         }
-    }, [selectedPhotoIndex, selectedPhoto, sortedPhotos, getPhotoUrl]);
+    }, [selectedPhotoIndex, selectedPhoto, filteredPhotos, getPhotoUrl]);
 
     // Keyboard navigation (Left, Right, Escape)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (selectedPhotoIndex === null || !sortedPhotos || sortedPhotos.length === 0) return;
+            if (selectedPhotoIndex === null || !filteredPhotos || filteredPhotos.length === 0) return;
             
             // Do not navigate if user is focused inside an input or textarea
             const target = e.target as HTMLElement | null;
@@ -244,7 +224,7 @@ export function PublicAlbumPage() {
                 return;
             }
 
-            const total = sortedPhotos.length;
+            const total = filteredPhotos.length;
 
             if (e.key === "ArrowRight") {
                 e.preventDefault();
@@ -259,17 +239,17 @@ export function PublicAlbumPage() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [selectedPhotoIndex, sortedPhotos]);
+    }, [selectedPhotoIndex, filteredPhotos]);
 
     const handleNext = () => {
-        if (selectedPhotoIndex !== null && sortedPhotos && sortedPhotos.length > 0) {
-            setSelectedPhotoIndex((selectedPhotoIndex + 1) % sortedPhotos.length);
+        if (selectedPhotoIndex !== null && filteredPhotos && filteredPhotos.length > 0) {
+            setSelectedPhotoIndex((selectedPhotoIndex + 1) % filteredPhotos.length);
         }
     };
 
     const handlePrev = () => {
-        if (selectedPhotoIndex !== null && sortedPhotos && sortedPhotos.length > 0) {
-            setSelectedPhotoIndex((selectedPhotoIndex - 1 + sortedPhotos.length) % sortedPhotos.length);
+        if (selectedPhotoIndex !== null && filteredPhotos && filteredPhotos.length > 0) {
+            setSelectedPhotoIndex((selectedPhotoIndex - 1 + filteredPhotos.length) % filteredPhotos.length);
         }
     };
 
@@ -464,136 +444,146 @@ export function PublicAlbumPage() {
                         </p>
                     </div>
 
-                    {/* Interaction Sorting Boxes */}
+                    {/* Interaction Filter Boxes */}
                     <div className="flex flex-wrap items-center gap-2">
                         <button 
-                            onClick={() => setSortBy('all')}
+                            onClick={() => setFilterBy('all')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                sortBy === 'all' 
+                                filterBy === 'all' 
                                     ? "bg-white text-black border-white shadow-lg" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
                         >
                             <span>Tất cả</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'all' ? "bg-black/10 text-black font-bold" : "bg-white/10 text-white/60"}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'all' ? "bg-black/10 text-black font-bold" : "bg-white/10 text-white/60"}`}>
                                 {album.photos?.length || 0}
                             </span>
                         </button>
 
                         <button 
-                            onClick={() => setSortBy('liked')}
+                            onClick={() => setFilterBy('liked')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                sortBy === 'liked' 
+                                filterBy === 'liked' 
                                     ? "bg-red-500 text-white border-red-400 shadow-lg shadow-red-500/20 font-bold" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
                         >
-                            <Heart size={14} className={sortBy === 'liked' ? "fill-white text-white" : "text-red-400"} />
+                            <Heart size={14} className={filterBy === 'liked' ? "fill-white text-white" : "text-red-400"} />
                             <span>Liked</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'liked' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
-                                {totalLikes}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'liked' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                                {likedPhotosCount}
                             </span>
                         </button>
 
                         <button 
-                            onClick={() => setSortBy('starred')}
+                            onClick={() => setFilterBy('starred')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                sortBy === 'starred' 
+                                filterBy === 'starred' 
                                     ? "bg-yellow-500 text-black border-yellow-400 shadow-lg shadow-yellow-500/20 font-bold" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
                         >
-                            <Star size={14} className={sortBy === 'starred' ? "fill-black text-black" : "text-yellow-400"} />
+                            <Star size={14} className={filterBy === 'starred' ? "fill-black text-black" : "text-yellow-400"} />
                             <span>Starred</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'starred' ? "bg-black/20 text-black font-bold" : "bg-white/10 text-white/60"}`}>
-                                {totalStars}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'starred' ? "bg-black/20 text-black font-bold" : "bg-white/10 text-white/60"}`}>
+                                {starredPhotosCount}
                             </span>
                         </button>
 
                         <button 
-                            onClick={() => setSortBy('commented')}
+                            onClick={() => setFilterBy('commented')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                sortBy === 'commented' 
+                                filterBy === 'commented' 
                                     ? "bg-[#D84040] text-white border-red-500 shadow-lg shadow-red-500/20 font-bold" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
                         >
-                            <MessageSquare size={14} className={sortBy === 'commented' ? "text-white" : "text-[#D84040]"} />
+                            <MessageSquare size={14} className={filterBy === 'commented' ? "text-white" : "text-[#D84040]"} />
                             <span>Commented</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'commented' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
-                                {totalComments}
-                            </span>
-                        </button>
-
-                        <button 
-                            onClick={() => setSortBy('total')}
-                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                sortBy === 'total' 
-                                    ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-500/20 font-bold" 
-                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
-                            }`}
-                        >
-                            <Sparkles size={14} className={sortBy === 'total' ? "text-white" : "text-purple-400"} />
-                            <span>Top tương tác</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${sortBy === 'total' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
-                                {totalLikes + totalStars + totalComments}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'commented' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                                {commentedPhotosCount}
                             </span>
                         </button>
                     </div>
                 </header>
                 
-                {/* Masonry / Columns Grid */}
-                <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
-                    {sortedPhotos.map((photo: any, idx: number) => {
-                        const imgThumb = getPhotoUrl(photo, false);
-                        const likeCount = photo.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
-                        const starCount = photo.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
-                        const commentCount = photo.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0;
+                {/* Empty State when filter has 0 photos */}
+                {filteredPhotos.length === 0 ? (
+                    <div className="py-24 flex flex-col items-center justify-center text-center bg-white/[0.02] border border-white/5 rounded-2xl p-8">
+                        <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 text-white/40 shadow-inner">
+                            {filterBy === 'liked' && <Heart size={28} className="text-red-400" />}
+                            {filterBy === 'starred' && <Star size={28} className="text-yellow-400" />}
+                            {filterBy === 'commented' && <MessageSquare size={28} className="text-[#D84040]" />}
+                        </div>
+                        <h3 className="text-base font-semibold text-white mb-1.5">
+                            {filterBy === 'liked' && "Chưa có ảnh nào được thích (Like)"}
+                            {filterBy === 'starred' && "Chưa có ảnh nào được đánh dấu sao (Star)"}
+                            {filterBy === 'commented' && "Chưa có ảnh nào có bình luận (Comment)"}
+                        </h3>
+                        <p className="text-xs text-white/40 mb-6 max-w-sm">
+                            Hãy nhấn vào bất kỳ bức ảnh nào trong album để thả tim, đánh dấu sao hoặc để lại lời bình nhé!
+                        </p>
+                        <button 
+                            onClick={() => setFilterBy('all')}
+                            className="px-5 py-2.5 bg-white text-black hover:bg-white/90 rounded-xl text-xs font-bold transition-all shadow-lg shadow-white/10"
+                        >
+                            Xem tất cả ({album.photos?.length || 0} ảnh)
+                        </button>
+                    </div>
+                ) : (
+                    /* Masonry / Columns Grid */
+                    <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
+                        {filteredPhotos.map((photo: any, idx: number) => {
+                            const imgThumb = getPhotoUrl(photo, false);
+                            const likeCount = photo.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
+                            const starCount = photo.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
+                            const commentCount = photo.interactions?.filter((i: any) => i.interaction_type === 'comment').length || 0;
 
-                        return (
-                            <div 
-                                key={photo.id} 
-                                className="relative group rounded-xl overflow-hidden cursor-pointer bg-white/5 border border-white/10 break-inside-avoid hover:border-[#D84040]/60 transition-all duration-300 shadow-md" 
-                                onClick={() => setSelectedPhotoIndex(idx)}
-                            >
-                                <img 
-                                    src={imgThumb} 
-                                    alt="" 
-                                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105" 
-                                    loading="lazy" 
-                                    decoding="async"
-                                    onError={(e: any) => {
-                                        if (photo.file_id) {
-                                            e.currentTarget.src = `https://lh3.googleusercontent.com/d/${photo.file_id}`;
-                                        }
-                                    }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                                    <div className="flex items-center gap-3">
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleInteract(photo.id, 'like'); }} 
-                                            className="text-white hover:text-red-400 flex items-center gap-1 text-xs font-semibold"
-                                        >
-                                            <Heart size={14} className={photo.interactions?.some((i: any) => i.interaction_type === 'like' && i.client_name === clientName) ? "fill-red-500 text-red-500" : ""} /> 
-                                            {likeCount}
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleInteract(photo.id, 'star'); }} 
-                                            className="text-white hover:text-yellow-400 flex items-center gap-1 text-xs font-semibold"
-                                        >
-                                            <Star size={14} className={photo.interactions?.some((i: any) => i.interaction_type === 'star' && i.client_name === clientName) ? "fill-yellow-400 text-yellow-400" : ""} /> 
-                                            {starCount}
-                                        </button>
-                                        <span className="text-white flex items-center gap-1 ml-auto text-xs font-semibold">
-                                            <MessageSquare size={14} /> 
-                                            {commentCount}
-                                        </span>
+                            return (
+                                <div 
+                                    key={photo.id} 
+                                    className="relative group rounded-xl overflow-hidden cursor-pointer bg-white/5 border border-white/10 break-inside-avoid hover:border-[#D84040]/60 transition-all duration-300 shadow-md" 
+                                    onClick={() => setSelectedPhotoIndex(idx)}
+                                >
+                                    <img 
+                                        src={imgThumb} 
+                                        alt="" 
+                                        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105" 
+                                        loading="lazy" 
+                                        decoding="async"
+                                        onError={(e: any) => {
+                                            if (photo.file_id) {
+                                                e.currentTarget.src = `https://lh3.googleusercontent.com/d/${photo.file_id}`;
+                                            }
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                        <div className="flex items-center gap-3">
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleInteract(photo.id, 'like'); }} 
+                                                className="text-white hover:text-red-400 flex items-center gap-1 text-xs font-semibold"
+                                            >
+                                                <Heart size={14} className={photo.interactions?.some((i: any) => i.interaction_type === 'like' && i.client_name === clientName) ? "fill-red-500 text-red-500" : ""} /> 
+                                                {likeCount}
+                                            </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleInteract(photo.id, 'star'); }} 
+                                                className="text-white hover:text-yellow-400 flex items-center gap-1 text-xs font-semibold"
+                                            >
+                                                <Star size={14} className={photo.interactions?.some((i: any) => i.interaction_type === 'star' && i.client_name === clientName) ? "fill-yellow-400 text-yellow-400" : ""} /> 
+                                                {starCount}
+                                            </button>
+                                            <span className="text-white flex items-center gap-1 ml-auto text-xs font-semibold">
+                                                <MessageSquare size={14} /> 
+                                                {commentCount}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* Instant Progressive Lightbox Modal */}
@@ -602,7 +592,7 @@ export function PublicAlbumPage() {
                     {/* Top Bar Controls */}
                     <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
                         <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-white/80 font-medium">
-                            {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} / {sortedPhotos.length}
+                            {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} / {filteredPhotos.length}
                         </div>
                         {highResLoaded && (
                             <span className="flex items-center gap-1 text-[11px] text-green-400/90 bg-green-950/40 px-2.5 py-1 rounded-full border border-green-800/40">
