@@ -9,13 +9,40 @@ export function PublicAlbumPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     
-    // Auto-fill client name from previous sessions or logins if available
-    const [clientName, setClientName] = useState(() => {
-        return localStorage.getItem("204_album_guest_name") || "";
-    });
-    const [hasEnteredName, setHasEnteredName] = useState(() => {
-        return Boolean(localStorage.getItem("204_album_guest_name"));
-    });
+    // Auto-detect logged-in user (Admin, Crew, Client) or remembered guest
+    const getInitialUser = () => {
+        try {
+            // Check URL search params first (e.g. ?name=... or ?as=...)
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryName = urlParams.get("name");
+            if (queryName) {
+                return { name: queryName, isAutoLoggedIn: true };
+            }
+
+            // Check logged-in user in localStorage
+            const storedUserStr = localStorage.getItem("user");
+            if (storedUserStr) {
+                const u = JSON.parse(storedUserStr);
+                const name = u.display_name || u.name || u.full_name || u.username || (u.role === 'admin' ? 'Admin' : (u.role === 'crew' ? 'Crew' : 'Client'));
+                if (name) {
+                    return { name, isAutoLoggedIn: true };
+                }
+            }
+
+            // Check remembered guest name
+            const guestName = localStorage.getItem("204_album_guest_name");
+            if (guestName) {
+                return { name: guestName, isAutoLoggedIn: true };
+            }
+        } catch (e) {
+            console.error("Error reading user storage:", e);
+        }
+        return { name: "", isAutoLoggedIn: false };
+    };
+
+    const initial = getInitialUser();
+    const [clientName, setClientName] = useState(initial.name);
+    const [hasEnteredName, setHasEnteredName] = useState(initial.isAutoLoggedIn);
     
     const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
     const [commentText, setCommentText] = useState("");
