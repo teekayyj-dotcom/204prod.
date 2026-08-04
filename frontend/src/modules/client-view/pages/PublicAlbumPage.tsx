@@ -11,7 +11,6 @@ import {
     Image as ImageIcon, 
     ChevronLeft, 
     ChevronRight, 
-    Sparkles,
     Trash2,
     Clock
 } from "lucide-react";
@@ -38,14 +37,16 @@ function formatLiveTime(dateStr: string) {
     return `${date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-type FilterType = 'all' | 'liked' | 'starred' | 'commented';
+type FilterOption = 'liked' | 'starred' | 'commented';
 
 export function PublicAlbumPage() {
     const { token } = useParams<{ token: string }>();
     const [album, setAlbum] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [filterBy, setFilterBy] = useState<FilterType>('all');
+    
+    // Multi-select active filters (e.g. ['liked', 'starred'])
+    const [selectedFilters, setSelectedFilters] = useState<FilterOption[]>([]);
     
     // Auto-detect logged-in user (Admin, Crew, Client) or remembered guest
     const getInitialUser = () => {
@@ -130,6 +131,24 @@ export function PublicAlbumPage() {
         return () => clearInterval(interval);
     }, []);
 
+    // Toggle filter selection (click again to unselect/cancel filter)
+    const toggleFilter = (type: FilterOption) => {
+        setSelectedFilters(prev => {
+            if (prev.includes(type)) {
+                return prev.filter(t => t !== type);
+            } else {
+                return [...prev, type];
+            }
+        });
+    };
+
+    const clearAllFilters = () => {
+        setSelectedFilters([]);
+    };
+
+    const isFilterActive = (type: FilterOption) => selectedFilters.includes(type);
+    const isAllActive = selectedFilters.length === 0;
+
     // Unique photos count for each category
     const likedPhotosCount = useMemo(() => {
         return album?.photos?.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'like')).length || 0;
@@ -143,20 +162,23 @@ export function PublicAlbumPage() {
         return album?.photos?.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'comment')).length || 0;
     }, [album]);
 
-    // Filtered Photos list strictly matching the selected category
+    // Multi-criteria Filtered Photos list
     const filteredPhotos = useMemo(() => {
         if (!album?.photos) return [];
-        if (filterBy === 'liked') {
-            return album.photos.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'like'));
+        if (selectedFilters.length === 0) {
+            return album.photos;
         }
-        if (filterBy === 'starred') {
-            return album.photos.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'star'));
-        }
-        if (filterBy === 'commented') {
-            return album.photos.filter((p: any) => p.interactions?.some((i: any) => i.interaction_type === 'comment'));
-        }
-        return album.photos;
-    }, [album, filterBy]);
+        return album.photos.filter((p: any) => {
+            const hasLike = p.interactions?.some((i: any) => i.interaction_type === 'like');
+            const hasStar = p.interactions?.some((i: any) => i.interaction_type === 'star');
+            const hasComment = p.interactions?.some((i: any) => i.interaction_type === 'comment');
+
+            if (selectedFilters.includes('liked') && hasLike) return true;
+            if (selectedFilters.includes('starred') && hasStar) return true;
+            if (selectedFilters.includes('commented') && hasComment) return true;
+            return false;
+        });
+    }, [album, selectedFilters]);
 
     const handleStartViewing = (name?: string) => {
         const finalName = (name !== undefined ? name : clientName).trim() || "Khách xem";
@@ -450,63 +472,67 @@ export function PublicAlbumPage() {
                         </p>
                     </div>
 
-                    {/* Interaction Filter Boxes */}
+                    {/* Multi-Select Interaction Filter Boxes */}
                     <div className="flex flex-wrap items-center gap-2">
                         <button 
-                            onClick={() => setFilterBy('all')}
+                            onClick={clearAllFilters}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                filterBy === 'all' 
+                                isAllActive 
                                     ? "bg-white text-black border-white shadow-lg" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
+                            title="Hiển thị tất cả ảnh"
                         >
                             <span>Tất cả</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'all' ? "bg-black/10 text-black font-bold" : "bg-white/10 text-white/60"}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${isAllActive ? "bg-black/10 text-black font-bold" : "bg-white/10 text-white/60"}`}>
                                 {album.photos?.length || 0}
                             </span>
                         </button>
 
                         <button 
-                            onClick={() => setFilterBy('liked')}
+                            onClick={() => toggleFilter('liked')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                filterBy === 'liked' 
-                                    ? "bg-red-500 text-white border-red-400 shadow-lg shadow-red-500/20 font-bold" 
+                                isFilterActive('liked') 
+                                    ? "bg-red-500 text-white border-red-400 shadow-lg shadow-red-500/20 font-bold scale-[1.02]" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
+                            title={isFilterActive('liked') ? "Nhấn để bỏ chọn Liked" : "Nhấn để lọc ảnh Liked"}
                         >
-                            <Heart size={14} className={filterBy === 'liked' ? "fill-white text-white" : "text-red-400"} />
+                            <Heart size={14} className={isFilterActive('liked') ? "fill-white text-white" : "text-red-400"} />
                             <span>Liked</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'liked' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${isFilterActive('liked') ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
                                 {likedPhotosCount}
                             </span>
                         </button>
 
                         <button 
-                            onClick={() => setFilterBy('starred')}
+                            onClick={() => toggleFilter('starred')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                filterBy === 'starred' 
-                                    ? "bg-yellow-500 text-black border-yellow-400 shadow-lg shadow-yellow-500/20 font-bold" 
+                                isFilterActive('starred') 
+                                    ? "bg-yellow-500 text-black border-yellow-400 shadow-lg shadow-yellow-500/20 font-bold scale-[1.02]" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
+                            title={isFilterActive('starred') ? "Nhấn để bỏ chọn Starred" : "Nhấn để lọc ảnh Starred"}
                         >
-                            <Star size={14} className={filterBy === 'starred' ? "fill-black text-black" : "text-yellow-400"} />
+                            <Star size={14} className={isFilterActive('starred') ? "fill-black text-black" : "text-yellow-400"} />
                             <span>Starred</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'starred' ? "bg-black/20 text-black font-bold" : "bg-white/10 text-white/60"}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${isFilterActive('starred') ? "bg-black/20 text-black font-bold" : "bg-white/10 text-white/60"}`}>
                                 {starredPhotosCount}
                             </span>
                         </button>
 
                         <button 
-                            onClick={() => setFilterBy('commented')}
+                            onClick={() => toggleFilter('commented')}
                             className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all border ${
-                                filterBy === 'commented' 
-                                    ? "bg-[#D84040] text-white border-red-500 shadow-lg shadow-red-500/20 font-bold" 
+                                isFilterActive('commented') 
+                                    ? "bg-[#D84040] text-white border-red-500 shadow-lg shadow-red-500/20 font-bold scale-[1.02]" 
                                     : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
                             }`}
+                            title={isFilterActive('commented') ? "Nhấn để bỏ chọn Commented" : "Nhấn để lọc ảnh Commented"}
                         >
-                            <MessageSquare size={14} className={filterBy === 'commented' ? "text-white" : "text-[#D84040]"} />
+                            <MessageSquare size={14} className={isFilterActive('commented') ? "text-white" : "text-[#D84040]"} />
                             <span>Commented</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${filterBy === 'commented' ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono ${isFilterActive('commented') ? "bg-black/20 text-white font-bold" : "bg-white/10 text-white/60"}`}>
                                 {commentedPhotosCount}
                             </span>
                         </button>
@@ -517,20 +543,16 @@ export function PublicAlbumPage() {
                 {filteredPhotos.length === 0 ? (
                     <div className="py-24 flex flex-col items-center justify-center text-center bg-white/[0.02] border border-white/5 rounded-2xl p-8">
                         <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 text-white/40 shadow-inner">
-                            {filterBy === 'liked' && <Heart size={28} className="text-red-400" />}
-                            {filterBy === 'starred' && <Star size={28} className="text-yellow-400" />}
-                            {filterBy === 'commented' && <MessageSquare size={28} className="text-[#D84040]" />}
+                            <ImageIcon size={28} className="text-white/40" />
                         </div>
                         <h3 className="text-base font-semibold text-white mb-1.5">
-                            {filterBy === 'liked' && "Chưa có ảnh nào được thích (Like)"}
-                            {filterBy === 'starred' && "Chưa có ảnh nào được đánh dấu sao (Star)"}
-                            {filterBy === 'commented' && "Chưa có ảnh nào có bình luận (Comment)"}
+                            Không có bức ảnh nào phù hợp với bộ lọc đã chọn
                         </h3>
                         <p className="text-xs text-white/40 mb-6 max-w-sm">
-                            Hãy nhấn vào bất kỳ bức ảnh nào trong album để thả tim, đánh dấu sao hoặc để lại lời bình nhé!
+                            Hãy thử bật thêm bộ lọc khác hoặc nhấn vào ảnh để thêm lượt yêu thích, đánh dấu sao!
                         </p>
                         <button 
-                            onClick={() => setFilterBy('all')}
+                            onClick={clearAllFilters}
                             className="px-5 py-2.5 bg-white text-black hover:bg-white/90 rounded-xl text-xs font-bold transition-all shadow-lg shadow-white/10"
                         >
                             Xem tất cả ({album.photos?.length || 0} ảnh)
@@ -666,7 +688,7 @@ export function PublicAlbumPage() {
                             {!highResLoaded && (
                                 <div className="absolute bottom-4 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10 text-xs text-white/70">
                                     <Loader2 size={13} className="animate-spin text-[#D84040]" />
-                                    <span>Đang tối ưu độ nét HD...</span>
+                                    <span>Đang tải độ phân giải cao...</span>
                                 </div>
                             )}
                         </div>
