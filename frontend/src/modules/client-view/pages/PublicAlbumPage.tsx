@@ -81,9 +81,10 @@ export function PublicAlbumPage() {
         const user = clientName.trim() || "Khách xem";
         
         try {
-            const res = await fetchApi(`/projects/albums/public/${token}/interact`, {
+            const res = await fetchApi(`/projects/albums/public/${token}/interact?photo_id=${photoId}`, {
                 method: "POST",
                 body: JSON.stringify({
+                    photo_id: photoId,
                     client_name: user,
                     interaction_type: type,
                     comment_text: text || null

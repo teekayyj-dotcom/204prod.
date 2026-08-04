@@ -274,6 +274,7 @@ class ReviewLinkPublic(BaseModel):
     published: bool
 
 class AlbumInteractionCreate(BaseModel):
+    photo_id: str | None = None
     client_name: str
     interaction_type: str
     comment_text: str | None = None

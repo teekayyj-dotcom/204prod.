@@ -432,17 +432,21 @@ def get_public_album(token: str, db: Session = Depends(get_db_session)):
     return album
 
 @router.post("/albums/public/{token}/interact", response_model=AlbumInteractionResponse)
-def interact_with_album(token: str, photo_id: str, payload: AlbumInteractionCreate, db: Session = Depends(get_db_session)):
+def interact_with_album(token: str, payload: AlbumInteractionCreate, photo_id: str | None = None, db: Session = Depends(get_db_session)):
     album = db.query(PhotoAlbum).filter(PhotoAlbum.short_token == token).first()
     if not album:
         raise HTTPException(status_code=404, detail="Album not found")
         
-    photo = db.query(AlbumPhoto).filter(AlbumPhoto.id == photo_id, AlbumPhoto.album_id == album.id).first()
+    target_photo_id = payload.photo_id or photo_id
+    if not target_photo_id:
+        raise HTTPException(status_code=400, detail="Missing photo_id")
+
+    photo = db.query(AlbumPhoto).filter(AlbumPhoto.id == target_photo_id, AlbumPhoto.album_id == album.id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
         
     interaction = AlbumInteraction(
-        photo_id=photo_id,
+        photo_id=target_photo_id,
         client_name=payload.client_name,
         interaction_type=payload.interaction_type,
         comment_text=payload.comment_text
