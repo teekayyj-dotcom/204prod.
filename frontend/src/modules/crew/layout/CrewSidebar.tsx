@@ -43,6 +43,13 @@ const navItems = [
     path: "/crew-dashboard/media",
     exact: false,
   },
+  {
+    label: "Tin nhắn",
+    sublabel: "Messages",
+    icon: MessageCircle,
+    path: "/crew-dashboard/messages",
+    exact: false,
+  },
 ];
 
 export function CrewSidebar({ 

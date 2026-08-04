@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useChatStore, Conversation } from "../store/ChatContext";
-import { Users, Search, Plus } from "lucide-react";
+import { Users, Search, Plus, MessageSquare } from "lucide-react";
 import { wsService } from "../services/websocket";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { NewChatModal } from "./NewChatModal";
 import { messagingApi } from "../services/api";
 import { ensureUTC } from "../utils/time";
 
@@ -10,6 +11,7 @@ export function ChatSidebar() {
   const { conversations, activeConversationId, setActiveConversationId, setConversations } = useChatStore();
   const [search, setSearch] = useState("");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showNewChat, setShowNewChat] = useState(false);
 
   const filtered = conversations.filter(c => 
     c.name?.toLowerCase().includes(search.toLowerCase()) || 
@@ -27,13 +29,22 @@ export function ChatSidebar() {
       {/* Header */}
       <div className="p-4 border-b border-slate-200 flex justify-between items-center">
         <h2 className="text-xl font-semibold text-slate-800">Messages</h2>
-        <button 
-          onClick={() => setShowCreateGroup(true)}
-          className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-          title="Create Group"
-        >
-          <Plus className="w-5 h-5 text-slate-600" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setShowNewChat(true)}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            title="New Message"
+          >
+            <MessageSquare className="w-5 h-5 text-slate-600" />
+          </button>
+          <button 
+            onClick={() => setShowCreateGroup(true)}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+            title="Create Group"
+          >
+            <Plus className="w-5 h-5 text-slate-600" />
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -133,6 +144,21 @@ export function ChatSidebar() {
           onSuccess={(newId) => {
             setShowCreateGroup(false);
             // Re-fetch conversations to include the new group, or we could just update the context
+            const fetchHistory = async () => {
+              const token = localStorage.getItem("token") || "";
+              const data = await messagingApi.getConversations(token);
+              setConversations(data);
+              setActiveConversationId(newId);
+            };
+            fetchHistory();
+          }}
+        />
+      )}
+      {showNewChat && (
+        <NewChatModal 
+          onClose={() => setShowNewChat(false)}
+          onSuccess={(newId) => {
+            setShowNewChat(false);
             const fetchHistory = async () => {
               const token = localStorage.getItem("token") || "";
               const data = await messagingApi.getConversations(token);

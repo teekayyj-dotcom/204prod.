@@ -7,6 +7,7 @@ import {
     Headphones,
     LogOut,
     ChevronRight,
+    MessageCircle,
 } from "lucide-react";
 import { NotificationBell } from "../../../shared/components/NotificationBell";
 
@@ -15,6 +16,7 @@ const navItems = [
     { label: "Dự án của tôi", icon: Briefcase, path: "/client/projects" },
     { label: "Kho Demo / Xét duyệt", icon: MonitorPlay, path: "/client/demos" },
     { label: "Hóa đơn & Thanh toán", icon: Receipt, path: "/client/billing" },
+    { label: "Tin nhắn", icon: MessageCircle, path: "/client/messages" },
     { label: "Hỗ trợ", icon: Headphones, path: "/client/support" },
 ];
 

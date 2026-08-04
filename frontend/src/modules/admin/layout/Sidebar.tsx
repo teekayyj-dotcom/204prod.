@@ -28,6 +28,7 @@ import { useChatStore } from "../../messaging/store/ChatContext";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { label: "Projects", icon: Briefcase, path: "/admin/projects" },
+  { label: "Tin nhắn", icon: MessageCircle, path: "/admin/messages" },
 ];
 
 const bottomNavItems = [
