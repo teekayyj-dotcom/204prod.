@@ -1446,6 +1446,45 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
         }
     };
 
+    const handleUpdateAlbum = async () => {
+        if (!editingAlbum || !editAlbumTitle || !editAlbumLink) {
+            alert("Vui lòng nhập Tên Album và Link Google Drive");
+            return;
+        }
+        setIsEditingAlbum(true);
+        try {
+            const res = await fetchApi(`/projects/albums/${editingAlbum.id}`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    title: editAlbumTitle,
+                    gdrive_folder_id: editAlbumLink,
+                    background_url: editAlbumBg || null
+                })
+            });
+            setAlbums(prev => prev.map(a => a.id === editingAlbum.id ? res : a));
+            setEditingAlbum(null);
+            alert("Cập nhật Album thành công!");
+        } catch (err: any) {
+            alert("Lỗi cập nhật album: " + (err.message || ""));
+        } finally {
+            setIsEditingAlbum(false);
+        }
+    };
+
+    const handleDeleteAlbum = async () => {
+        if (!deletingAlbum) return;
+        try {
+            await fetchApi(`/projects/albums/${deletingAlbum.id}`, {
+                method: "DELETE"
+            });
+            setAlbums(prev => prev.filter(a => a.id !== deletingAlbum.id));
+            setDeletingAlbum(null);
+            alert("Xoá Album thành công!");
+        } catch (err: any) {
+            alert("Lỗi xoá album: " + (err.message || ""));
+        }
+    };
+
 
     const formattedFeedbacks = feedbacks.map(fb => ({
         id: fb.id,
