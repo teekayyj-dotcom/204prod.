@@ -10,7 +10,7 @@ export function ChatWidget() {
 
   const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
-  if (!isWidgetOpen) {
+  if (!isWidgetOpen || window.location.pathname.includes("/messages")) {
     return null;
   }
 

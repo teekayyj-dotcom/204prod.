@@ -92,12 +92,18 @@ export function ChatSidebar() {
             >
               <div className="relative flex-shrink-0">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold overflow-hidden">
-                  {conv.avatar_url ? (
-                    <img src={conv.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : conv.is_group ? (
-                    <Users className="w-6 h-6" />
+                  {conv.is_group ? (
+                    conv.avatar_url ? (
+                      <img src={conv.avatar_url} alt="Group Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users className="w-6 h-6" />
+                    )
                   ) : (
-                    (conv.name?.charAt(0) || otherName?.charAt(0) || "U")
+                    (conv.avatar_url || otherParticipant?.avatar_url) ? (
+                      <img src={(conv.avatar_url || otherParticipant?.avatar_url) as string} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      (conv.name?.charAt(0) || otherName?.charAt(0) || "U")
+                    )
                   )}
                 </div>
               </div>

@@ -12,6 +12,7 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
   // Get actual user ID from localStorage
   const u = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = u.id || 0;
+  const currentUserAvatar = u.avatar_url || u.avatar || u.photo_url || u.photoURL;
 
   // Auto-scroll to bottom
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -61,7 +62,8 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
       {conversationMessages.map((msg, index) => {
         const isOwn = msg.sender_id === currentUserId;
         const sender = conversation.participants.find(p => p.user_id === msg.sender_id);
-        const senderName = msg.sender_name || sender?.display_name || `User ${msg.sender_id}`;
+        const senderName = msg.sender_name || sender?.display_name || (isOwn ? (u.display_name || u.username) : `User ${msg.sender_id}`);
+        const finalSenderAvatar = isOwn ? (currentUserAvatar || sender?.avatar_url) : sender?.avatar_url;
         
         // Determine if we should hide the timestamp
         let hideTimestamp = false;
@@ -112,7 +114,7 @@ export function MessageList({ conversation }: { conversation: Conversation }) {
             showName={showName}
             hideTimestamp={hideTimestamp}
             hideAvatar={hideTimestamp}
-            senderAvatar={sender?.avatar_url}
+            senderAvatar={finalSenderAvatar}
             referencedPollMessage={referencedPollMessage}
           />
         );

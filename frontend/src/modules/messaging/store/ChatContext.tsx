@@ -162,7 +162,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       } catch (e) {}
 
       if (Number(msg.sender_id) !== Number(currentUserId)) {
-        const isViewing = isWidgetOpenRef.current && Number(activeConversationIdRef.current) === Number(msg.conversation_id);
+        const isMessagesPage = window.location.pathname.includes("/messages");
+        const isViewing = (isWidgetOpenRef.current || isMessagesPage) && Number(activeConversationIdRef.current) === Number(msg.conversation_id);
         if (!isViewing) {
           // Increment unread_count and update last_message
           setConversations(prev => prev.map(c => 
@@ -170,7 +171,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           ));
           
           // Auto pop-up widget if it's closed
-          if (!isWidgetOpenRef.current) {
+          if (!isWidgetOpenRef.current && !isMessagesPage) {
             setIsWidgetOpen(true);
           }
           

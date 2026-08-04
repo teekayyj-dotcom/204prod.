@@ -64,12 +64,18 @@ export function ChatWindow() {
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold overflow-hidden">
-                {activeConversation.avatar_url ? (
-                  <img src={activeConversation.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                ) : activeConversation.is_group ? (
-                  <Users className="w-5 h-5" />
+                {activeConversation.is_group ? (
+                  activeConversation.avatar_url ? (
+                    <img src={activeConversation.avatar_url} alt="Group Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <Users className="w-5 h-5" />
+                  )
                 ) : (
-                  (activeConversation.name?.charAt(0) || otherName?.charAt(0) || "U")
+                  (activeConversation.avatar_url || otherParticipant?.avatar_url) ? (
+                    <img src={(activeConversation.avatar_url || otherParticipant?.avatar_url) as string} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    (activeConversation.name?.charAt(0) || otherName?.charAt(0) || "U")
+                  )
                 )}
               </div>
           </div>
