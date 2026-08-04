@@ -12,8 +12,31 @@ import {
     ChevronLeft, 
     ChevronRight, 
     Sparkles,
-    Trash2
+    Trash2,
+    Clock
 } from "lucide-react";
+
+function formatLiveTime(dateStr: string) {
+    if (!dateStr) return "";
+    let date = new Date(dateStr);
+    // Handle UTC offset if string doesn't include timezone
+    if (!dateStr.endsWith("Z") && !dateStr.includes("+") && !dateStr.includes("-", 10)) {
+        date = new Date(dateStr + "Z");
+    }
+    const now = new Date();
+    const diffMs = Math.max(0, now.getTime() - date.getTime());
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 45) return "Vừa xong";
+    if (diffMin < 60) return `${diffMin} phút trước`;
+    if (diffHour < 24) return `${diffHour} giờ trước`;
+    if (diffDay === 1) return `Hôm qua ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+    if (diffDay < 7) return `${diffDay} ngày trước`;
+    return `${date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+}
 
 export function PublicAlbumPage() {
     const { token } = useParams<{ token: string }>();
@@ -60,6 +83,7 @@ export function PublicAlbumPage() {
     const [isInteracting, setIsInteracting] = useState(false);
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
+    // Initial load
     useEffect(() => {
         if (!token) return;
         fetchApi(`/projects/albums/public/${token}`)
@@ -67,6 +91,42 @@ export function PublicAlbumPage() {
             .catch(err => setError("Album không tồn tại hoặc đã bị xoá."))
             .finally(() => setLoading(false));
     }, [token]);
+
+    // Live Real-Time Background Synchronization (polling every 3.5s)
+    useEffect(() => {
+        if (!token) return;
+        
+        const syncInterval = setInterval(() => {
+            fetchApi(`/projects/albums/public/${token}`)
+                .then(res => {
+                    if (res && res.photos) {
+                        setAlbum((prev: any) => {
+                            if (!prev) return res;
+                            // Check if any interactions changed
+                            const prevInteractions = JSON.stringify(prev.photos.map((p: any) => p.interactions));
+                            const newInteractions = JSON.stringify(res.photos.map((p: any) => p.interactions));
+                            if (prevInteractions !== newInteractions) {
+                                return {
+                                    ...prev,
+                                    photos: res.photos
+                                };
+                            }
+                            return prev;
+                        });
+                    }
+                })
+                .catch(() => {});
+        }, 3500);
+
+        return () => clearInterval(syncInterval);
+    }, [token]);
+
+    // Live Clock Ticking every 15s to update relative times ("Vừa xong" -> "1 phút trước")
+    const [, setClockTick] = useState(0);
+    useEffect(() => {
+        const interval = setInterval(() => setClockTick(t => t + 1), 15000);
+        return () => clearInterval(interval);
+    }, []);
 
     const handleStartViewing = (name?: string) => {
         const finalName = (name !== undefined ? name : clientName).trim() || "Khách xem";
@@ -340,6 +400,11 @@ export function PublicAlbumPage() {
                             <span>204PROD ALBUM</span>
                             <span>•</span>
                             <span>{album.photos?.length || 0} Photos</span>
+                            <span>•</span>
+                            <span className="text-green-400 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                                Live Sync
+                            </span>
                         </div>
                         <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white">{album.title}</h1>
                         <p className="text-gray-400 mt-1.5 text-sm">
@@ -534,7 +599,13 @@ export function PublicAlbumPage() {
                                         <div className="flex justify-between items-baseline">
                                             <span className="font-semibold text-xs text-[#D84040]">{comment.client_name}</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] text-white/40">{new Date(comment.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span 
+                                                    className="text-[10px] text-white/40 flex items-center gap-1 font-mono"
+                                                    title={new Date(comment.created_at).toLocaleString('vi-VN')}
+                                                >
+                                                    <Clock size={10} className="text-white/30" />
+                                                    {formatLiveTime(comment.created_at)}
+                                                </span>
                                                 {isAuthor && (
                                                     <button
                                                         onClick={() => handleDeleteComment(comment.id)}
