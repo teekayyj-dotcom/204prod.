@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Attendance Shift Reminders, Auto-Checkout & OT API
+  version: 1.0.0
+  description: Endpoints and WebSocket message contracts for shift notifications, auto-checkout, and active attendance status.
+
+paths:
+  /api/v1/hr/attendance/active-status:
+    get:
+      summary: Get active attendance status for a user
+      description: Returns the active check-in state, active shift / OT session info, start time, elapsed duration, and scheduled auto-checkout time.
+      parameters:
+        - name: employee_name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Normalized employee name or username
+      responses:
+        '200':
+          description: Active attendance status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActiveAttendanceStatus'
+
+  /api/v1/hr/attendance-logs:
+    post:
+      summary: Record manual check-in or check-out
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceLogCreate'
+      responses:
+        '201':
+          description: Attendance log created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceLogResponse'
+
+components:
+  schemas:
+    ActiveAttendanceStatus:
+      type: object
+      properties:
+        is_checked_in:
+          type: boolean
+          example: true
+        session_type:
+          type: string
+          enum: [regular, ot, none]
+          example: regular
+        checkin_time:
+          type: string
+          nullable: true
+          example: "08:25"
+        checkin_timestamp:
+          type: integer
+          nullable: true
+          description: Epoch timestamp in milliseconds
+          example: 1785803100000
+        shift_name:
+          type: string
+          nullable: true
+          example: "Ca Sáng"
+        shift_start_time:
+          type: string
+          nullable: true
+          example: "08:30"
+        shift_end_time:
+          type: string
+          nullable: true
+          example: "12:00"
+        scheduled_auto_checkout_time:
+          type: string
+          nullable: true
+          example: "12:15"
+        scheduled_checkout_reminder_time:
+          type: string
+          nullable: true
+          example: "11:55"
+        ot_target_hours:
+          type: number
+          nullable: true
+          example: 4.0
+      required:
+        - is_checked_in
+        - session_type
+
+    AttendanceLogCreate:
+      type: object
+      required:
+        - employee_name
+        - avatar
+        - action
+        - time
+        - date
+      properties:
+        employee_name:
+          type: string
+        avatar:
+          type: string
+        action:
+          type: string
+          enum: [check-in, check-out]
+        time:
+          type: string
+          example: "08:25"
+        date:
+          type: string
+          example: "2026-08-04"
+        status:
+          type: string
+          default: "on-time"
+        note:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+
+    AttendanceLogResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_name:
+          type: string
+        avatar:
+          type: string
+        action:
+          type: string
+        time:
+          type: string
+        date:
+          type: string
+        status:
+          type: string
+        note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+  messages:
+    WebSocketNotificationMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        type:
+          type: string
+          enum:
+            - hr
+            - attendance_checkin_reminder
+            - attendance_checkout_reminder
+            - attendance_auto_checkout
+            - ot_checkout_reminder
+            - ot_auto_checkout
+        title:
+          type: string
+        message:
+          type: string
+        link:
+          type: string
+          nullable: true
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, JSON
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, JSON, UniqueConstraint
 from app.db.base import Base
 
 class Freelancer(Base):
@@ -85,3 +85,19 @@ class WorkSchedule(Base):
     week_start_date = Column(String(50), nullable=False)  # e.g., "2026-07-13" (Monday)
     schedule_data = Column(JSON, nullable=False) # {"YYYY-MM-DD": ["morning", "afternoon"]}
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class AttendanceReminderLog(Base):
+    __tablename__ = "attendance_reminder_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_name = Column(String(255), nullable=False, index=True)
+    date = Column(String(50), nullable=False, index=True)
+    shift_identifier = Column(String(100), nullable=False)
+    event_type = Column(String(50), nullable=False)  # checkin_reminder_15m, checkout_reminder_5m, auto_checkout_15m, ot_checkout_reminder_5m, ot_auto_checkout_15m
+    details = Column(Text, nullable=True)
+    triggered_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("date", "employee_name", "shift_identifier", "event_type", name="uq_attendance_reminder_event"),
+    )
+

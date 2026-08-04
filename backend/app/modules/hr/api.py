@@ -7,7 +7,8 @@ from app.modules.hr.schemas import (
     LeaveRequestCreate, LeaveRequestResponse, LeaveRequestUpdate,
     ShiftCreate, ShiftResponse,
     HolidayCreate, HolidayResponse,
-    TimesheetData, AttendanceStats
+    TimesheetData, AttendanceStats,
+    ActiveAttendanceStatus
 )
 from app.modules.hr.service import (
     get_all_freelancers, get_freelancer_by_id, create_new_freelancer,
@@ -15,7 +16,8 @@ from app.modules.hr.service import (
     get_all_attendance_logs, create_attendance_record,
     get_all_leave_requests, create_leave_request_record, update_leave_request_status,
     get_all_shifts, get_all_holidays,
-    get_timesheet, get_attendance_stats
+    get_timesheet, get_attendance_stats,
+    get_active_attendance_status
 )
 from app.modules.crew.service import get_crew_members
 from app.modules.hr.models import AttendanceLog
@@ -54,6 +56,10 @@ def delete_freelancer(fid: int, db: Session = Depends(get_db_session)):
     return None
 
 # Attendance Logs
+@router.get("/attendance/active-status", response_model=ActiveAttendanceStatus)
+def get_active_status(employee_name: str, date: str | None = None, db: Session = Depends(get_db_session)):
+    return get_active_attendance_status(db, employee_name=employee_name, target_date=date)
+
 @router.get("/attendance-logs", response_model=list[AttendanceLogResponse])
 def list_attendance_logs(db: Session = Depends(get_db_session)):
     return get_all_attendance_logs(db)

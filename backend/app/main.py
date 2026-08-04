@@ -29,6 +29,7 @@ from app.core.firebase_admin_init import init_firebase_admin
 import asyncio
 from datetime import datetime, timedelta
 from app.modules.hr.service import check_and_mark_absences
+from app.modules.hr.attendance_scheduler import attendance_scheduler_loop
 
 async def daily_absent_check():
     while True:
@@ -73,11 +74,15 @@ async def lifespan(app: FastAPI):
 
     # Start cron tasks
     absent_task = asyncio.create_task(daily_absent_check())
+    attendance_scheduler_task = asyncio.create_task(attendance_scheduler_loop(interval_seconds=30))
 
     yield
 
     # Cleanup cron tasks
     absent_task.cancel()
+    attendance_scheduler_task.cancel()
+
+
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 

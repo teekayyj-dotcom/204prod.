@@ -168,3 +168,19 @@ class WorkScheduleResponse(WorkScheduleBase):
 
     class Config:
         from_attributes = True
+
+class ActiveAttendanceStatus(BaseModel):
+    is_checked_in: bool
+    session_type: str = "none"  # regular, ot, none
+    checkin_time: str | None = None
+    checkin_timestamp: int | None = None  # epoch ms
+    shift_name: str | None = None
+    shift_start_time: str | None = None
+    shift_end_time: str | None = None
+    scheduled_auto_checkout_time: str | None = None
+    scheduled_checkout_reminder_time: str | None = None
+    ot_target_hours: float | None = None
+    last_action: str | None = None
+    status: str | None = None
+    note: str | None = None
+

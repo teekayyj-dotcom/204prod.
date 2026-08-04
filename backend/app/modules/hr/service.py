@@ -111,24 +111,361 @@ def get_all_attendance_logs(db: Session) -> list[AttendanceLog]:
         
     return logs
 
-def create_attendance_record(db: Session, employee_name: str, avatar: str, action: str, time: str, date: str, status: str, note: str | None = None, lat: float | None = None, lng: float | None = None) -> AttendanceLog:
+def resolve_employee_name_and_mode(db: Session, employee_name: str):
     from app.modules.users.models import User
     from app.modules.crew.models import CrewMember
 
     resolved_name = employee_name
     crew_work_mode = "onsite"
-    # 1. Find user by username or display_name
     user = db.query(User).filter((User.display_name == employee_name) | (User.username == employee_name)).first()
     if user and user.email:
-        # 2. Find crew member by email
         crew_member = db.query(CrewMember).filter(CrewMember.email == user.email).first()
         if crew_member:
             resolved_name = crew_member.name
             crew_work_mode = getattr(crew_member, 'work_mode', 'onsite')
+    elif not user:
+        crew_member = db.query(CrewMember).filter(CrewMember.name == employee_name).first()
+        if crew_member:
+            resolved_name = crew_member.name
+            crew_work_mode = getattr(crew_member, 'work_mode', 'onsite')
+    return resolved_name, crew_work_mode
 
-    resolved_status = status
-    from app.modules.hr.models import Shift, LeaveRequest
+def get_user_identifiers(db: Session, employee_name: str) -> list[str]:
+    from app.modules.users.models import User
+    from app.modules.crew.models import CrewMember
+
+    ids = set([employee_name])
+    users = db.query(User).filter((User.display_name == employee_name) | (User.username == employee_name)).all()
+    for u in users:
+        if u.username:
+            ids.add(u.username)
+        if u.display_name:
+            ids.add(u.display_name)
+        if u.email:
+            crew = db.query(CrewMember).filter(CrewMember.email == u.email).all()
+            for c in crew:
+                ids.add(c.name)
+    
+    crew_members = db.query(CrewMember).filter(CrewMember.name == employee_name).all()
+    for c in crew_members:
+        ids.add(c.name)
+        if c.email:
+            u = db.query(User).filter(User.email == c.email).first()
+            if u:
+                if u.username:
+                    ids.add(u.username)
+                if u.display_name:
+                    ids.add(u.display_name)
+
+    return list(ids)
+
+def send_notification_to_employee(db: Session, employee_name: str, notif_type: str, title: str, message: str, link: str = "/crew"):
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    from app.modules.notifications.manager import manager
+    
+    aliases = get_user_identifiers(db, employee_name)
+    primary_id = aliases[0] if aliases else employee_name
+    
+    db_notif = notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id=primary_id,
+        type=notif_type,
+        title=title,
+        message=message,
+        link=link
+    ))
+    
+    try:
+        payload = notif_schemas.NotificationResponse.model_validate(db_notif).model_dump(mode='json')
+        for alias in aliases:
+            if alias != primary_id:
+                manager.send_personal_message_sync(payload, alias)
+    except Exception as e:
+        print(f"Error broadcasting notification to aliases: {e}")
+        
+    return db_notif
+
+def get_employee_registered_shifts(db: Session, employee_name: str, target_date: str) -> list[dict]:
+    from app.modules.hr.models import WorkSchedule, Shift
+    import datetime
+    
+    resolved_name, _ = resolve_employee_name_and_mode(db, employee_name)
+    aliases = get_user_identifiers(db, resolved_name)
+    
+    try:
+        checkin_dt = datetime.datetime.strptime(target_date, "%Y-%m-%d").date()
+    except Exception:
+        checkin_dt = datetime.date.today()
+        target_date = checkin_dt.strftime("%Y-%m-%d")
+        
+    start_of_week = checkin_dt - datetime.timedelta(days=checkin_dt.weekday())
+    week_start_str = start_of_week.strftime("%Y-%m-%d")
+    
+    schedules = db.query(WorkSchedule).filter(
+        WorkSchedule.week_start_date == week_start_str,
+        WorkSchedule.employee_name.in_(aliases)
+    ).all()
+    
+    registered_keys = set()
+    for s in schedules:
+        if s.schedule_data and target_date in s.schedule_data:
+            day_shifts = s.schedule_data[target_date]
+            if isinstance(day_shifts, list):
+                for k in day_shifts:
+                    registered_keys.add(str(k).strip().lower())
+            elif isinstance(day_shifts, str):
+                registered_keys.add(day_shifts.strip().lower())
+                
+    if not registered_keys:
+        return []
+        
+    all_shifts = db.query(Shift).all()
+    result = []
+    
+    for s in all_shifts:
+        s_name_lower = s.name.lower()
+        s_id_str = str(s.id)
+        
+        is_match = False
+        raw_key = None
+        
+        if s_id_str in registered_keys:
+            is_match = True
+            raw_key = s_id_str
+        elif "morning" in registered_keys and ("sáng" in s_name_lower or "morning" in s_name_lower):
+            is_match = True
+            raw_key = "morning"
+        elif "afternoon" in registered_keys and ("chiều" in s_name_lower or "afternoon" in s_name_lower):
+            is_match = True
+            raw_key = "afternoon"
+        elif any(rk in s_name_lower for rk in registered_keys):
+            is_match = True
+            raw_key = s.name
+            
+        if is_match:
+            try:
+                s_hh, s_mm = map(int, s.start_time.split(':'))
+                e_hh, e_mm = map(int, s.end_time.split(':'))
+                result.append({
+                    "id": s.id,
+                    "name": s.name,
+                    "start_time": s.start_time,
+                    "end_time": s.end_time,
+                    "break_time": s.break_time,
+                    "start_min": s_hh * 60 + s_mm,
+                    "end_min": e_hh * 60 + e_mm,
+                    "raw_key": raw_key
+                })
+            except Exception:
+                pass
+                
+    result.sort(key=lambda x: x["start_min"])
+    return result
+
+def get_active_attendance_status(db: Session, employee_name: str, target_date: str | None = None) -> dict:
+    from app.modules.hr.models import AttendanceLog
+    import datetime
+    
+    resolved_name, _ = resolve_employee_name_and_mode(db, employee_name)
+    aliases = get_user_identifiers(db, resolved_name)
+    
+    if not target_date:
+        target_date = datetime.date.today().strftime("%Y-%m-%d")
+        
+    logs = db.query(AttendanceLog).filter(
+        AttendanceLog.employee_name.in_(aliases),
+        AttendanceLog.date == target_date
+    ).order_by(AttendanceLog.id.asc()).all()
+    
+    if not logs:
+        return {
+            "is_checked_in": False,
+            "session_type": "none",
+            "checkin_time": None,
+            "checkin_timestamp": None,
+            "shift_name": None,
+            "shift_start_time": None,
+            "shift_end_time": None,
+            "scheduled_auto_checkout_time": None,
+            "scheduled_checkout_reminder_time": None,
+            "ot_target_hours": None,
+            "last_action": None,
+            "status": None,
+            "note": None
+        }
+        
+    last_log = logs[-1]
+    is_checked_in = (last_log.action == "check-in")
+    
+    if not is_checked_in:
+        return {
+            "is_checked_in": False,
+            "session_type": "none",
+            "checkin_time": None,
+            "checkin_timestamp": None,
+            "shift_name": None,
+            "shift_start_time": None,
+            "shift_end_time": None,
+            "scheduled_auto_checkout_time": None,
+            "scheduled_checkout_reminder_time": None,
+            "ot_target_hours": None,
+            "last_action": last_log.action,
+            "status": last_log.status,
+            "note": last_log.note
+        }
+        
+    checkin_time_str = last_log.time
+    is_ot = (last_log.status == "ot") or ("ot" in (last_log.note or "").lower())
+    
+    checkin_dt = last_log.created_at
+    checkin_ts = int(checkin_dt.timestamp() * 1000) if checkin_dt else None
+    
+    if is_ot:
+        try:
+            c_hh, c_mm = map(int, checkin_time_str.split(':'))
+            c_min = c_hh * 60 + c_mm
+            remind_min = (c_min + 3 * 60 + 55) % (24 * 60)
+            auto_min = (c_min + 4 * 60 + 15) % (24 * 60)
+            
+            remind_time = f"{remind_min // 60:02d}:{remind_min % 60:02d}"
+            auto_time = f"{auto_min // 60:02d}:{auto_min % 60:02d}"
+        except Exception:
+            remind_time = None
+            auto_time = None
+            
+        return {
+            "is_checked_in": True,
+            "session_type": "ot",
+            "checkin_time": checkin_time_str,
+            "checkin_timestamp": checkin_ts,
+            "shift_name": "Ca OT (4h)",
+            "shift_start_time": checkin_time_str,
+            "shift_end_time": None,
+            "scheduled_auto_checkout_time": auto_time,
+            "scheduled_checkout_reminder_time": remind_time,
+            "ot_target_hours": 4.0,
+            "last_action": last_log.action,
+            "status": last_log.status,
+            "note": last_log.note
+        }
+    else:
+        shifts = get_employee_registered_shifts(db, resolved_name, target_date)
+        matched_shift = None
+        try:
+            c_hh, c_mm = map(int, checkin_time_str.split(':'))
+            c_min = c_hh * 60 + c_mm
+            
+            min_diff = float('inf')
+            for s in shifts:
+                diff = abs(c_min - s["start_min"])
+                if diff < min_diff:
+                    min_diff = diff
+                    matched_shift = s
+        except Exception:
+            pass
+            
+        if matched_shift:
+            end_min = matched_shift["end_min"]
+            remind_min = (end_min - 5) % (24 * 60)
+            auto_min = (end_min + 15) % (24 * 60)
+            
+            remind_time = f"{remind_min // 60:02d}:{remind_min % 60:02d}"
+            auto_time = f"{auto_min // 60:02d}:{auto_min % 60:02d}"
+            
+            return {
+                "is_checked_in": True,
+                "session_type": "regular",
+                "checkin_time": checkin_time_str,
+                "checkin_timestamp": checkin_ts,
+                "shift_name": matched_shift["name"],
+                "shift_start_time": matched_shift["start_time"],
+                "shift_end_time": matched_shift["end_time"],
+                "scheduled_auto_checkout_time": auto_time,
+                "scheduled_checkout_reminder_time": remind_time,
+                "ot_target_hours": None,
+                "last_action": last_log.action,
+                "status": last_log.status,
+                "note": last_log.note
+            }
+        else:
+            return {
+                "is_checked_in": True,
+                "session_type": "regular",
+                "checkin_time": checkin_time_str,
+                "checkin_timestamp": checkin_ts,
+                "shift_name": "Ca làm việc",
+                "shift_start_time": checkin_time_str,
+                "shift_end_time": None,
+                "scheduled_auto_checkout_time": None,
+                "scheduled_checkout_reminder_time": None,
+                "ot_target_hours": None,
+                "last_action": last_log.action,
+                "status": last_log.status,
+                "note": last_log.note
+            }
+
+def execute_auto_checkout(db: Session, employee_name: str, shift_name: str, is_ot: bool = False, note: str | None = None) -> AttendanceLog | None:
+    from app.modules.hr.models import AttendanceLog
+    import datetime
+    
+    resolved_name, _ = resolve_employee_name_and_mode(db, employee_name)
+    aliases = get_user_identifiers(db, resolved_name)
+    now_dt = datetime.datetime.now()
+    date_str = now_dt.strftime("%Y-%m-%d")
+    time_str = now_dt.strftime("%H:%M")
+    
+    logs = db.query(AttendanceLog).filter(
+        AttendanceLog.employee_name.in_(aliases),
+        AttendanceLog.date == date_str
+    ).order_by(AttendanceLog.id.asc()).all()
+    
+    if not logs or logs[-1].action != "check-in":
+        return None
+        
+    last_log = logs[-1]
+    default_note = f"Hệ thống tự động check-out {'ca OT' if is_ot else f'ca {shift_name}'} (quá 15 phút)"
+    checkout_note = note or default_note
+    
+    db_log = AttendanceLog(
+        employee_name=resolved_name,
+        avatar=last_log.avatar,
+        action="check-out",
+        time=time_str,
+        date=date_str,
+        status="auto-checkout",
+        note=checkout_note
+    )
+    db.add(db_log)
+    db.commit()
+    db.refresh(db_log)
+    
+    # Send notification to employee
+    send_notification_to_employee(
+        db=db,
+        employee_name=resolved_name,
+        notif_type="attendance_auto_checkout",
+        title="Tự động Check-out",
+        message=f"Hệ thống đã tự động check-out {'ca OT 4 giờ' if is_ot else f'ca làm việc {shift_name}'} cho bạn do đã quá 15 phút sau khi hết ca.",
+        link="/crew"
+    )
+    
+    # Send notification to Admin
+    from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+    notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+        user_id="Admin",
+        type="hr",
+        title="Tự động Check-out nhân sự",
+        message=f"{resolved_name} đã được hệ thống tự động check-out lúc {time_str} ({'ca OT' if is_ot else f'ca {shift_name}'})",
+        link="/admin/hr"
+    ))
+    
+    return db_log
+
+def create_attendance_record(db: Session, employee_name: str, avatar: str, action: str, time: str, date: str, status: str, note: str | None = None, lat: float | None = None, lng: float | None = None) -> AttendanceLog:
+    from app.modules.hr.models import LeaveRequest
     from fastapi import HTTPException
+    
+    resolved_name, crew_work_mode = resolve_employee_name_and_mode(db, employee_name)
+    resolved_status = status
     
     # Check for approved WFH or Business request
     has_approved_wfh = False
@@ -169,83 +506,63 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     elif has_approved_business:
         resolved_status = "business"
     else:
-        # Check WorkSchedule
-        from app.modules.hr.models import WorkSchedule
-        import datetime
+        # Check WorkSchedule & Registered Shifts
+        registered_shifts = get_employee_registered_shifts(db, resolved_name, date)
         
-        checkin_dt = datetime.datetime.strptime(date, "%Y-%m-%d").date()
-        start_of_week = checkin_dt - datetime.timedelta(days=checkin_dt.weekday())
-        week_start_str = start_of_week.strftime("%Y-%m-%d")
+        # Get previous logs today to check completed shifts and active state
+        aliases = get_user_identifiers(db, resolved_name)
+        today_logs = db.query(AttendanceLog).filter(
+            AttendanceLog.employee_name.in_(aliases),
+            AttendanceLog.date == date
+        ).order_by(AttendanceLog.id.asc()).all()
         
-        schedule = db.query(WorkSchedule).filter(
-            WorkSchedule.employee_name == resolved_name,
-            WorkSchedule.week_start_date == week_start_str
-        ).first()
-        
-        registered_shifts = []
-        if schedule and schedule.schedule_data:
-            registered_shifts = schedule.schedule_data.get(date, [])
-            
-        if not registered_shifts:
-            resolved_status = "unscheduled"
-        else:
-            try:
-                hh, mm = map(int, time.split(':'))
-                action_min = hh * 60 + mm
+        try:
+            hh, mm = map(int, time.split(':'))
+            action_min = hh * 60 + mm
+        except Exception:
+            action_min = 0
+
+        if action == "check-in":
+            if not registered_shifts:
+                # No registered shifts today -> OT Shift (4h)
+                resolved_status = "ot"
+                if not note:
+                    note = "OT (Ca 4h)"
+            else:
+                # Check if action_min falls within any registered shift window [start - 30, end + 15]
+                matched_shift = None
+                for s in registered_shifts:
+                    if (s["start_min"] - 30) <= action_min <= (s["end_min"] + 15):
+                        matched_shift = s
+                        break
                 
-                shifts = db.query(Shift).all()
-                
-                # Filter shifts to only those registered by the user
-                # Assuming Shift name contains 'Sáng' for morning, 'Chiều' for afternoon
-                valid_shifts = []
-                for s in shifts:
-                    s_name_lower = s.name.lower()
-                    if "morning" in registered_shifts and "sáng" in s_name_lower:
-                        valid_shifts.append(s)
-                    elif "afternoon" in registered_shifts and "chiều" in s_name_lower:
-                        valid_shifts.append(s)
-                    # If the shift naming convention doesn't match, we fallback to closest valid shift logic
-                    # To be safe, if we can't map it by name perfectly, we just use all valid shifts if registered
-                
-                if not valid_shifts:
-                    valid_shifts = shifts
-                
-                if valid_shifts:
-                    if action == "check-in":
-                        closest_shift = None
-                        min_diff = float('inf')
-                        for s in valid_shifts:
-                            s_hh, s_mm = map(int, s.start_time.split(':'))
-                            shift_start_min = s_hh * 60 + s_mm
-                            diff = abs(action_min - shift_start_min)
-                            if diff < min_diff:
-                                min_diff = diff
-                                closest_shift = shift_start_min
-                        
-                        if closest_shift is not None:
-                            if action_min <= closest_shift:
-                                resolved_status = "on-time"
-                            else:
-                                resolved_status = "late"
-                                
-                    elif action == "check-out":
-                        closest_shift_end = None
-                        min_diff = float('inf')
-                        for s in valid_shifts:
-                            e_hh, e_mm = map(int, s.end_time.split(':'))
-                            shift_end_min = e_hh * 60 + e_mm
-                            diff = abs(action_min - shift_end_min)
-                            if diff < min_diff:
-                                min_diff = diff
-                                closest_shift_end = shift_end_min
-                        
-                        if closest_shift_end is not None:
-                            if action_min < closest_shift_end:
-                                resolved_status = "early-leave"
-                            else:
-                                resolved_status = "on-time"
-            except Exception:
-                pass
+                # Check if all registered shifts have already been completed today
+                completed_checkouts = [l for l in today_logs if l.action == "check-out"]
+                has_completed_shifts = len(completed_checkouts) >= len(registered_shifts)
+
+                if matched_shift and not has_completed_shifts:
+                    if action_min <= matched_shift["start_min"]:
+                        resolved_status = "on-time"
+                    else:
+                        resolved_status = "late"
+                else:
+                    # Outside shift or additional check-in after finishing registered shifts -> OT Shift (4h)
+                    resolved_status = "ot"
+                    if not note:
+                        note = "OT (Ca 4h)"
+
+        elif action == "check-out":
+            # Check if matching check-in was OT
+            last_checkin = next((l for l in reversed(today_logs) if l.action == "check-in"), None)
+            if last_checkin and (last_checkin.status == "ot" or "ot" in (last_checkin.note or "").lower()):
+                resolved_status = "ot"
+            elif registered_shifts:
+                # Find closest shift end
+                closest_shift = min(registered_shifts, key=lambda s: abs(action_min - s["end_min"]))
+                if action_min < closest_shift["end_min"]:
+                    resolved_status = "early-leave"
+                else:
+                    resolved_status = "on-time"
 
     db_log = AttendanceLog(
         employee_name=resolved_name,
@@ -260,7 +577,7 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
     db.commit()
     db.refresh(db_log)
 
-    # Notify Admin if check-in is late
+    # Notify Admin if check-in is late or OT
     if action == "check-in" and resolved_status == "late":
         from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
         notif_crud.create_notification(db, notif_schemas.NotificationCreate(
@@ -270,8 +587,18 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
             message=f"{resolved_name} vừa check-in muộn lúc {time}",
             link="/admin/hr"
         ))
+    elif action == "check-in" and resolved_status == "ot":
+        from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
+        notif_crud.create_notification(db, notif_schemas.NotificationCreate(
+            user_id="Admin",
+            type="hr",
+            title="Nhân sự bắt đầu ca OT",
+            message=f"{resolved_name} vừa bắt đầu ca OT (4 giờ) lúc {time}",
+            link="/admin/hr"
+        ))
 
     return db_log
+
 
 # Leave Requests
 def get_all_leave_requests(db: Session) -> list[LeaveRequest]:
