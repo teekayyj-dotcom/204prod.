@@ -359,11 +359,75 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.db.session import get_db_session
-from app.modules.projects.schemas import PhotoAlbumCreate, PhotoAlbumResponse, AlbumInteractionCreate, AlbumInteractionResponse
+from app.modules.projects.schemas import PhotoAlbumCreate, PhotoAlbumUpdate, PhotoAlbumResponse, AlbumInteractionCreate, AlbumInteractionResponse
 from app.modules.projects.models import Project, PhotoAlbum, AlbumPhoto, AlbumInteraction
 from app.services.gdrive import extract_folder_id, fetch_folder_images
 
 @router.post("/{slug}/albums", response_model=PhotoAlbumResponse)
+async def create_project_album(slug: str, payload: PhotoAlbumCreate, db: Session = Depends(get_db_session)):
+    project = db.query(Project).filter(Project.slug == slug).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    new_album = PhotoAlbum(
+        project_slug=slug,
+        title=payload.title,
+        gdrive_folder_id=payload.gdrive_folder_id,
+        background_url=payload.background_url
+    )
+    db.add(new_album)
+    db.commit()
+    db.refresh(new_album)
+    
+    return PhotoAlbumResponse(
+        id=new_album.id,
+        project_slug=new_album.project_slug,
+        title=new_album.title,
+        gdrive_folder_id=new_album.gdrive_folder_id,
+        background_url=new_album.background_url,
+        short_token=new_album.short_token,
+        created_at=new_album.created_at,
+        photos=[]
+    )
+
+@router.put("/albums/{album_id}", response_model=PhotoAlbumResponse)
+async def update_project_album(album_id: str, payload: PhotoAlbumUpdate, db: Session = Depends(get_db_session)):
+    album = db.query(PhotoAlbum).filter(PhotoAlbum.id == album_id).first()
+    if not album:
+        raise HTTPException(status_code=404, detail="Album not found")
+        
+    if payload.title is not None:
+        album.title = payload.title
+    if payload.gdrive_folder_id is not None:
+        album.gdrive_folder_id = payload.gdrive_folder_id
+    if payload.background_url is not None:
+        album.background_url = payload.background_url
+        
+    db.commit()
+    db.refresh(album)
+    
+    return PhotoAlbumResponse(
+        id=album.id,
+        project_slug=album.project_slug,
+        title=album.title,
+        gdrive_folder_id=album.gdrive_folder_id,
+        background_url=album.background_url,
+        short_token=album.short_token,
+        created_at=album.created_at,
+        photos=[] # For response only
+    )
+
+@router.delete("/albums/{album_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project_album(album_id: str, db: Session = Depends(get_db_session)):
+    album = db.query(PhotoAlbum).filter(PhotoAlbum.id == album_id).first()
+    if not album:
+        raise HTTPException(status_code=404, detail="Album not found")
+        
+    db.delete(album)
+    db.commit()
+    return None
+
+@router.post("/{slug}/albums/gdrive", response_model=PhotoAlbumResponse)
 def create_gdrive_album(slug: str, payload: PhotoAlbumCreate, db: Session = Depends(get_db_session)):
     project = db.query(Project).filter(Project.slug == slug).first()
     if not project:

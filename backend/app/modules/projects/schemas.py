@@ -303,6 +303,11 @@ class PhotoAlbumCreate(BaseModel):
     gdrive_folder_id: str
     background_url: str | None = None
 
+class PhotoAlbumUpdate(BaseModel):
+    title: str | None = None
+    gdrive_folder_id: str | None = None
+    background_url: str | None = None
+
 class PhotoAlbumResponse(BaseModel):
     id: str
     project_slug: str

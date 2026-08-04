@@ -1403,6 +1403,15 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
     const [newAlbumTitle, setNewAlbumTitle] = useState("");
     const [newAlbumLink, setNewAlbumLink] = useState("");
     const [newAlbumBg, setNewAlbumBg] = useState("");
+    
+    // Edit/Delete Album states
+    const [activeAlbumMenu, setActiveAlbumMenu] = useState<string | null>(null);
+    const [editingAlbum, setEditingAlbum] = useState<any>(null);
+    const [deletingAlbum, setDeletingAlbum] = useState<any>(null);
+    const [editAlbumTitle, setEditAlbumTitle] = useState("");
+    const [editAlbumLink, setEditAlbumLink] = useState("");
+    const [editAlbumBg, setEditAlbumBg] = useState("");
+    const [isEditingAlbum, setIsEditingAlbum] = useState(false);
 
     useEffect(() => {
         if (project?.slug) {
@@ -1642,6 +1651,52 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                                     onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(107,143,214,0.3)"}
                                 >
                                     <div style={{ height: "160px", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "flex-end", position: "relative" }}>
+                                        {/* Album Actions Menu */}
+                                        <div style={{ position: "absolute", top: "10px", right: "10px", zIndex: 10 }}>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveAlbumMenu(activeAlbumMenu === album.id ? null : album.id);
+                                                }}
+                                                style={{ background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", padding: "6px", borderRadius: "6px", cursor: "pointer", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                            >
+                                                <MoreVertical size={14} />
+                                            </button>
+                                            {activeAlbumMenu === album.id && (
+                                                <div 
+                                                    style={{ position: "absolute", top: "100%", right: 0, marginTop: "6px", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "8px", overflow: "hidden", zIndex: 50, minWidth: "140px", boxShadow: "0 4px 16px rgba(0,0,0,0.6)" }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingAlbum(album);
+                                                            setEditAlbumTitle(album.title);
+                                                            setEditAlbumLink(album.gdrive_folder_id);
+                                                            setEditAlbumBg(album.background_url || "");
+                                                            setActiveAlbumMenu(null);
+                                                        }}
+                                                        style={{ width: "100%", padding: "10px 12px", background: "transparent", border: "none", color: "#EEEEEE", fontSize: "12px", fontWeight: 500, textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid #2A1F1F" }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                                                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                                                    >
+                                                        <Edit3 size={13} color="#6B8FD6" /> Sửa thông tin
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeletingAlbum(album);
+                                                            setActiveAlbumMenu(null);
+                                                        }}
+                                                        style={{ width: "100%", padding: "10px 12px", background: "transparent", border: "none", color: "#ff4d4f", fontSize: "12px", fontWeight: 500, textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+                                                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,77,79,0.1)"}
+                                                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                                                    >
+                                                        <Trash2 size={13} /> Xoá Album
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                         <div style={{ padding: "10px 12px", background: "linear-gradient(to top, rgba(0,0,0,0.9), transparent)", width: "100%", color: "#fff" }}>
                                             <p style={{ fontSize: "14px", fontWeight: 700, margin: 0 }}>{album.title}</p>
                                             <p style={{ fontSize: "11px", margin: "2px 0 0", opacity: 0.8 }}>{album.photos?.length || 0} ảnh · Google Drive</p>
@@ -3619,6 +3674,50 @@ export function ProjectDetailPage() {
                         }, 0);
                     }}
                 />
+            )}
+
+            <DeleteConfirmModal 
+                isOpen={!!deletingAlbum} 
+                itemType="album" 
+                itemName={deletingAlbum?.title ?? ""} 
+                onConfirm={handleDeleteAlbum} 
+                onCancel={() => setDeletingAlbum(null)} 
+            />
+
+            {editingAlbum && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+                    <div style={{ background: "#1D1616", borderRadius: "12px", border: "1px solid #2A1F1F", width: "100%", maxWidth: "450px", overflow: "hidden" }}>
+                        <div style={{ padding: "20px", borderBottom: "1px solid #2A1F1F", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 700, margin: 0 }}>Sửa thông tin Album</h3>
+                            <button onClick={() => setEditingAlbum(null)} style={{ background: "transparent", border: "none", color: "#888", cursor: "pointer", display: "flex" }}><X size={18}/></button>
+                        </div>
+                        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
+                            <div>
+                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Tên Album *</label>
+                                <input type="text" value={editAlbumTitle} onChange={e => setEditAlbumTitle(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Link Google Drive *</label>
+                                <input type="text" value={editAlbumLink} onChange={e => setEditAlbumLink(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", color: "#888", fontSize: "12px", marginBottom: "6px" }}>Link Ảnh Background (Tùy chọn)</label>
+                                <input type="text" value={editAlbumBg} onChange={e => setEditAlbumBg(e.target.value)} style={{ width: "100%", background: "#151010", border: "1px solid #2A1F1F", borderRadius: "6px", padding: "10px 12px", color: "#EEEEEE", fontSize: "13px" }} />
+                            </div>
+                        </div>
+                        <div style={{ padding: "15px 20px", borderTop: "1px solid #2A1F1F", display: "flex", justifyContent: "flex-end", gap: "10px", background: "rgba(0,0,0,0.2)" }}>
+                            <button onClick={() => setEditingAlbum(null)} style={{ padding: "8px 16px", borderRadius: "6px", background: "transparent", color: "#888", border: "none", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>Huỷ</button>
+                            <button 
+                                onClick={handleUpdateAlbum} 
+                                disabled={isEditingAlbum}
+                                style={{ padding: "8px 16px", borderRadius: "6px", background: "#D84040", color: "#fff", border: "none", cursor: isEditingAlbum ? "not-allowed" : "pointer", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", opacity: isEditingAlbum ? 0.7 : 1 }}
+                            >
+                                {isEditingAlbum ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}
+                                Lưu thay đổi
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>);
 }
