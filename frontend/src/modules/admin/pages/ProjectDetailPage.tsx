@@ -3378,7 +3378,9 @@ export function ProjectDetailPage() {
                         <div className="px-5 py-4 space-y-4">
                             {activeTab === "activity" &&
             activities.map((item) => (<div key={item.id} className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>{item.avatar}</div>
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>
+                                            {item.avatar?.startsWith('http') ? <img src={item.avatar} alt="" className="w-full h-full object-cover" /> : item.avatar}
+                                        </div>
                                         <div>
                                             <p style={{ color: "#EEEEEE", fontSize: "13px" }}>
                                                 <span style={{ fontWeight: 600 }}>{item.user}</span>{" "}
@@ -3393,7 +3395,9 @@ export function ProjectDetailPage() {
 
                             {activeTab === "comments" && (<>
                                     {comments.map((c) => (<div key={c.id} className="flex items-start gap-3">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>{c.avatar}</div>
+                                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: "#8E1616", color: "#EEEEEE", fontSize: "11px", fontWeight: 700 }}>
+                                                {c.avatar?.startsWith('http') ? <img src={c.avatar} alt="" className="w-full h-full object-cover" /> : c.avatar}
+                                            </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}>{c.user}</span>

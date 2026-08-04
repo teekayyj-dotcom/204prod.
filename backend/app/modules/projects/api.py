@@ -477,11 +477,28 @@ def interact_with_album(token: str, payload: AlbumInteractionCreate, photo_id: s
     if payload.interaction_type == "comment":
         action_text = f"đã bình luận: '{payload.comment_text}' trên 1 ảnh trong album"
         
+    role = payload.user_role or "guest"
+    display_name = payload.client_name
+    
+    if role.lower() == 'admin':
+        user_name_display = f"{display_name} (Admin)"
+        final_avatar = payload.user_avatar or "AD"
+    elif role.lower() == 'crew':
+        user_name_display = f"{display_name} (Crew)"
+        final_avatar = payload.user_avatar or "CR"
+    elif role.lower() == 'client':
+        user_name_display = f"{display_name} (Client)"
+        final_avatar = payload.user_avatar or "CL"
+    else:
+        user_name_display = f"{display_name} (Khách)"
+        # If user comment freely and not in admin/client/crew list, use initials for avatar
+        final_avatar = payload.user_avatar or (display_name[0].upper() if display_name else "K")
+        
     activity = ProjectActivity(
         project_slug=album.project_slug,
-        user_name=f"Khách hàng ({payload.client_name})",
+        user_name=user_name_display,
         action=action_text,
-        avatar="👦"
+        avatar=final_avatar
     )
     db.add(activity)
 

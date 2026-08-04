@@ -278,6 +278,8 @@ class AlbumInteractionCreate(BaseModel):
     client_name: str
     interaction_type: str
     comment_text: str | None = None
+    user_role: str | None = None
+    user_avatar: str | None = None
 
 class AlbumInteractionResponse(BaseModel):
     id: int

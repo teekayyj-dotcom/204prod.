@@ -54,7 +54,7 @@ export function PublicAlbumPage() {
             const urlParams = new URLSearchParams(window.location.search);
             const queryName = urlParams.get("name");
             if (queryName) {
-                return { name: queryName, isAutoLoggedIn: true };
+                return { name: queryName, isAutoLoggedIn: true, role: "guest", avatar: null };
             }
 
             const storedUserStr = localStorage.getItem("user");
@@ -62,18 +62,18 @@ export function PublicAlbumPage() {
                 const u = JSON.parse(storedUserStr);
                 const name = u.display_name || u.name || u.full_name || u.username || (u.role === 'admin' ? 'Admin' : (u.role === 'crew' ? 'Crew' : 'Client'));
                 if (name) {
-                    return { name, isAutoLoggedIn: true };
+                    return { name, isAutoLoggedIn: true, role: u.role || 'client', avatar: u.avatar_url || null };
                 }
             }
 
             const guestName = localStorage.getItem("204_album_guest_name");
             if (guestName) {
-                return { name: guestName, isAutoLoggedIn: true };
+                return { name: guestName, isAutoLoggedIn: true, role: "guest", avatar: null };
             }
         } catch (e) {
             console.error("Error reading user storage:", e);
         }
-        return { name: "", isAutoLoggedIn: false };
+        return { name: "", isAutoLoggedIn: false, role: "guest", avatar: null };
     };
 
     const initial = getInitialUser();
@@ -309,7 +309,9 @@ export function PublicAlbumPage() {
                     photo_id: photoId,
                     client_name: user,
                     interaction_type: type,
-                    comment_text: text || null
+                    comment_text: text || null,
+                    user_role: initial.role,
+                    user_avatar: initial.avatar
                 })
             });
             
