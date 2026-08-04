@@ -23,8 +23,6 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { NotificationBell } from "../../../shared/components/NotificationBell";
-import { useChatStore } from "../../messaging/store/ChatContext";
-
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { label: "Projects", icon: Briefcase, path: "/admin/projects" },
@@ -179,9 +177,6 @@ export function Sidebar({
   onInstallClick?: () => void;
 }) {
   const location = useLocation();
-  const { isWidgetOpen, setIsWidgetOpen, conversations } = useChatStore();
-  const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
-
   const isCrmActive =
     location.pathname.startsWith("/admin/categories") ||
     location.pathname.startsWith("/admin/clients") ||
@@ -348,50 +343,7 @@ export function Sidebar({
           );
         })}
 
-        {/* Messages Widget Toggle */}
-        <button
-          onClick={() => {
-            setIsWidgetOpen(!isWidgetOpen);
-            if (onClose) onClose();
-          }}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 rounded-lg transition-all duration-200 mt-2`}
-          style={{
-            background: isWidgetOpen ? "#D84040" : "transparent",
-            color: isWidgetOpen ? "#EEEEEE" : "#999",
-          }}
-          onMouseEnter={(e) => {
-            if (!isWidgetOpen) {
-              (e.currentTarget as HTMLElement).style.background = "#2A1F1F";
-              (e.currentTarget as HTMLElement).style.color = "#EEEEEE";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isWidgetOpen) {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "#999";
-            }
-          }}
-          title={isCollapsed ? "Tin nhắn" : undefined}
-        >
-          <div className="flex items-center gap-3 relative">
-            <MessageCircle size={17} className="flex-shrink-0" />
-            {totalUnread > 0 && isCollapsed && (
-              <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-red-500 rounded-full border border-[#141010] flex items-center justify-center text-[9px] font-bold text-white z-10">
-                {totalUnread > 99 ? '99+' : totalUnread}
-              </span>
-            )}
-            {!isCollapsed && (
-              <span style={{ fontSize: "14px", fontWeight: isWidgetOpen ? 600 : 400 }} className="truncate">
-                Tin nhắn
-              </span>
-            )}
-          </div>
-          {!isCollapsed && totalUnread > 0 && (
-            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
-              {totalUnread > 99 ? '99+' : totalUnread}
-            </span>
-          )}
-        </button>
+
 
         {/* Install App Button (Mobile Only) */}
         {installPrompt && !isCollapsed && (
