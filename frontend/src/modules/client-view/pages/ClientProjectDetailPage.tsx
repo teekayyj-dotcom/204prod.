@@ -16,8 +16,8 @@ import {
     Video,
     Check,
     X,
-    FileText,
-    Download
+    Download,
+    Image as ImageIcon
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 
@@ -83,6 +83,7 @@ export function ClientProjectDetailPage() {
     // Dynamic state for deliverables
     const [deliverables, setDeliverables] = useState<DemoDeliverable[]>([]);
     const [documents, setDocuments] = useState<ProjectDocument[]>([]);
+    const [albums, setAlbums] = useState<any[]>([]);
     const [editingDemoId, setEditingDemoId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState("");
 
@@ -95,6 +96,7 @@ export function ClientProjectDetailPage() {
         setLoading(true);
 
         fetchApi<any[]>("/crew").then(c => setDbCrew(c)).catch(() => {});
+        fetchApi<any[]>(`/projects/${id}/albums`).then(a => setAlbums(a || [])).catch(() => {});
 
         fetchApi<ProjectData>(`/projects/${id}`)
             .then(async (data) => {
@@ -380,6 +382,45 @@ export function ClientProjectDetailPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* 2.5 Photo Albums Section */}
+                    {albums.length > 0 && (
+                        <div className="rounded-xl p-5 space-y-4 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(36, 28, 28, 0.4)" }}>
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs uppercase tracking-wider text-gray-400 font-bold flex items-center gap-2">
+                                    <ImageIcon size={14} className="text-[#D84040]" /> Album Ảnh Dự Án ({albums.length})
+                                </h3>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {albums.map((alb: any) => {
+                                    const bg = alb.background_url || (alb.photos?.[0]?.thumbnail_url ? alb.photos[0].thumbnail_url.replace(/=s\d+.*$/, '=s800') : '');
+                                    return (
+                                        <div 
+                                            key={alb.id}
+                                            onClick={() => window.open(`/album/${alb.short_token}`, '_blank')}
+                                            className="group relative rounded-xl overflow-hidden border border-[#2E2020] bg-[#1D1616]/60 hover:border-[#D84040] transition-all cursor-pointer shadow-lg hover:shadow-red-950/20"
+                                        >
+                                            <div 
+                                                className="h-36 bg-cover bg-center flex items-end relative overflow-hidden" 
+                                                style={{ backgroundImage: `url(${bg})` }}
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent group-hover:scale-105 transition-transform duration-500" />
+                                                <div className="relative p-3.5 w-full">
+                                                    <h4 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors leading-tight">{alb.title}</h4>
+                                                    <p className="text-[11px] text-gray-300 mt-0.5">{alb.photos?.length || 0} ảnh chất lượng cao</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-2.5 bg-[#140f0f] flex justify-between items-center border-t border-white/5">
+                                                <span className="text-[11px] text-red-400 font-medium flex items-center gap-1">
+                                                    Xem Album & Bình Luận →
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* 3. Media & Demos Section (Netflix style Grid) */}
                     <div className="rounded-xl p-5 space-y-4 border border-[#2E2020]/60 backdrop-blur-md" style={{ background: "rgba(36, 28, 28, 0.4)" }}>

@@ -344,9 +344,21 @@ export function CrewProjectsPage() {
   useEffect(() => {
     fetchTasks();
     fetchFeedback();
+    fetchAlbums();
   }, [selectedProject]);
 
   const [projectFeedback, setProjectFeedback] = useState<Record<string, any[]>>({});
+  const [projectAlbums, setProjectAlbums] = useState<any[]>([]);
+
+  const fetchAlbums = async () => {
+    if (!selectedProject) return;
+    try {
+      const albumData = await fetchApi<any[]>(`/projects/${selectedProject.id}/albums`);
+      setProjectAlbums(albumData || []);
+    } catch (err) {
+      console.error("Error fetching albums:", err);
+    }
+  };
 
   const brief = selectedProject ? (selectedProject.brief || "No brief available") : "";
   const feedback = selectedProject ? (projectFeedback[selectedProject.id] || []) : [];
@@ -1097,6 +1109,36 @@ export function CrewProjectsPage() {
                 <Plus size={13} /> Chọn file
               </button>
             </div>
+
+            {/* Photo Albums */}
+            {projectAlbums.length > 0 && (
+              <div className="mt-4">
+                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600, marginBottom: "8px" }}>Album Ảnh Google Drive ({projectAlbums.length})</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "10px" }}>
+                  {projectAlbums.map((alb: any) => {
+                    const bg = alb.background_url || (alb.photos?.[0]?.thumbnail_url ? alb.photos[0].thumbnail_url.replace(/=s\d+.*$/, '=s800') : '');
+                    return (
+                      <div 
+                        key={alb.id}
+                        onClick={() => window.open(`/album/${alb.short_token}`, '_blank')}
+                        className="group"
+                        style={{ borderRadius: "8px", overflow: "hidden", background: "#1D1616", border: "1px solid #2A1F1F", cursor: "pointer", transition: "all 0.2s" }}
+                      >
+                        <div style={{ height: "110px", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative", display: "flex", alignItems: "flex-end" }}>
+                          <div style={{ padding: "8px", background: "linear-gradient(to top, rgba(0,0,0,0.9), transparent)", width: "100%", color: "#fff" }}>
+                            <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>{alb.title}</p>
+                            <p style={{ fontSize: "10px", margin: "2px 0 0", opacity: 0.8 }}>{alb.photos?.length || 0} ảnh</p>
+                          </div>
+                        </div>
+                        <div style={{ padding: "6px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "10px", color: "#D84040", fontWeight: 600 }}>Xem Album →</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Existing deliverables */}
             <div className="mt-3 space-y-2">

@@ -1630,29 +1630,48 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
             {mediaView === "grid" && albums.length > 0 && (
                 <div style={{ marginBottom: "15px" }}>
                     <h4 style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600, marginBottom: "10px" }}>Album Ảnh ({albums.length})</h4>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                        {albums.map(album => (
-                            <div key={album.id} style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.5)", border: "1px solid rgba(107,143,214,0.3)", position: "relative" }}>
-                                <div style={{ height: "150px", backgroundImage: `url(${album.background_url})`, backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "flex-end" }}>
-                                    <div style={{ padding: "10px", background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)", width: "100%", color: "#fff" }}>
-                                        <p style={{ fontSize: "13px", fontWeight: 600, margin: 0 }}>{album.title}</p>
-                                        <p style={{ fontSize: "10px", margin: 0, opacity: 0.8 }}>{album.photos?.length || 0} ảnh</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
+                        {albums.map(album => {
+                            const bg = album.background_url || (album.photos?.[0]?.thumbnail_url ? album.photos[0].thumbnail_url.replace(/=s\d+.*$/, '=s800') : '');
+                            return (
+                                <div 
+                                    key={album.id} 
+                                    onClick={() => window.open(`/album/${album.short_token}`, '_blank')}
+                                    style={{ borderRadius: "10px", overflow: "hidden", background: "rgba(29,22,22,0.7)", border: "1px solid rgba(107,143,214,0.3)", position: "relative", cursor: "pointer", transition: "all 0.2s ease" }}
+                                    onMouseEnter={(e) => e.currentTarget.style.borderColor = "#D84040"}
+                                    onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(107,143,214,0.3)"}
+                                >
+                                    <div style={{ height: "160px", backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "flex-end", position: "relative" }}>
+                                        <div style={{ padding: "10px 12px", background: "linear-gradient(to top, rgba(0,0,0,0.9), transparent)", width: "100%", color: "#fff" }}>
+                                            <p style={{ fontSize: "14px", fontWeight: 700, margin: 0 }}>{album.title}</p>
+                                            <p style={{ fontSize: "11px", margin: "2px 0 0", opacity: 0.8 }}>{album.photos?.length || 0} ảnh · Google Drive</p>
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: "10px 12px", display: "flex", gap: "8px" }}>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(`/album/${album.short_token}`, '_blank');
+                                            }}
+                                            style={{ flex: 1, padding: "7px 0", borderRadius: "6px", border: "none", background: "#D84040", color: "#fff", fontSize: "11px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+                                        >
+                                            <ExternalLink size={12} /> Xem Album
+                                        </button>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const link = `${window.location.origin}/album/${album.short_token}`;
+                                                navigator.clipboard.writeText(link);
+                                                alert("Đã copy link Album!");
+                                            }}
+                                            style={{ flex: 1, padding: "7px 0", borderRadius: "6px", border: "none", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "11px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+                                        >
+                                            <Link2 size={12} /> Copy Link
+                                        </button>
                                     </div>
                                 </div>
-                                <div style={{ padding: "10px" }}>
-                                    <button 
-                                        onClick={() => {
-                                            const link = `${window.location.origin}/album/${album.short_token}`;
-                                            navigator.clipboard.writeText(link);
-                                            alert("Đã copy link Album!");
-                                        }}
-                                        style={{ width: "100%", padding: "6px 0", borderRadius: "6px", border: "none", background: "rgba(107,143,214,0.15)", color: "#6B8FD6", fontSize: "10px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
-                                    >
-                                        <Link2 size={10} /> Copy Link Gửi Khách
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
