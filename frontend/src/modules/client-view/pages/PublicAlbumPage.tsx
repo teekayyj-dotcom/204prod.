@@ -1,7 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { fetchApi } from "../utils/apiClient";
-import { Loader2, Heart, Star, MessageSquare, X, Send, ArrowLeft, Image as ImageIcon, ExternalLink, Download } from "lucide-react";
+import { 
+    Loader2, 
+    Heart, 
+    Star, 
+    MessageSquare, 
+    X, 
+    Send, 
+    Image as ImageIcon, 
+    ChevronLeft, 
+    ChevronRight, 
+    Download,
+    Sparkles
+} from "lucide-react";
 
 export function PublicAlbumPage() {
     const { token } = useParams<{ token: string }>();
@@ -12,14 +24,12 @@ export function PublicAlbumPage() {
     // Auto-detect logged-in user (Admin, Crew, Client) or remembered guest
     const getInitialUser = () => {
         try {
-            // Check URL search params first (e.g. ?name=... or ?as=...)
             const urlParams = new URLSearchParams(window.location.search);
             const queryName = urlParams.get("name");
             if (queryName) {
                 return { name: queryName, isAutoLoggedIn: true };
             }
 
-            // Check logged-in user in localStorage
             const storedUserStr = localStorage.getItem("user");
             if (storedUserStr) {
                 const u = JSON.parse(storedUserStr);
@@ -29,7 +39,6 @@ export function PublicAlbumPage() {
                 }
             }
 
-            // Check remembered guest name
             const guestName = localStorage.getItem("204_album_guest_name");
             if (guestName) {
                 return { name: guestName, isAutoLoggedIn: true };
@@ -44,7 +53,8 @@ export function PublicAlbumPage() {
     const [clientName, setClientName] = useState(initial.name);
     const [hasEnteredName, setHasEnteredName] = useState(initial.isAutoLoggedIn);
     
-    const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+    const [highResLoaded, setHighResLoaded] = useState(false);
     const [commentText, setCommentText] = useState("");
 
     useEffect(() => {
@@ -62,19 +72,83 @@ export function PublicAlbumPage() {
         setHasEnteredName(true);
     };
 
-    const getPhotoUrl = (photo: any, highRes = false) => {
+    // Optimized URLs: w500 for grid thumbnails, w1400 for fast crisp lightbox
+    const getPhotoUrl = useCallback((photo: any, highRes = false) => {
         if (!photo) return "";
         const fileId = photo.file_id || photo.id;
         if (fileId) {
-            return `https://drive.google.com/thumbnail?id=${fileId}&sz=${highRes ? 'w2000' : 'w600'}`;
+            return `https://drive.google.com/thumbnail?id=${fileId}&sz=${highRes ? 'w1400' : 'w500'}`;
         }
         if (photo.thumbnail_url) {
             if (highRes) {
-                return photo.thumbnail_url.replace(/=s\d+.*$/, '=s2000').replace(/=w\d+.*$/, '=s2000');
+                return photo.thumbnail_url.replace(/=s\d+.*$/, '=s1400').replace(/=w\d+.*$/, '=s1400');
             }
-            return photo.thumbnail_url;
+            return photo.thumbnail_url.replace(/=s\d+.*$/, '=s500').replace(/=w\d+.*$/, '=s500');
         }
         return photo.web_content_url || "";
+    }, []);
+
+    const selectedPhoto = selectedPhotoIndex !== null && album?.photos ? album.photos[selectedPhotoIndex] : null;
+
+    // Reset high-res loaded status when active photo changes
+    useEffect(() => {
+        if (selectedPhoto) {
+            setHighResLoaded(false);
+            
+            // Preload current high-res image
+            const img = new Image();
+            img.src = getPhotoUrl(selectedPhoto, true);
+            img.onload = () => setHighResLoaded(true);
+
+            // Preload next and previous images in background for instant navigation
+            if (album?.photos) {
+                const total = album.photos.length;
+                if (selectedPhotoIndex !== null) {
+                    const nextPhoto = album.photos[(selectedPhotoIndex + 1) % total];
+                    const prevPhoto = album.photos[(selectedPhotoIndex - 1 + total) % total];
+                    
+                    if (nextPhoto) {
+                        const nextImg = new Image();
+                        nextImg.src = getPhotoUrl(nextPhoto, true);
+                    }
+                    if (prevPhoto) {
+                        const prevImg = new Image();
+                        prevImg.src = getPhotoUrl(prevPhoto, true);
+                    }
+                }
+            }
+        }
+    }, [selectedPhotoIndex, selectedPhoto, album, getPhotoUrl]);
+
+    // Keyboard navigation (Left, Right, Escape)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (selectedPhotoIndex === null || !album?.photos) return;
+            const total = album.photos.length;
+
+            if (e.key === "ArrowRight") {
+                setSelectedPhotoIndex((prev) => (prev !== null ? (prev + 1) % total : 0));
+            } else if (e.key === "ArrowLeft") {
+                setSelectedPhotoIndex((prev) => (prev !== null ? (prev - 1 + total) % total : 0));
+            } else if (e.key === "Escape") {
+                setSelectedPhotoIndex(null);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedPhotoIndex, album]);
+
+    const handleNext = () => {
+        if (selectedPhotoIndex !== null && album?.photos) {
+            setSelectedPhotoIndex((selectedPhotoIndex + 1) % album.photos.length);
+        }
+    };
+
+    const handlePrev = () => {
+        if (selectedPhotoIndex !== null && album?.photos) {
+            setSelectedPhotoIndex((selectedPhotoIndex - 1 + album.photos.length) % album.photos.length);
+        }
     };
 
     const handleInteract = async (photoId: string, type: 'like' | 'star' | 'comment', text?: string) => {
@@ -100,13 +174,6 @@ export function PublicAlbumPage() {
                 } : p)
             }));
             
-            if (selectedPhoto && selectedPhoto.id === photoId) {
-                setSelectedPhoto((prev: any) => ({
-                    ...prev,
-                    interactions: [...(prev.interactions || []), res]
-                }));
-            }
-            
             if (type === 'comment') {
                 setCommentText("");
             }
@@ -119,7 +186,7 @@ export function PublicAlbumPage() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[#0d0909] text-white gap-3">
                 <Loader2 className="animate-spin text-[#D84040]" size={36} />
-                <p className="text-sm text-gray-400">Đang tải Album ảnh Google Drive...</p>
+                <p className="text-sm text-gray-400">Đang tải Album ảnh...</p>
             </div>
         );
     }
@@ -142,7 +209,7 @@ export function PublicAlbumPage() {
 
     if (!album) return null;
 
-    const bgUrl = album.background_url || (album.photos?.[0] ? getPhotoUrl(album.photos[0], true) : "");
+    const bgUrl = album.background_url || (album.photos?.[0] ? getPhotoUrl(album.photos[0], false) : "");
 
     if (!hasEnteredName) {
         return (
@@ -202,8 +269,9 @@ export function PublicAlbumPage() {
                     </div>
                 </header>
                 
+                {/* Masonry / Columns Grid */}
                 <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4">
-                    {album.photos?.map((photo: any) => {
+                    {album.photos?.map((photo: any, idx: number) => {
                         const imgThumb = getPhotoUrl(photo, false);
                         const likeCount = photo.interactions?.filter((i: any) => i.interaction_type === 'like').length || 0;
                         const starCount = photo.interactions?.filter((i: any) => i.interaction_type === 'star').length || 0;
@@ -212,14 +280,15 @@ export function PublicAlbumPage() {
                         return (
                             <div 
                                 key={photo.id} 
-                                className="relative group rounded-xl overflow-hidden cursor-pointer bg-white/5 border border-white/10 break-inside-avoid hover:border-[#D84040]/50 transition-all duration-300 shadow-md" 
-                                onClick={() => setSelectedPhoto(photo)}
+                                className="relative group rounded-xl overflow-hidden cursor-pointer bg-white/5 border border-white/10 break-inside-avoid hover:border-[#D84040]/60 transition-all duration-300 shadow-md" 
+                                onClick={() => setSelectedPhotoIndex(idx)}
                             >
                                 <img 
                                     src={imgThumb} 
                                     alt="" 
                                     className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105" 
                                     loading="lazy" 
+                                    decoding="async"
                                     onError={(e: any) => {
                                         if (photo.file_id) {
                                             e.currentTarget.src = `https://lh3.googleusercontent.com/d/${photo.file_id}`;
@@ -254,33 +323,89 @@ export function PublicAlbumPage() {
                 </div>
             </div>
 
-            {/* Lightbox Modal */}
+            {/* Instant Progressive Lightbox Modal */}
             {selectedPhoto && (
                 <div className="fixed inset-0 z-50 bg-black/95 flex flex-col md:flex-row backdrop-blur-md">
+                    {/* Top Bar Controls */}
+                    <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
+                        <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-white/80 font-medium">
+                            {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} / {album.photos?.length || 0}
+                        </div>
+                        {highResLoaded && (
+                            <span className="flex items-center gap-1 text-[11px] text-green-400/90 bg-green-950/40 px-2.5 py-1 rounded-full border border-green-800/40">
+                                <Sparkles size={12} /> HD Crisp
+                            </span>
+                        )}
+                    </div>
+
                     <button 
-                        onClick={() => setSelectedPhoto(null)} 
-                        className="absolute top-4 right-4 z-50 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all"
+                        onClick={() => setSelectedPhotoIndex(null)} 
+                        className="absolute top-4 right-4 z-50 text-white/70 hover:text-white bg-black/60 hover:bg-white/20 p-2.5 rounded-full transition-all border border-white/10"
+                        title="Đóng (Esc)"
                     >
-                        <X size={22} />
+                        <X size={20} />
                     </button>
                     
-                    {/* Main Image View */}
-                    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-0 overflow-hidden relative select-none">
-                        <img 
-                            src={getPhotoUrl(selectedPhoto, true)} 
-                            alt="" 
-                            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-all" 
-                            onError={(e: any) => {
-                                const fallback = selectedPhoto.thumbnail_url || selectedPhoto.web_content_url;
-                                if (fallback && e.currentTarget.src !== fallback) {
-                                    e.currentTarget.src = fallback;
-                                }
-                            }}
-                        />
+                    {/* Main Image Stage */}
+                    <div className="flex-1 flex items-center justify-center p-2 sm:p-4 md:p-8 min-h-0 overflow-hidden relative select-none">
+                        {/* Previous Button */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                            className="absolute left-3 sm:left-6 z-40 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 backdrop-blur-md transition-all shadow-xl hover:scale-110"
+                            title="Ảnh trước (Mũi tên trái)"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+
+                        {/* Next Button */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                            className="absolute right-3 sm:right-6 z-40 p-3 rounded-full bg-black/60 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 backdrop-blur-md transition-all shadow-xl hover:scale-110"
+                            title="Ảnh tiếp theo (Mũi tên phải)"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+
+                        {/* Progressive Image Container (0ms Low-Res Preview + High-Res Smooth Fade-In) */}
+                        <div className="relative max-w-full max-h-[85vh] flex items-center justify-center">
+                            {/* 1. Instant Cached Low-Res Preview (0ms load time) */}
+                            <img 
+                                src={getPhotoUrl(selectedPhoto, false)} 
+                                alt="" 
+                                className={`max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${
+                                    highResLoaded ? "opacity-0 absolute inset-0" : "opacity-100 filter blur-[1px]"
+                                }`} 
+                            />
+
+                            {/* 2. High-Res Image (Fades in smoothly once decoded) */}
+                            <img 
+                                src={getPhotoUrl(selectedPhoto, true)} 
+                                alt="" 
+                                className={`max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${
+                                    highResLoaded ? "opacity-100" : "opacity-0"
+                                }`} 
+                                onLoad={() => setHighResLoaded(true)}
+                                onError={(e: any) => {
+                                    const fallback = selectedPhoto.thumbnail_url || selectedPhoto.web_content_url;
+                                    if (fallback && e.currentTarget.src !== fallback) {
+                                        e.currentTarget.src = fallback;
+                                        setHighResLoaded(true);
+                                    }
+                                }}
+                            />
+
+                            {/* Subtle spinner while sharpening */}
+                            {!highResLoaded && (
+                                <div className="absolute bottom-4 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10 text-xs text-white/70">
+                                    <Loader2 size={13} className="animate-spin text-[#D84040]" />
+                                    <span>Đang tối ưu độ nét HD...</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     
                     {/* Sidebar Comments & Interactions */}
-                    <div className="w-full md:w-[380px] lg:w-[420px] bg-[#140f0f] border-t md:border-t-0 md:border-l border-white/10 flex flex-col h-[45vh] md:h-full">
+                    <div className="w-full md:w-[380px] lg:w-[420px] bg-[#140f0f] border-t md:border-t-0 md:border-l border-white/10 flex flex-col h-[45vh] md:h-full z-40">
                         <div className="p-4 border-b border-white/10 flex gap-3">
                             <button 
                                 onClick={() => handleInteract(selectedPhoto.id, 'like')} 
