@@ -1,12 +1,14 @@
-import React, { useState } from "react";
-import { MessageCircle, X, Maximize2, Minimize2 } from "lucide-react";
+import React from "react";
+import { MessageCircle, X, Maximize2 } from "lucide-react";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatWindow } from "./ChatWindow";
 import { useChatStore } from "../store/ChatContext";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export function ChatWidget() {
   const { isWidgetOpen, setIsWidgetOpen, conversations } = useChatStore();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const totalUnread = conversations.reduce((acc, c) => acc + (c.unread_count || 0), 0);
 
@@ -14,24 +16,34 @@ export function ChatWidget() {
     return null;
   }
 
+  const handleMaximize = () => {
+    setIsWidgetOpen(false);
+    if (location.pathname.startsWith("/client")) {
+      navigate("/client/messages");
+    } else if (location.pathname.startsWith("/crew")) {
+      navigate("/crew/messages");
+    } else {
+      navigate("/admin/messages");
+    }
+  };
+
   return (
     <div 
-      className={`fixed bottom-6 right-6 bg-white shadow-2xl rounded-2xl overflow-hidden flex flex-col z-50 transition-all duration-300 ${
-        isExpanded ? "w-[800px] h-[600px] sm:w-[90vw] sm:h-[80vh]" : "w-[380px] h-[550px]"
-      }`}
+      className="fixed bottom-6 right-6 bg-white shadow-2xl rounded-2xl overflow-hidden flex flex-col z-50 transition-all duration-300 w-[380px] h-[550px]"
     >
       {/* Widget Header */}
       <div className="h-12 bg-slate-900 text-white flex items-center justify-between px-4 cursor-pointer select-none">
-        <div className="flex items-center gap-2 font-medium" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className="flex items-center gap-2 font-medium" onClick={handleMaximize}>
           <MessageCircle className="w-5 h-5" />
           <span>Messages</span>
         </div>
         <div className="flex items-center gap-1">
           <button 
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleMaximize}
             className="p-1.5 hover:bg-slate-700 rounded-md transition-colors"
+            title="Open Full Screen"
           >
-            {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            <Maximize2 className="w-4 h-4" />
           </button>
           <button 
             onClick={() => setIsWidgetOpen(false)}
@@ -44,17 +56,7 @@ export function ChatWidget() {
 
       {/* Widget Body */}
       <div className="flex-1 flex overflow-hidden">
-        {isExpanded ? (
-          <>
-            <ChatSidebar />
-            <ChatWindow />
-          </>
-        ) : (
-          /* When collapsed, we can show a combined view or just Sidebar -> Window navigation.
-             For simplicity in the widget, if an active conversation is set, show ChatWindow.
-             Otherwise show ChatSidebar. This requires accessing activeConversationId from context. */
-          <WidgetContent />
-        )}
+        <WidgetContent />
       </div>
     </div>
   );
