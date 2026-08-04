@@ -445,6 +445,25 @@ def interact_with_album(token: str, payload: AlbumInteractionCreate, photo_id: s
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found")
         
+    # Toggle like / star if already exists
+    if payload.interaction_type in ["like", "star"]:
+        existing = db.query(AlbumInteraction).filter(
+            AlbumInteraction.photo_id == target_photo_id,
+            AlbumInteraction.client_name == payload.client_name,
+            AlbumInteraction.interaction_type == payload.interaction_type
+        ).first()
+        if existing:
+            db.delete(existing)
+            db.commit()
+            return AlbumInteractionResponse(
+                id=existing.id,
+                photo_id=target_photo_id,
+                client_name=payload.client_name,
+                interaction_type="un" + payload.interaction_type,
+                comment_text=None,
+                created_at=existing.created_at
+            )
+
     interaction = AlbumInteraction(
         photo_id=target_photo_id,
         client_name=payload.client_name,
@@ -469,3 +488,17 @@ def interact_with_album(token: str, payload: AlbumInteractionCreate, photo_id: s
     db.commit()
     db.refresh(interaction)
     return interaction
+
+@router.delete("/albums/public/{token}/comments/{comment_id}")
+def delete_album_comment(token: str, comment_id: int, db: Session = Depends(get_db_session)):
+    album = db.query(PhotoAlbum).filter(PhotoAlbum.short_token == token).first()
+    if not album:
+        raise HTTPException(status_code=404, detail="Album not found")
+        
+    comment = db.query(AlbumInteraction).filter(AlbumInteraction.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+        
+    db.delete(comment)
+    db.commit()
+    return {"status": "ok"}

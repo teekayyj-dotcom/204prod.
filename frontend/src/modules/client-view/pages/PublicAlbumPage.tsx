@@ -11,8 +11,8 @@ import {
     Image as ImageIcon, 
     ChevronLeft, 
     ChevronRight, 
-    Download,
-    Sparkles
+    Sparkles,
+    Trash2
 } from "lucide-react";
 
 export function PublicAlbumPage() {
@@ -56,6 +56,8 @@ export function PublicAlbumPage() {
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
     const [highResLoaded, setHighResLoaded] = useState(false);
     const [commentText, setCommentText] = useState("");
+    const [submittingComment, setSubmittingComment] = useState(false);
+    const [isInteracting, setIsInteracting] = useState(false);
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
     useEffect(() => {
@@ -179,7 +181,9 @@ export function PublicAlbumPage() {
 
     const handleInteract = async (photoId: string, type: 'like' | 'star' | 'comment', text?: string) => {
         const user = clientName.trim() || "Khách xem";
+        if (isInteracting && type !== 'comment') return;
         
+        setIsInteracting(true);
         try {
             const res = await fetchApi(`/projects/albums/public/${token}/interact?photo_id=${photoId}`, {
                 method: "POST",
@@ -191,20 +195,75 @@ export function PublicAlbumPage() {
                 })
             });
             
-            // Update local state
-            setAlbum((prev: any) => ({
-                ...prev,
-                photos: prev.photos.map((p: any) => p.id === photoId ? {
-                    ...p,
-                    interactions: [...(p.interactions || []), res]
-                } : p)
-            }));
-            
-            if (type === 'comment') {
-                setCommentText("");
-            }
+            // Update local state with toggle & duplicate prevention
+            setAlbum((prev: any) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    photos: prev.photos.map((p: any) => {
+                        if (p.id !== photoId) return p;
+                        
+                        let updatedInteractions = [...(p.interactions || [])];
+                        if (res.interaction_type === 'unlike') {
+                            updatedInteractions = updatedInteractions.filter((i: any) => !(i.interaction_type === 'like' && i.client_name === user));
+                        } else if (res.interaction_type === 'unstar') {
+                            updatedInteractions = updatedInteractions.filter((i: any) => !(i.interaction_type === 'star' && i.client_name === user));
+                        } else {
+                            if (!updatedInteractions.some((i: any) => i.id === res.id)) {
+                                updatedInteractions.push(res);
+                            }
+                        }
+                        return {
+                            ...p,
+                            interactions: updatedInteractions
+                        };
+                    })
+                };
+            });
         } catch (err) {
             alert("Có lỗi xảy ra khi gửi tương tác");
+        } finally {
+            setIsInteracting(false);
+        }
+    };
+
+    const handleSendComment = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const text = commentText.trim();
+        if (!text || !selectedPhoto || submittingComment) return;
+
+        setSubmittingComment(true);
+        setCommentText(""); // Clear input right away to prevent double submission on fast enter/clicks
+        
+        try {
+            await handleInteract(selectedPhoto.id, 'comment', text);
+        } finally {
+            setSubmittingComment(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!selectedPhoto) return;
+        try {
+            await fetchApi(`/projects/albums/public/${token}/comments/${commentId}`, {
+                method: "DELETE"
+            });
+            
+            setAlbum((prev: any) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    photos: prev.photos.map((p: any) => {
+                        if (p.id !== selectedPhoto.id) return p;
+                        return {
+                            ...p,
+                            interactions: (p.interactions || []).filter((i: any) => i.id !== commentId)
+                        };
+                    })
+                };
+            });
+        } catch (err) {
+            alert("Không thể xoá bình luận");
         }
     };
 
@@ -468,35 +527,49 @@ export function PublicAlbumPage() {
                                     <p className="text-white/40 text-xs italic">Chưa có bình luận nào cho ảnh này</p>
                                 </div>
                             )}
-                            {selectedPhoto.interactions?.filter((i: any) => i.interaction_type === 'comment').map((comment: any) => (
-                                <div key={comment.id} className="bg-white/5 border border-white/5 rounded-xl p-3.5 space-y-1">
-                                    <div className="flex justify-between items-baseline">
-                                        <span className="font-semibold text-xs text-[#D84040]">{comment.client_name}</span>
-                                        <span className="text-[10px] text-white/40">{new Date(comment.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            {selectedPhoto.interactions?.filter((i: any) => i.interaction_type === 'comment').map((comment: any) => {
+                                const isAuthor = comment.client_name === clientName || clientName === "Admin" || clientName === "204PROD.";
+                                return (
+                                    <div key={comment.id} className="bg-white/5 border border-white/5 rounded-xl p-3.5 space-y-1 group relative">
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="font-semibold text-xs text-[#D84040]">{comment.client_name}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] text-white/40">{new Date(comment.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                {isAuthor && (
+                                                    <button
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                        className="text-white/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                                        title="Xoá bình luận"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-white/90 leading-relaxed break-words">{comment.comment_text}</p>
                                     </div>
-                                    <p className="text-xs text-white/90 leading-relaxed">{comment.comment_text}</p>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         
                         <div className="p-4 border-t border-white/10 bg-[#110d0d]">
-                            <div className="flex gap-2">
+                            <form onSubmit={handleSendComment} className="flex gap-2">
                                 <input 
                                     type="text" 
                                     placeholder={`Bình luận dưới tên ${clientName || "Khách"}...`} 
-                                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#D84040] text-white"
+                                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#D84040] text-white disabled:opacity-50"
                                     value={commentText}
                                     onChange={e => setCommentText(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && commentText.trim() && handleInteract(selectedPhoto.id, 'comment', commentText)}
+                                    disabled={submittingComment}
                                 />
                                 <button 
-                                    onClick={() => commentText.trim() && handleInteract(selectedPhoto.id, 'comment', commentText)}
-                                    disabled={!commentText.trim()}
-                                    className="bg-[#D84040] hover:bg-red-600 text-white px-3 py-2 rounded-lg disabled:opacity-40 transition-all"
+                                    type="submit"
+                                    disabled={!commentText.trim() || submittingComment}
+                                    className="bg-[#D84040] hover:bg-red-600 text-white px-3 py-2 rounded-lg disabled:opacity-40 transition-all flex items-center justify-center min-w-[36px]"
                                 >
-                                    <Send size={15} />
+                                    {submittingComment ? <Loader2 size={14} className="animate-spin" /> : <Send size={15} />}
                                 </button>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
