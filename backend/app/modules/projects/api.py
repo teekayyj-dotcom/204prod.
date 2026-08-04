@@ -380,9 +380,14 @@ def create_gdrive_album(slug: str, payload: PhotoAlbumCreate, db: Session = Depe
 
     # Pick background if not provided
     background = payload.background_url
-    if not background:
+    if not background and images:
         random_img = random.choice(images)
-        background = random_img.get('webContentUrl') or random_img.get('thumbnailLink')
+        background = (
+            random_img.get('webContentUrl')
+            or random_img.get('webContentLink')
+            or random_img.get('thumbnailLink')
+            or f"https://lh3.googleusercontent.com/d/{random_img['id']}"
+        )
 
     album_id = secrets.token_urlsafe(16)
     short_token = secrets.token_urlsafe(8)
@@ -398,12 +403,15 @@ def create_gdrive_album(slug: str, payload: PhotoAlbumCreate, db: Session = Depe
     db.add(album)
     
     for img in images:
+        file_id = img['id']
+        thumb = img.get('thumbnailLink') or f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+        web_link = img.get('webContentUrl') or img.get('webContentLink') or thumb or f"https://lh3.googleusercontent.com/d/{file_id}"
         photo = AlbumPhoto(
-            id=img['id'],
+            id=file_id,
             album_id=album_id,
-            file_id=img['id'],
-            thumbnail_url=img.get('thumbnailLink', ''),
-            web_content_url=img.get('webContentUrl', '')
+            file_id=file_id,
+            thumbnail_url=thumb,
+            web_content_url=web_link
         )
         db.add(photo)
 

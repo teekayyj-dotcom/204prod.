@@ -104,7 +104,8 @@ def fetch_folder_images(folder_id: str):
     service = get_drive_service()
     
     query = f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false"
-    fields = "nextPageToken, files(id, name, thumbnailLink, webContentUrl, mimeType)"
+    # Note: Google Drive API v3 uses webContentLink and webViewLink
+    fields = "nextPageToken, files(id, name, thumbnailLink, webContentLink, webViewLink, mimeType)"
     
     all_files = []
     page_token = None
@@ -120,6 +121,10 @@ def fetch_folder_images(folder_id: str):
         ).execute()
         
         items = results.get('files', [])
+        for item in items:
+            # Normalize webContentUrl for backward compatibility
+            if 'webContentLink' in item:
+                item['webContentUrl'] = item['webContentLink']
         all_files.extend(items)
         
         page_token = results.get('nextPageToken')
