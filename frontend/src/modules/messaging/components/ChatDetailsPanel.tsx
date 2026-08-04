@@ -218,8 +218,7 @@ export const ChatDetailsPanel: React.FC<ChatDetailsPanelProps> = ({
         </div>
 
         {/* Tabs */}
-        {conversation.is_group && (
-          <div className="flex border-b border-gray-200 dark:border-gray-800">
+        <div className="flex border-b border-gray-200 dark:border-gray-800">
             <button
               onClick={() => setActiveTab("members")}
               className={`flex-1 py-3 text-sm font-medium flex items-center justify-center space-x-2 ${
@@ -243,11 +242,8 @@ export const ChatDetailsPanel: React.FC<ChatDetailsPanelProps> = ({
               <span>Media</span>
             </button>
           </div>
-        )}
-
-        {/* Content */}
         <div className="p-4">
-          {!conversation.is_group || activeTab === "members" ? (
+          {activeTab === "members" ? (
             <div className="flex flex-col h-full">
               {isAdmin && conversation.is_group && (
                 <div className="mb-4">

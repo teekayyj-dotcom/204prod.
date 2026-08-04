@@ -90,7 +90,7 @@ export function ChatWindow() {
           <button 
             onClick={() => setShowDetails(!showDetails)}
             className={`hover:text-slate-600 transition-colors ${showDetails ? "text-blue-600" : ""}`}
-            title="Group Info"
+            title="Chat Details"
           >
             <Info className="w-5 h-5" />
           </button>
