@@ -350,6 +350,12 @@ export function CrewProjectsPage() {
   const [projectFeedback, setProjectFeedback] = useState<Record<string, any[]>>({});
   const [projectAlbums, setProjectAlbums] = useState<any[]>([]);
 
+  // Album Creation states
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+  const [newAlbumTitle, setNewAlbumTitle] = useState("");
+  const [newAlbumLink, setNewAlbumLink] = useState("");
+  const [newAlbumBg, setNewAlbumBg] = useState("");
+
   const fetchAlbums = async () => {
     if (!selectedProject) return;
     try {
@@ -357,6 +363,33 @@ export function CrewProjectsPage() {
       setProjectAlbums(albumData || []);
     } catch (err) {
       console.error("Error fetching albums:", err);
+    }
+  };
+
+  const handleCreateAlbum = async () => {
+    if (!newAlbumTitle || !newAlbumLink) {
+        alert("Vui lòng nhập Tên Album và Link Google Drive");
+        return;
+    }
+    setIsCreatingAlbum(true);
+    try {
+        const res = await fetchApi(`/projects/${selectedProject?.slug || selectedProject?.id}/albums`, {
+            method: "POST",
+            body: JSON.stringify({
+                title: newAlbumTitle,
+                gdrive_folder_id: newAlbumLink,
+                background_url: newAlbumBg || null
+            })
+        });
+        setProjectAlbums((prev: any[]) => [...prev, res]);
+        setNewAlbumTitle("");
+        setNewAlbumLink("");
+        setNewAlbumBg("");
+        alert("Tạo Album thành công!");
+    } catch (err: any) {
+        alert("Lỗi tạo album: " + (err.message || ""));
+    } finally {
+        setIsCreatingAlbum(false);
     }
   };
 
@@ -1111,9 +1144,35 @@ export function CrewProjectsPage() {
             </div>
 
             {/* Photo Albums */}
-            {projectAlbums.length > 0 && (
-              <div className="mt-4">
-                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600, marginBottom: "8px" }}>Album Ảnh Google Drive ({projectAlbums.length})</p>
+            <div className="mt-4">
+              <div className="flex items-center justify-between flex-wrap gap-4 mb-3">
+                <p style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 600, margin: 0 }}>Album Ảnh Google Drive ({projectAlbums.length})</p>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <input
+                    type="text"
+                    placeholder="Tên Album..."
+                    value={newAlbumTitle}
+                    onChange={(e) => setNewAlbumTitle(e.target.value)}
+                    style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", color: "#fff", outline: "none", flex: "1", minWidth: "120px" }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Link GDrive..."
+                    value={newAlbumLink}
+                    onChange={(e) => setNewAlbumLink(e.target.value)}
+                    style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", color: "#fff", outline: "none", flex: "1", minWidth: "120px" }}
+                  />
+                  <button
+                    onClick={handleCreateAlbum}
+                    disabled={isCreatingAlbum}
+                    style={{ background: "#D84040", color: "#fff", borderRadius: "8px", padding: "6px 12px", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px", border: "none", cursor: isCreatingAlbum ? "not-allowed" : "pointer", opacity: isCreatingAlbum ? 0.7 : 1, whiteSpace: "nowrap" }}
+                  >
+                    {isCreatingAlbum ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                    Tạo
+                  </button>
+                </div>
+              </div>
+              {projectAlbums.length > 0 ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "10px" }}>
                   {projectAlbums.map((alb: any) => {
                     const bg = alb.background_url || (alb.photos?.[0]?.thumbnail_url ? alb.photos[0].thumbnail_url.replace(/=s\d+.*$/, '=s800') : '');
@@ -1137,8 +1196,12 @@ export function CrewProjectsPage() {
                     );
                   })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{ textAlign: "center", padding: "20px 0", color: "#888", fontSize: "12px" }}>
+                  Chưa có album ảnh nào.
+                </div>
+              )}
+            </div>
 
             {/* Existing deliverables */}
             <div className="mt-3 space-y-2">
