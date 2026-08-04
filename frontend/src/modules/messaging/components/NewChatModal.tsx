@@ -109,7 +109,7 @@ export function NewChatModal({ onClose, onSuccess }: Props) {
                         {user.avatar_url ? (
                           <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          user.display_name.charAt(0).toUpperCase()
+                          (user.display_name || "U").charAt(0).toUpperCase()
                         )}
                       </div>
                       <div>
