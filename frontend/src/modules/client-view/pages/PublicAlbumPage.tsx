@@ -216,14 +216,22 @@ export function PublicAlbumPage() {
     // Keyboard navigation (Left, Right, Escape)
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (selectedPhotoIndex === null || !filteredPhotos || filteredPhotos.length === 0) return;
+            if (selectedPhotoIndex === null) return;
             
-            // Do not navigate if user is focused inside an input or textarea
+            // Pressing ESC immediately closes the photo view regardless of current focus
+            if (e.key === "Escape") {
+                e.preventDefault();
+                setSelectedPhotoIndex(null);
+                return;
+            }
+
+            // Do not navigate arrow keys if user is typing in comment input
             const target = e.target as HTMLElement | null;
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
                 return;
             }
 
+            if (!filteredPhotos || filteredPhotos.length === 0) return;
             const total = filteredPhotos.length;
 
             if (e.key === "ArrowRight") {
@@ -232,8 +240,6 @@ export function PublicAlbumPage() {
             } else if (e.key === "ArrowLeft") {
                 e.preventDefault();
                 setSelectedPhotoIndex((prev) => (prev !== null ? (prev - 1 + total) % total : 0));
-            } else if (e.key === "Escape") {
-                setSelectedPhotoIndex(null);
             }
         };
 
@@ -594,11 +600,6 @@ export function PublicAlbumPage() {
                         <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs text-white/80 font-medium">
                             {selectedPhotoIndex !== null ? selectedPhotoIndex + 1 : 1} / {filteredPhotos.length}
                         </div>
-                        {highResLoaded && (
-                            <span className="flex items-center gap-1 text-[11px] text-green-400/90 bg-green-950/40 px-2.5 py-1 rounded-full border border-green-800/40">
-                                <Sparkles size={12} /> HD Crisp
-                            </span>
-                        )}
                     </div>
 
                     <button 
