@@ -81,8 +81,8 @@ export function CrewWorkspacePage() {
     }).catch(console.error);
     
     // Fallback hours logic
-    setWorkHours(Math.floor(elapsed / 3600));
-  }, [elapsed]);
+    setWorkHours(0);
+  }, []);
 
   const toggleTask = (id: string | number) => {
     const task = tasks.find(t => t.id === id);
