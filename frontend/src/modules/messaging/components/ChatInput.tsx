@@ -27,10 +27,22 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
   const [deadlineDate, setDeadlineDate] = useState("");
   const [deadlineTime, setDeadlineTime] = useState("");
   
+  const [mentionState, setMentionState] = useState<{ active: boolean, query: string, cursorIndex: number }>({ active: false, query: "", cursorIndex: 0 });
+  
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
+    const val = e.target.value;
+    setContent(val);
+    
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const match = textBeforeCursor.match(/(?:^|\s)@([^\s]*)$/);
+    if (match) {
+      setMentionState({ active: true, query: match[1], cursorIndex: cursor - match[1].length - 1 });
+    } else {
+      setMentionState({ active: false, query: "", cursorIndex: 0 });
+    }
     
     // Throttle typing events
     if (!typingTimeoutRef.current) {
@@ -48,8 +60,11 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
 
     // Parse mentions
     const activeConv = conversations.find(c => c.id === conversationId);
-    const mentionedUsers: {id: number, name: string}[] = [];
+    const mentionedUsers: {id: number | string, name: string}[] = [];
     if (activeConv) {
+      if (content.includes("@everyone")) {
+        mentionedUsers.push({ id: 'everyone', name: 'everyone' });
+      }
       activeConv.participants.forEach(p => {
         if (p.display_name && content.includes(`@${p.display_name}`)) {
           mentionedUsers.push({ id: p.user_id, name: p.display_name });
@@ -297,6 +312,47 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
       )}
 
       <div className="flex items-end gap-2 bg-slate-50 rounded-2xl p-2 border border-slate-200 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all relative">
+        
+        {/* Mention Dropdown */}
+        {mentionState.active && (
+          <div className="absolute bottom-full mb-2 left-0 w-64 max-h-48 overflow-y-auto bg-white shadow-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-xl z-50 py-2">
+            {(() => {
+              const activeConv = conversations.find(c => c.id === conversationId);
+              const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+              const mentionCandidates = activeConv ? [
+                { user_id: 'everyone', display_name: 'everyone' },
+                ...activeConv.participants.filter(p => p.user_id !== currentUser.id)
+              ] : [];
+              
+              const filteredMentions = mentionCandidates.filter(p => p.display_name?.toLowerCase().includes(mentionState.query.toLowerCase()));
+              
+              const insertMention = (name: string) => {
+                const before = content.slice(0, mentionState.cursorIndex);
+                const after = content.slice(mentionState.cursorIndex + mentionState.query.length + 1);
+                setContent(`${before}@${name} ${after}`);
+                setMentionState({ active: false, query: "", cursorIndex: 0 });
+              };
+
+              if (filteredMentions.length === 0) return <div className="px-4 py-2 text-sm text-gray-500">No users found</div>;
+              
+              return filteredMentions.map(p => (
+                <button
+                  key={p.user_id}
+                  onClick={() => insertMention(p.display_name || "")}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
+                >
+                  <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium shrink-0">
+                    {p.display_name ? p.display_name.charAt(0).toUpperCase() : "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{p.display_name}</p>
+                  </div>
+                </button>
+              ));
+            })()}
+          </div>
+        )}
+
         <div className="relative">
           <button 
             onClick={() => setShowOptions(!showOptions)}

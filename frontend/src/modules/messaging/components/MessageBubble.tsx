@@ -38,7 +38,7 @@ export function MessageBubble({
     : (message.metadata_json || {});
 
   const mentions = metadata?.mentions || [];
-  const isMentioned = mentions.some((m: any) => m.id === currentUser.id);
+  const isMentioned = mentions.some((m: any) => m.id === currentUser.id || m.id === 'everyone');
 
   const renderContentWithMentions = (content: string, mentionsList: any[]) => {
     if (!mentionsList || mentionsList.length === 0) return content;
