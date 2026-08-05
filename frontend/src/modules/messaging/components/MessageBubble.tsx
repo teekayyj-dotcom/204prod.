@@ -37,6 +37,28 @@ export function MessageBubble({
     ? JSON.parse(message.metadata_json || '{}') 
     : (message.metadata_json || {});
 
+  const mentions = metadata?.mentions || [];
+  const isMentioned = mentions.some((m: any) => m.id === currentUser.id);
+
+  const renderContentWithMentions = (content: string, mentionsList: any[]) => {
+    if (!mentionsList || mentionsList.length === 0) return content;
+    
+    const names = mentionsList.map(m => m.name).sort((a: string, b: string) => b.length - a.length);
+    if (names.length === 0) return content;
+    
+    const escapeRegex = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = `(@(?:${names.map(escapeRegex).join('|')}))`;
+    const regex = new RegExp(pattern, 'g');
+    
+    const parts = content.split(regex);
+    return parts.map((part, i) => {
+      if (part.startsWith('@') && names.includes(part.substring(1))) {
+        return <span key={i} className="font-semibold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/40 px-1 rounded mx-0.5">{part}</span>;
+      }
+      return part;
+    });
+  };
+
   const renderPollWidget = (pollMessage: Message, pollMetadata: any) => {
     const isCreator = pollMessage.sender_id === currentUser.id;
     return (
@@ -236,10 +258,10 @@ export function MessageBubble({
             className={`px-4 py-2.5 rounded-2xl shadow-sm text-sm ${
               isOwn 
                 ? "bg-blue-600 text-white rounded-br-none" 
-                : "bg-white text-slate-800 rounded-bl-none border border-slate-100"
+                : `rounded-bl-none border ${isMentioned ? "bg-amber-100 border-amber-300 dark:bg-amber-900/40 dark:border-amber-700 text-slate-900 dark:text-slate-100 shadow-sm" : "bg-white text-slate-800 border-slate-100"}`
             }`}
           >
-            {message.content}
+            {renderContentWithMentions(message.content, mentions)}
           </div>
         )}
 

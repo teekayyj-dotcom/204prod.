@@ -5,7 +5,7 @@ import { wsService } from "../services/websocket";
 import { messagingApi } from "../services/api";
 
 export function ChatInput({ conversationId }: { conversationId: number }) {
-  const { setMessages, setConversations } = useChatStore();
+  const { setMessages, setConversations, conversations } = useChatStore();
   const [content, setContent] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -46,6 +46,22 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
   const handleSend = () => {
     if (!content.trim() && pendingAttachments.length === 0) return;
 
+    // Parse mentions
+    const activeConv = conversations.find(c => c.id === conversationId);
+    const mentionedUsers: {id: number, name: string}[] = [];
+    if (activeConv) {
+      activeConv.participants.forEach(p => {
+        if (p.display_name && content.includes(`@${p.display_name}`)) {
+          mentionedUsers.push({ id: p.user_id, name: p.display_name });
+        }
+      });
+    }
+
+    const metadata_json: any = {};
+    if (mentionedUsers.length > 0) {
+      metadata_json.mentions = mentionedUsers;
+    }
+
     // Optimistic UI Update
     const u = JSON.parse(localStorage.getItem("user") || "{}");
     const optimisticMessage = {
@@ -55,7 +71,8 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
       sender_name: u.display_name,
       content: content.trim(),
       created_at: new Date().toISOString(),
-      attachments: [...pendingAttachments]
+      attachments: [...pendingAttachments],
+      metadata_json: Object.keys(metadata_json).length > 0 ? metadata_json : undefined
     };
     
     setMessages(prev => ({
@@ -71,7 +88,8 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
       type: "send_message",
       conversation_id: conversationId,
       content: content.trim(),
-      attachments: pendingAttachments
+      attachments: pendingAttachments,
+      metadata_json: Object.keys(metadata_json).length > 0 ? metadata_json : undefined
     });
 
     setContent("");
