@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useChatStore } from "../store/ChatContext";
-import { Send, Paperclip, Loader2, FileText, Plus, BarChart2, Calendar, X } from "lucide-react";
+import { Send, Paperclip, Loader2, FileText, Plus, BarChart2, Calendar, X, Users } from "lucide-react";
 import { wsService } from "../services/websocket";
 import { messagingApi } from "../services/api";
 
@@ -341,8 +341,14 @@ export function ChatInput({ conversationId }: { conversationId: number }) {
                   onClick={() => insertMention(p.display_name || "")}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
                 >
-                  <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium shrink-0">
-                    {p.display_name ? p.display_name.charAt(0).toUpperCase() : "?"}
+                  <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium shrink-0 overflow-hidden">
+                    {p.user_id === 'everyone' ? (
+                      <Users className="w-3.5 h-3.5" />
+                    ) : (p as any).avatar_url ? (
+                      <img src={(p as any).avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      p.display_name ? p.display_name.charAt(0).toUpperCase() : "?"
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{p.display_name}</p>
