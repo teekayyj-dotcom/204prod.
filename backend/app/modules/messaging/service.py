@@ -24,16 +24,12 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
         db.commit()
         db.refresh(conv)
 
-    # 1. Get all Admins
-    admins = db.query(User).filter(User.role == "admin", User.active == True).all()
-    admin_ids = [a.id for a in admins]
-
-    # 2. Get all assigned crew members from ProjectCredit
+    # 1. Get all assigned crew members from ProjectCredit
     from app.modules.projects.models import ProjectCredit, ProjectTask
     credits = db.query(ProjectCredit).filter(ProjectCredit.project_slug == project_slug).all()
     crew_ids = [c.crew_id for c in credits if c.crew_id is not None]
 
-    # 3. Get all Kanban assignees
+    # 2. Get all Kanban assignees
     tasks = db.query(ProjectTask).filter(ProjectTask.project_slug == project_slug).all()
     assignee_names = []
     for t in tasks:
@@ -49,15 +45,15 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
 
     final_crew_ids = []
     if crew_ids:
-        # Verify they are actually active crew/editors
+        # Verify they are actually active users, regardless of system role
         crew_users = db.query(User).filter(
             User.active == True,
-            User.role.in_(["crew", "editor", "outsource"]),
             User.id.in_(crew_ids)
         ).all()
         final_crew_ids = [u.id for u in crew_users]
 
-    desired_participant_ids = set(admin_ids + final_crew_ids + kanban_user_ids)
+    # Only include users who are actually assigned to the project (crew or kanban)
+    desired_participant_ids = set(final_crew_ids + kanban_user_ids)
 
     # 4. Sync participants
     existing_participants = db.query(ConversationParticipant).filter_by(conversation_id=conv.id).all()
