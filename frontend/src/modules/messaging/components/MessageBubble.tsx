@@ -40,23 +40,62 @@ export function MessageBubble({
   const mentions = metadata?.mentions || [];
   const isMentioned = mentions.some((m: any) => m.id === currentUser.id || m.id === 'everyone');
 
-  const renderContentWithMentions = (content: string, mentionsList: any[]) => {
-    if (!mentionsList || mentionsList.length === 0) return content;
+  const renderContent = (content: string, mentionsList: any[]) => {
+    if (!content) return content;
     
-    const names = mentionsList.map(m => m.name).sort((a: string, b: string) => b.length - a.length);
-    if (names.length === 0) return content;
+    // 1. Parse mentions
+    let names: string[] = [];
+    if (mentionsList && mentionsList.length > 0) {
+      names = mentionsList.map(m => m.name).sort((a: string, b: string) => b.length - a.length);
+    }
     
-    const escapeRegex = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = `(@(?:${names.map(escapeRegex).join('|')}))`;
-    const regex = new RegExp(pattern, 'g');
+    let parts: string[] = [content];
+    if (names.length > 0) {
+      const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = `(@(?:${names.map(escapeRegex).join('|')}))`;
+      const regex = new RegExp(pattern, 'g');
+      parts = content.split(regex);
+    }
     
-    const parts = content.split(regex);
-    return parts.map((part, i) => {
+    // 2. Parse URLs in text parts
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const finalParts: any[] = [];
+    let keyIndex = 0;
+    
+    for (const part of parts) {
+      if (!part) continue;
+      
       if (part.startsWith('@') && names.includes(part.substring(1))) {
-        return <span key={i} className="font-semibold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/40 px-1 rounded mx-0.5">{part}</span>;
+        finalParts.push(
+          <span key={keyIndex++} className="font-semibold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/40 px-1 rounded mx-0.5">
+            {part}
+          </span>
+        );
+      } else {
+        const subParts = part.split(urlRegex);
+        for (const sub of subParts) {
+          if (!sub) continue;
+          if (sub.match(/^https?:\/\//)) {
+            finalParts.push(
+              <a 
+                key={keyIndex++} 
+                href={sub} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:opacity-80 transition-opacity break-all font-medium"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {sub}
+              </a>
+            );
+          } else {
+            finalParts.push(<span key={keyIndex++}>{sub}</span>);
+          }
+        }
       }
-      return part;
-    });
+    }
+    
+    return finalParts;
   };
 
   const renderPollWidget = (pollMessage: Message, pollMetadata: any) => {
@@ -261,7 +300,7 @@ export function MessageBubble({
                 : `rounded-bl-none border ${isMentioned ? "bg-amber-100 border-amber-300 dark:bg-amber-900/40 dark:border-amber-700 text-slate-900 dark:text-slate-100 shadow-sm" : "bg-white text-slate-800 border-slate-100"}`
             }`}
           >
-            {renderContentWithMentions(message.content, mentions)}
+            {renderContent(message.content, mentions)}
           </div>
         )}
 
