@@ -26,9 +26,17 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
 
     # 1. Get all assigned crew members from ProjectCredit
     from app.modules.projects.models import ProjectCredit, ProjectTask
+    from app.modules.crew.models import CrewMember
+    from sqlalchemy import or_
+    
     credits = db.query(ProjectCredit).filter(ProjectCredit.project_slug == project_slug).all()
+    credit_names = [c.name.strip() for c in credits if c.name]
+    
     crew_ids = [c.crew_id for c in credits if c.crew_id is not None]
-    crew_names = [c.name.strip() for c in credits if c.crew_id is None and c.name]
+    crew_emails = []
+    if crew_ids:
+        crew_members = db.query(CrewMember).filter(CrewMember.id.in_(crew_ids)).all()
+        crew_emails = [cm.email for cm in crew_members if cm.email]
 
     # 2. Get all Kanban assignees
     tasks = db.query(ProjectTask).filter(ProjectTask.project_slug == project_slug).all()
@@ -38,25 +46,24 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
             names = [n.strip() for n in t.assignee_name.split(",") if n.strip()]
             assignee_names.extend(names)
     
-    # Combine names from Kanban and Credits
-    all_names_to_resolve = list(set(assignee_names + crew_names))
+    # 3. Resolve all to User IDs
+    all_names_to_resolve = list(set(assignee_names + credit_names))
     
-    resolved_user_ids = []
-    if all_names_to_resolve:
-        named_users = db.query(User).filter(User.display_name.in_(all_names_to_resolve), User.active == True).all()
-        resolved_user_ids = [u.id for u in named_users]
-
-    final_crew_ids = []
-    if crew_ids:
-        # Verify they are actually active users, regardless of system role
-        crew_users = db.query(User).filter(
-            User.active == True,
-            User.id.in_(crew_ids)
-        ).all()
-        final_crew_ids = [u.id for u in crew_users]
+    resolved_users = []
+    if all_names_to_resolve or crew_emails:
+        filters = [User.active == True]
+        or_conditions = []
+        if all_names_to_resolve:
+            or_conditions.append(User.display_name.in_(all_names_to_resolve))
+        if crew_emails:
+            or_conditions.append(User.email.in_(crew_emails))
+            
+        if or_conditions:
+            filters.append(or_(*or_conditions))
+            resolved_users = db.query(User).filter(*filters).all()
 
     # Only include users who are actually assigned to the project (crew or kanban)
-    desired_participant_ids = set(final_crew_ids + resolved_user_ids)
+    desired_participant_ids = set([u.id for u in resolved_users])
 
     # 4. Sync participants
     existing_participants = db.query(ConversationParticipant).filter_by(conversation_id=conv.id).all()
