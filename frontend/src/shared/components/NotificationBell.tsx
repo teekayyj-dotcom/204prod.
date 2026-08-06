@@ -46,6 +46,14 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
         // Simple polling fallback (reduce frequency since we have WS)
         const interval = setInterval(loadNotifications, 60000);
         
+        // Instantly reload when app comes to foreground on mobile
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                loadNotifications();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
         let ws: WebSocket | null = null;
         let reconnectTimeout: ReturnType<typeof setTimeout>;
 
@@ -94,6 +102,7 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
 
         return () => {
             clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (reconnectTimeout) clearTimeout(reconnectTimeout);
             if (ws) {
                 ws.onclose = null; // Prevent reconnect on unmount

@@ -10,6 +10,19 @@ class WebSocketService {
   private maxRetries = 10;
   private retries = 0;
 
+  constructor() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.url && this.token) {
+          if (!this.ws || this.ws.readyState === WebSocket.CLOSED || this.ws.readyState === WebSocket.CLOSING) {
+            this.retries = 0;
+            this.connect(this.url, this.token);
+          }
+        }
+      });
+    }
+  }
+
   connect(url: string, token: string) {
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.isConnecting)) return;
     
