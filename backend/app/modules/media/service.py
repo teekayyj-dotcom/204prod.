@@ -15,8 +15,13 @@ from app.modules.media.models import MediaAsset as DbMediaAsset, MediaFolder as 
 from app.modules.media.storage import get_storage_provider
 
 
-def get_media_assets(db: Session) -> list[DbMediaAsset]:
-    return list_media_assets(db)
+def get_media_assets(db: Session, client_slug: str = None, project_slug: str = None) -> list[DbMediaAsset]:
+    query = db.query(DbMediaAsset)
+    if client_slug:
+        query = query.filter(DbMediaAsset.client_slug == client_slug)
+    if project_slug:
+        query = query.filter(DbMediaAsset.project_slug == project_slug)
+    return query.all()
 
 def get_media_asset_by_id(db: Session, id: str) -> DbMediaAsset | None:
     return db.query(DbMediaAsset).filter(DbMediaAsset.id == id).first()

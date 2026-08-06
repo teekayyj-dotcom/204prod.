@@ -13,7 +13,7 @@ const getImagePreviewUrl = (asset) => {
     return `${API_BASE_URL}/media/${asset.id}/proxy?width=420`;
 };
 
-export function MediaLibraryPage() {
+export function MediaLibraryPage({ isComponent = false, projectSlug = "", clientSlug = "" }: { isComponent?: boolean, projectSlug?: string, clientSlug?: string }) {
     const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("All");
@@ -50,9 +50,12 @@ export function MediaLibraryPage() {
 
     const loadLibraryData = () => {
         setLoading(true);
+        const mediaUrl = projectSlug ? `/media?project_slug=${projectSlug}${clientSlug ? `&client_slug=${clientSlug}` : ''}` : '/media';
+        const foldersUrl = projectSlug ? `/media/folders?project_slug=${projectSlug}${clientSlug ? `&client_slug=${clientSlug}` : ''}` : '/media/folders';
+        
         Promise.all([
-            fetchApi('/media'),
-            fetchApi('/media/folders'),
+            fetchApi(mediaUrl),
+            fetchApi(foldersUrl),
             fetchApi('/projects/clients/all'),
             fetchApi('/projects/all')
         ]).then(([mediaData, foldersData, clientsData, projectsData]) => {
@@ -85,23 +88,17 @@ export function MediaLibraryPage() {
 
     // Helper to get current location context
     const getCurrentContext = () => {
-        let clientSlug = null;
-        let projectSlug = null;
+        let currentClient = clientSlug || "";
+        let currentProject = projectSlug || "";
         let parentId = null;
         
         if (pathStack.length > 0) {
-            const first = pathStack[0];
-            if (first.type === 'client') clientSlug = first.id;
-            
-            if (pathStack.length > 1) {
-                const second = pathStack[1];
-                if (second.type === 'project') projectSlug = second.id;
-            }
-            
             const last = pathStack[pathStack.length - 1];
-            if (last.type === 'folder') parentId = last.id;
+            if (last.type === 'client') currentClient = last.id;
+            else if (last.type === 'project') currentProject = last.id;
+            else if (last.type === 'folder') parentId = last.id;
         }
-        return { clientSlug, projectSlug, parentId };
+        return { clientSlug: currentClient, projectSlug: currentProject, parentId };
     };
 
     // Upload
@@ -328,7 +325,7 @@ export function MediaLibraryPage() {
 
     return (
         <div 
-            className="px-8 py-7 min-h-screen" 
+            className={isComponent ? "py-4 min-h-[500px]" : "px-8 py-7 min-h-screen"} 
             onContextMenu={handleBackgroundContextMenu}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
@@ -336,46 +333,85 @@ export function MediaLibraryPage() {
             {contextMenu && <ContextMenu {...contextMenu} onClose={() => setContextMenu(null)} />}
             
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>Media Library (Drive Mode)</h1>
-                    <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">Quản lý file thông minh bằng Chuột phải & Kéo thả</p>
-                </div>
-                <input type="file" id="media-library-upload" className="hidden" onChange={handleMediaUpload}/>
-                <div style={{ position: "relative" }}>
-                    <button 
-                        onClick={() => setNewMenuOpen(!newMenuOpen)} 
-                        disabled={uploading} 
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all" 
-                        style={{ background: uploading ? "#555" : "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}
-                    >
-                        {uploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>} Mới
-                    </button>
-                    {newMenuOpen && (
-                        <div 
-                            style={{ position: "absolute", top: "100%", right: 0, marginTop: "8px", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "10px", overflow: "hidden", zIndex: 100, minWidth: "180px", boxShadow: "0 8px 24px rgba(0,0,0,0.8)" }}
+            {!isComponent && (
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>Media Library (Drive Mode)</h1>
+                        <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">Quản lý file thông minh bằng Chuột phải & Kéo thả</p>
+                    </div>
+                    <input type="file" id="media-library-upload" className="hidden" onChange={handleMediaUpload}/>
+                    <div style={{ position: "relative" }}>
+                        <button 
+                            onClick={() => setNewMenuOpen(!newMenuOpen)} 
+                            disabled={uploading} 
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all" 
+                            style={{ background: uploading ? "#555" : "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}
                         >
-                            <button 
-                                onClick={() => { setNewMenuOpen(false); setCreateFolderModal(true); }}
-                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
-                                style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500, borderBottom: "1px solid #2A1F1F" }}
+                            {uploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>} Mới
+                        </button>
+                        {newMenuOpen && (
+                            <div 
+                                style={{ position: "absolute", top: "100%", right: 0, marginTop: "8px", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "10px", overflow: "hidden", zIndex: 100, minWidth: "180px", boxShadow: "0 8px 24px rgba(0,0,0,0.8)" }}
                             >
-                                <FolderPlus size={16} color="#6B8FD6" /> Thư mục mới
-                            </button>
-                            <button 
-                                onClick={() => { setNewMenuOpen(false); document.getElementById("media-library-upload")?.click(); }}
-                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
-                                style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}
-                            >
-                                <Upload size={16} color="#4CAF50" /> Tải lên File
-                            </button>
-                        </div>
-                    )}
+                                <button 
+                                    onClick={() => { setNewMenuOpen(false); setCreateFolderModal(true); }}
+                                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
+                                    style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500, borderBottom: "1px solid #2A1F1F" }}
+                                >
+                                    <FolderPlus size={16} color="#6B8FD6" /> Thư mục mới
+                                </button>
+                                <button 
+                                    onClick={() => { setNewMenuOpen(false); document.getElementById("media-library-upload")?.click(); }}
+                                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
+                                    style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}
+                                >
+                                    <Upload size={16} color="#4CAF50" /> Tải lên File
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
-
+            )}
             {/* Click outside to close menu */}
-            {newMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setNewMenuOpen(false)} />}
+            {!isComponent && newMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setNewMenuOpen(false)} />}
+            
+            {isComponent && (
+                <div className="flex items-center justify-between mb-4">
+                    <h3 style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>Thư mục & Tệp</h3>
+                    <input type="file" id="media-library-upload" className="hidden" onChange={handleMediaUpload}/>
+                    <div style={{ position: "relative" }}>
+                        <button 
+                            onClick={() => setNewMenuOpen(!newMenuOpen)} 
+                            disabled={uploading} 
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all" 
+                            style={{ background: uploading ? "#555" : "#D84040", color: "#EEEEEE", fontSize: "13px", fontWeight: 600 }}
+                        >
+                            {uploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>} Mới
+                        </button>
+                        {newMenuOpen && (
+                            <div 
+                                style={{ position: "absolute", top: "100%", right: 0, marginTop: "8px", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "10px", overflow: "hidden", zIndex: 100, minWidth: "160px", boxShadow: "0 8px 24px rgba(0,0,0,0.8)" }}
+                            >
+                                <button 
+                                    onClick={() => { setNewMenuOpen(false); setCreateFolderModal(true); }}
+                                    className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors text-left"
+                                    style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500, borderBottom: "1px solid #2A1F1F" }}
+                                >
+                                    <FolderPlus size={14} color="#6B8FD6" /> Thư mục mới
+                                </button>
+                                <button 
+                                    onClick={() => { setNewMenuOpen(false); document.getElementById("media-library-upload")?.click(); }}
+                                    className="w-full px-3 py-2 flex items-center gap-2 hover:bg-white/5 transition-colors text-left"
+                                    style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}
+                                >
+                                    <Upload size={14} color="#4CAF50" /> Tải lên File
+                                </button>
+                            </div>
+                        )}
+                        {newMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setNewMenuOpen(false)} />}
+                    </div>
+                </div>
+            )}
 
             {/* Breadcrumbs */}
             {!search.trim() && (

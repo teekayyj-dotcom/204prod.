@@ -52,8 +52,12 @@ router = APIRouter(prefix="/media", tags=["media"])
 
 
 @router.get("")
-def list_media_route(db: Session = Depends(get_db_session)):
-    return get_media_assets(db)
+def list_media_route(
+    client_slug: str | None = Query(None),
+    project_slug: str | None = Query(None),
+    db: Session = Depends(get_db_session)
+):
+    return get_media_assets(db, client_slug=client_slug, project_slug=project_slug)
 
 @router.get("/folders", response_model=list[MediaFolderSchema])
 def list_folders_route(
