@@ -69,6 +69,10 @@ async def lifespan(app: FastAPI):
     try:
         seed_hr_data(db)
         seed_finance_data(db)
+        
+        # Sync crew data to user table to ensure display names and avatars exist
+        from app.modules.users.service import sync_users_from_crew
+        sync_users_from_crew(db)
     finally:
         db.close()
 

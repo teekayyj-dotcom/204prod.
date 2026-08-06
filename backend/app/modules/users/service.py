@@ -45,10 +45,10 @@ def delete_user(db: Session, id: str):
     db.commit()
     return True
 
-def pre_authorize_user(db: Session, email: str, role: str, display_name: str = None):
+def pre_authorize_user(db: Session, email: str, role: str, display_name: str = None, avatar_url: str = None):
     """
     Pre-authorizes an email for a specific role.
-    If the user already exists, updates their role (if it's pending).
+    If the user already exists, updates their role (if it's pending) and syncs their profile.
     If they don't exist, creates a new user record with no password.
     """
     if not email:
@@ -58,21 +58,24 @@ def pre_authorize_user(db: Session, email: str, role: str, display_name: str = N
     
     import hashlib
     md5_hash = hashlib.md5(email.encode('utf-8')).hexdigest()
-    avatar_url = f"https://www.gravatar.com/avatar/{md5_hash}?d=identicon"
+    default_avatar = f"https://www.gravatar.com/avatar/{md5_hash}?d=identicon"
+    final_avatar = avatar_url if avatar_url else default_avatar
 
     existing_user = db.query(User).filter(User.email == email).first()
     
     if existing_user:
         changed = False
-        if not existing_user.display_name and display_name:
+        if display_name and existing_user.display_name != display_name:
             existing_user.display_name = display_name
             changed = True
-        if not existing_user.avatar_url:
+        if avatar_url and existing_user.avatar_url != avatar_url:
             existing_user.avatar_url = avatar_url
+            changed = True
+        elif not existing_user.avatar_url:
+            existing_user.avatar_url = final_avatar
             changed = True
             
         # Only upgrade role if they are pending or moving to a higher privilege
-        # We assume admin might change their role. For now, if they are pending, we always update.
         if existing_user.role == "pending" or existing_user.role != role:
             existing_user.role = role
             changed = True
@@ -98,12 +101,23 @@ def pre_authorize_user(db: Session, email: str, role: str, display_name: str = N
         password_hash=None, # No password yet
         firebase_uid=None,
         display_name=display_name,
-        avatar_url=avatar_url
+        avatar_url=final_avatar
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return new_user
+
+def sync_users_from_crew(db: Session):
+    """
+    Syncs display_name and avatar_url from CrewMember to User.
+    This ensures that when a crew member's profile is updated, their user profile matches.
+    """
+    from app.modules.crew.models import CrewMember
+    crew_members = db.query(CrewMember).all()
+    for crew in crew_members:
+        if crew.email:
+            pre_authorize_user(db, crew.email, crew.role or "crew", crew.name, crew.avatar)
 
 def revoke_user_authorization(db: Session, email: str):
     """

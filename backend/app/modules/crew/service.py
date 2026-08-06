@@ -20,7 +20,7 @@ def create_crew_member(db: Session, crew_member: CrewMember):
     db.refresh(crew_member)
     
     if crew_member.email:
-        pre_authorize_user(db, crew_member.email, "crew")
+        pre_authorize_user(db, crew_member.email, "crew", crew_member.name, crew_member.avatar)
         
     return crew_member
 
@@ -46,7 +46,7 @@ def update_crew_member(db: Session, id: int, crew_member: CrewMember):
     db.refresh(existing_crew_member)
     
     if existing_crew_member.email:
-        pre_authorize_user(db, existing_crew_member.email, "crew")
+        pre_authorize_user(db, existing_crew_member.email, "crew", existing_crew_member.name, existing_crew_member.avatar)
         
     return existing_crew_member
 
