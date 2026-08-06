@@ -69,17 +69,17 @@ export function CrewMediaLibraryPage() {
     useEffect(() => { loadLibraryData(); }, []);
 
     const getCurrentContext = () => {
-        let currentClient = clientSlug || null;
-        let currentProject = projectSlug || null;
-        let parentId = null;
+        let currentClient = null;
+        let currentProject = null;
+        let currentParent = null;
         
         pathStack.forEach(item => {
             if (item.type === 'client') currentClient = item.id;
             else if (item.type === 'project') currentProject = item.id;
-            else if (item.type === 'folder') parentId = item.id;
+            else if (item.type === 'folder') currentParent = item.id;
         });
 
-        return { clientSlug: currentClient, projectSlug: currentProject, parentId };
+        return { clientSlug: currentClient, projectSlug: currentProject, parentId: currentParent };
     };
 
     let foldersToRender = [];
