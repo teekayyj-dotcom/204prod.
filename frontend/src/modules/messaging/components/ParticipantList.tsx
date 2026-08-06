@@ -13,8 +13,12 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({ participants }
       <div className="space-y-3">
         {participants.map((p) => (
           <div key={p.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
-              {p.display_name?.charAt(0) || "U"}
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg overflow-hidden border border-[#2E2020]">
+              {p.avatar_url ? (
+                <img src={p.avatar_url} alt={p.display_name} className="w-full h-full object-cover" />
+              ) : (
+                p.display_name?.charAt(0) || "U"
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
