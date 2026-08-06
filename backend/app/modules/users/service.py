@@ -75,8 +75,8 @@ def pre_authorize_user(db: Session, email: str, role: str, display_name: str = N
             existing_user.avatar_url = final_avatar
             changed = True
             
-        # Only upgrade role if they are pending or moving to a higher privilege
-        if existing_user.role == "pending" or existing_user.role != role:
+        # Only upgrade role if they are pending
+        if existing_user.role == "pending":
             existing_user.role = role
             changed = True
             
@@ -117,7 +117,7 @@ def sync_users_from_crew(db: Session):
     crew_members = db.query(CrewMember).all()
     for crew in crew_members:
         if crew.email:
-            pre_authorize_user(db, crew.email, crew.role or "crew", crew.name, crew.avatar)
+            pre_authorize_user(db, crew.email, "crew", crew.name, crew.avatar)
 
 def revoke_user_authorization(db: Session, email: str):
     """
