@@ -146,14 +146,14 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
         filesToRender = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) && (typeFilter === "All" || a.type === typeFilter));
         foldersToRender = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
     } else {
-        if (pathStack.length === 0) {
-            // Root
+        if (pathStack.length === 0 && !isComponent) {
+            // Global Root
             foldersToRender = [
                 ...clients.map(c => ({ id: c.slug, name: c.name, type: "client" })),
                 ...folders.filter(f => !f.client_slug && !f.project_slug && !f.parent_id).map(f => ({ ...f, type: 'folder' }))
             ];
             filesToRender = assets.filter(a => !a.clientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
-        } else if (pathStack.length === 1 && pathStack[0].type === 'client') {
+        } else if (pathStack.length === 1 && pathStack[0].type === 'client' && !isComponent) {
             // Client Root
             const projList = allProjects.filter(p => p.client_slug === ctxClientSlug);
             foldersToRender = [
@@ -162,7 +162,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
             ];
             filesToRender = assets.filter(a => a.clientSlug === ctxClientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
         } else {
-            // Inside a Project or Folder
+            // Inside a Project or Folder (or Component Mode Root)
             foldersToRender = folders.filter(f => f.parent_id === ctxParentId);
             
             filesToRender = assets.filter(a => a.folderId === ctxParentId &&
