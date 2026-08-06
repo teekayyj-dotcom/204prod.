@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Attachment } from "../store/ChatContext";
-import { FileText, File as FileIcon, Image as ImageIcon, Film, Link } from "lucide-react";
+import { FileText, File as FileIcon, ImageIcon as ImageIcon, Film, Link } from "lucide-react";
 
 interface MediaGalleryProps {
   media: Attachment[];

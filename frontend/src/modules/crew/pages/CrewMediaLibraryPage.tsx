@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Eye, Loader2, X, Folder, ChevronRight, Lock } from "lucide-react";
+import { Search, Grid3X3, List, FileText, ImageIcon, Video, Archive, Figma, Download, Eye, Loader2, X, Folder, ChevronRight, Lock } from "lucide-react";
 import { API_BASE_URL, fetchApi } from "../../admin/utils/apiClient";
 
-const typeIcons = { document: FileText, image: Image, video: Video, archive: Archive, design: Figma };
+const typeIcons = { document: FileText, image: ImageIcon, video: Video, archive: Archive, design: Figma };
 const typeColors = { document: "#6B8FD6", image: "#4CAF50", video: "#E8A838", archive: "#888", design: "#D84040" };
 
 const getImagePreviewUrl = (asset) => {

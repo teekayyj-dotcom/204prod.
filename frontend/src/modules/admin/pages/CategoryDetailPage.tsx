@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, FolderOpen, Plus, Clock, DollarSign, CheckCircle2, Activity, ChevronRight, Star, Tag, ExternalLink, LayoutGrid, List, Search, Pencil, X, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, Image, Newspaper, FlaskConical, Loader2, } from "lucide-react";
+import { ArrowLeft, FolderOpen, Plus, Clock, DollarSign, CheckCircle2, Activity, ChevronRight, Star, Tag, ExternalLink, LayoutGrid, List, Search, Pencil, X, Briefcase, Palette, Code2, Camera, Film, Megaphone, LayoutTemplate, Monitor, Globe, Layers, PenTool, Scissors, Zap, Cpu, Package, MessageSquare, BookOpen, Music, Video, Box, Grid3X3, FileText, Award, Target, Compass, Sparkles, Wand2, Lightbulb, Rocket, Shield, Brush, Settings, Sliders, Shapes, Folder, ImageIcon, Newspaper, FlaskConical, Loader2, } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 import { getDisplayProgress } from "../../../utils/projectProgress";
 // ── Icon catalogue for the picker ─────────────────────────────────

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Camera, Users, Image as ImageIcon } from "lucide-react";
+import { X, Camera, Users, ImageIcon as ImageIcon } from "lucide-react";
 import { Conversation, Attachment } from "../store/ChatContext";
 import { ParticipantList } from "./ParticipantList";
 import { MediaGallery } from "./MediaGallery";

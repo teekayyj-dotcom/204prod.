@@ -1,11 +1,11 @@
 // @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight, Link, FolderPlus, Video as VideoIcon, Move, Share2, MoreVertical, Edit2, Plus } from "lucide-react";
+import { Search, Upload, Grid3X3, List, FileText, ImageIcon, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight, Link, FolderPlus, Video as VideoIcon, Move, Share2, MoreVertical, Edit2, Plus } from "lucide-react";
 import { API_BASE_URL, fetchApi } from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import { ContextMenu, ContextMenuItem } from "../../../shared/components/ContextMenu";
 
-const typeIcons = { document: FileText, image: Image, video: Video, archive: Archive, design: Figma };
+const typeIcons = { document: FileText, image: ImageIcon, video: Video, archive: Archive, design: Figma };
 const typeColors = { document: "#6B8FD6", image: "#4CAF50", video: "#E8A838", archive: "#888", design: "#D84040" };
 
 const getImagePreviewUrl = (asset) => {
@@ -220,7 +220,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
             y: e.clientY,
             items: [
                 { id: "new-folder", label: "Tạo folder mới", icon: <FolderPlus size={16}/>, onClick: () => setCreateFolderModal(true) },
-                { id: "new-album", label: "Tạo album mới", icon: <Image size={16}/>, onClick: () => { const { projectSlug } = getCurrentContext(); if (projectSlug) setCreateAlbumModal(true); else alert("Vui lòng vào bên trong một Dự án để tạo album."); } },
+                { id: "new-album", label: "Tạo album mới", icon: <ImageIcon size={16}/>, onClick: () => { const { projectSlug } = getCurrentContext(); if (projectSlug) setCreateAlbumModal(true); else alert("Vui lòng vào bên trong một Dự án để tạo album."); } },
                 { id: "upload-video", label: "Upload video", icon: <VideoIcon size={16}/>, onClick: () => document.getElementById("media-library-upload")?.click() },
             ]
         });
