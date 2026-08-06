@@ -131,11 +131,33 @@ export function CrewMediaLibraryPage() {
 
             {!search.trim() && (
                 <div className="flex items-center gap-2 mb-6 px-4 py-2.5 rounded-lg border border-[#2E2020]/60 bg-[#1D1616]/30 text-xs text-gray-400 font-medium overflow-x-auto">
-                    <button onClick={() => setPathStack([])} className="hover:text-white transition-colors">Tất cả tệp (Root)</button>
+                    <button 
+                                onClick={() => setPathStack([])} 
+                                onDragOver={(e) => { e.preventDefault(); setDragTarget('root'); }}
+                                onDragLeave={() => setDragTarget(null)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDragTarget(null);
+                                    if (draggedItem) handleDropMove(draggedItem, null);
+                                }}
+                                className={`hover:text-white transition-colors ${dragTarget === 'root' ? 'text-white underline' : ''}`}
+                            >Tất cả tệp (Root)</button>
                     {pathStack.map((pathItem, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <ChevronRight size={12} className="text-gray-600" />
-                            <button onClick={() => setPathStack(pathStack.slice(0, index + 1))} className="hover:text-white transition-colors font-semibold truncate max-w-[180px]">
+                            <button 
+                                onClick={() => setPathStack(pathStack.slice(0, index + 1))} 
+                                onDragOver={(e) => { e.preventDefault(); setDragTarget(pathItem.id); }}
+                                onDragLeave={() => setDragTarget(null)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDragTarget(null);
+                                    if (draggedItem) handleDropMove(draggedItem, pathItem.id);
+                                }}
+                                className={`hover:text-white transition-colors font-semibold truncate max-w-[180px] ${dragTarget === pathItem.id ? 'text-white underline' : ''}`}
+                            >
                                 {pathItem.name}
                             </button>
                         </div>

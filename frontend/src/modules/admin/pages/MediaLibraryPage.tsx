@@ -52,6 +52,9 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
     const [deleteModal, setDeleteModal] = useState<{id: string, name: string, isFolder: boolean} | null>(null);
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
     
+    
+    const [draggedItem, setDraggedItem] = useState<{id: string, isFolder: boolean} | null>(null);
+    const [dragTarget, setDragTarget] = useState<string | null>(null);
     const [moveModal, setMoveModal] = useState<{id: string, isFolder: boolean} | null>(null);
     const [shareModal, setShareModal] = useState<{id: string, isPublished: boolean, isFolder: boolean} | null>(null);
 
@@ -307,6 +310,28 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
     };
 
     // Drag and drop zone (simplified)
+
+    const handleDropMove = async (dragged: {id: string, isFolder: boolean}, targetFolderId: string | null) => {
+        if (dragged.id === targetFolderId) return; // Cannot move into itself
+        try {
+            if (dragged.isFolder) {
+                await fetchApi(`/media/folders/${dragged.id}`, { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ parent_id: targetFolderId })
+                });
+                setFolders(folders.map(f => f.id === dragged.id ? {...f, parent_id: targetFolderId} : f));
+            } else {
+                await fetchApi(`/media/${dragged.id}/move`, { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ folder_id: targetFolderId })
+                });
+                setAssets(assets.map(a => a.id === dragged.id ? {...a, folderId: targetFolderId} : a));
+            }
+        } catch (err) { alert("Lỗi khi di chuyển"); }
+    };
+
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         // implement drop upload if needed
@@ -477,11 +502,33 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
             {/* Breadcrumbs */}
             {!search.trim() && (
                 <div className="flex items-center gap-2 mb-6 px-4 py-2.5 rounded-lg border border-[#2E2020]/60 bg-[#1D1616]/30 text-xs text-gray-400 font-medium overflow-x-auto">
-                    <button onClick={() => setPathStack([])} className="hover:text-white transition-colors">Tất cả tệp (Root)</button>
+                    <button 
+                                onClick={() => setPathStack([])} 
+                                onDragOver={(e) => { e.preventDefault(); setDragTarget('root'); }}
+                                onDragLeave={() => setDragTarget(null)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDragTarget(null);
+                                    if (draggedItem) handleDropMove(draggedItem, null);
+                                }}
+                                className={`hover:text-white transition-colors ${dragTarget === 'root' ? 'text-white underline' : ''}`}
+                            >Tất cả tệp (Root)</button>
                     {pathStack.map((pathItem, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <ChevronRight size={12} className="text-gray-600" />
-                            <button onClick={() => setPathStack(pathStack.slice(0, index + 1))} className="hover:text-white transition-colors font-semibold truncate max-w-[180px]">
+                            <button 
+                                onClick={() => setPathStack(pathStack.slice(0, index + 1))} 
+                                onDragOver={(e) => { e.preventDefault(); setDragTarget(pathItem.id); }}
+                                onDragLeave={() => setDragTarget(null)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDragTarget(null);
+                                    if (draggedItem) handleDropMove(draggedItem, pathItem.id);
+                                }}
+                                className={`hover:text-white transition-colors font-semibold truncate max-w-[180px] ${dragTarget === pathItem.id ? 'text-white underline' : ''}`}
+                            >
                                 {pathItem.name}
                             </button>
                         </div>
@@ -510,9 +557,31 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                     {foldersToRender.map((folder) => (
                         <div 
                             key={folder.id} 
+                            draggable
+                            onDragStart={(e) => {
+                                e.stopPropagation();
+                                setDraggedItem({ id: folder.id, isFolder: true });
+                            }}
+                            onDragEnd={() => setDraggedItem(null)}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (folder.type === 'folder' && draggedItem && draggedItem.id !== folder.id) {
+                                    setDragTarget(folder.id);
+                                }
+                            }}
+                            onDragLeave={() => setDragTarget(null)}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDragTarget(null);
+                                if (folder.type === 'folder' && draggedItem && draggedItem.id !== folder.id) {
+                                    handleDropMove(draggedItem, folder.id);
+                                }
+                            }}
                             onClick={() => folder.type === 'album' ? window.open(`/album/${folder.short_token}`, '_blank') : setPathStack(prev => [...prev, { id: folder.id, name: folder.name, type: folder.type }])}
                             onContextMenu={(e) => handleItemContextMenu(e, folder, true)}
-                            className="rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all border border-[#2E2020] bg-[#1D1616]/40 hover:border-[#D84040]/70 group"
+                            className={`rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all border ${dragTarget === folder.id ? 'border-[#D84040] bg-[#D84040]/20 scale-[1.02]' : 'border-[#2E2020] bg-[#1D1616]/40 hover:border-[#D84040]/70'} group`}
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#D84040]/10 text-[#D84040]">
@@ -556,7 +625,13 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                         return (
                             <div 
                                 key={asset.id} 
-                                className="rounded-xl overflow-hidden group cursor-pointer flex flex-col" 
+                                draggable
+                                onDragStart={(e) => {
+                                    e.stopPropagation();
+                                    setDraggedItem({ id: asset.id, isFolder: false });
+                                }}
+                                onDragEnd={() => setDraggedItem(null)}
+                                className="rounded-xl overflow-hidden group cursor-pointer flex flex-col hover:border-[#D84040]/70 transition-all" 
                                 style={{ background: "rgba(36, 28, 28, 0.6)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
                                 onContextMenu={(e) => handleItemContextMenu(e, asset, false)}
                                 onClick={() => setPreviewAsset(asset)}
