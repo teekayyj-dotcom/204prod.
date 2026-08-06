@@ -13,3 +13,13 @@ class Notification(Base):
     link = Column(String(500), nullable=True) # Link to redirect when clicked
     is_read = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    endpoint = Column(String(500), nullable=False, unique=True)
+    p256dh = Column(String(100), nullable=False)
+    auth = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

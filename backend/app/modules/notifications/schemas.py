@@ -19,3 +19,12 @@ class NotificationResponse(NotificationBase):
 
     class Config:
         from_attributes = True
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str
+    keys: PushSubscriptionKeys
+    user_id: str

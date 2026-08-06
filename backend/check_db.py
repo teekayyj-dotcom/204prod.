@@ -1,18 +1,11 @@
-from app.db.session import SessionLocal
-from app.modules.messaging.models import Conversation, ConversationParticipant
-from app.modules.users.models import User
+from sqlalchemy import create_engine, text
+from app.core.config import settings
 
-db = SessionLocal()
-
-print("--- Admins ---")
-for u in db.query(User).filter(User.role == 'admin').all():
-    print(f"ID: {u.id}, Name: {u.display_name}, Role: {u.role}, Active: {u.active}")
-
-print("\n--- Conversations ---")
-for c in db.query(Conversation).all():
-    print(f"ID: {c.id}, Name: {c.name}, Is Group: {c.is_group}")
-
-print("\n--- Participants ---")
-for p in db.query(ConversationParticipant).all():
-    print(f"ConvID: {p.conversation_id}, UserID: {p.user_id}")
-
+engine = create_engine(settings.database_url)
+with engine.connect() as conn:
+    folders = conn.execute(text("SELECT id, name, created_at, project_slug FROM media_folders WHERE project_slug='aptamil-x-forart-x-204prod-1184' LIMIT 15")).fetchall()
+    print("Folders:", folders)
+    
+    # Check assets
+    assets = conn.execute(text("SELECT id, folder, folder_id, created_at FROM media_assets WHERE project_slug='aptamil-x-forart-x-204prod-1184' LIMIT 15")).fetchall()
+    print("\nAssets:", assets)

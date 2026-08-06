@@ -25,3 +25,4 @@ oauth2client
 google-auth-oauthlib
 google-auth-httplib2
 httplib2
+pywebpush>=1.14,<2.0

@@ -578,6 +578,28 @@ async def websocket_endpoint(websocket: WebSocket, token: str, db: Session = Dep
                 }
                 await manager.broadcast_to_users(broadcast_data, p_ids)
 
+                # Web push for chat messages
+                try:
+                    from app.modules.notifications.push_service import send_web_push
+                    from app.db.session import get_db_session
+                    import asyncio
+                    
+                    def _do_push(target_p_ids, sender_name, msg_content, c_id):
+                        db_new = next(get_db_session())
+                        try:
+                            for p_id in target_p_ids:
+                                send_web_push(db_new, p_id, f"Tin nhắn từ {sender_name}", msg_content or "Gửi một tệp đính kèm", f"/crew-dashboard/messaging?chat={c_id}")
+                        finally:
+                            db_new.close()
+                            
+                    other_p_ids = [p for p in p_ids if p != user.id]
+                    if other_p_ids:
+                        asyncio.get_event_loop().run_in_executor(
+                            None, _do_push, other_p_ids, user.display_name, data.get("content"), conv_id
+                        )
+                except Exception as e:
+                    print(f"Chat Web Push failed: {e}")
+
             elif msg_type in ["typing_start", "typing_stop"] and conv_id:
                 participants = db.query(ConversationParticipant).filter_by(conversation_id=conv_id).all()
                 p_ids = [p.user_id for p in participants if p.user_id != user.id]

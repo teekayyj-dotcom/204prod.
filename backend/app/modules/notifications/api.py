@@ -33,6 +33,12 @@ def mark_all_notifications_read(user_id: str, db: Session = Depends(get_db_sessi
     updated = crud.mark_all_as_read(db, user_id=user_id)
     return {"updated": updated}
 
+@router.post("/push/subscribe")
+def subscribe_push(sub: schemas.PushSubscriptionCreate, db: Session = Depends(get_db_session)):
+    """Subscribe a user's device for Web Push notifications."""
+    db_sub = crud.create_push_subscription(db, sub)
+    return {"status": "success", "id": db_sub.id}
+
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await manager.connect(websocket, user_id)

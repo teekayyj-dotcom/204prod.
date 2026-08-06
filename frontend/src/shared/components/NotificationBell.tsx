@@ -57,6 +57,53 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
         let ws: WebSocket | null = null;
         let reconnectTimeout: ReturnType<typeof setTimeout>;
 
+        const urlB64ToUint8Array = (base64String: string) => {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        };
+
+        const registerPush = async () => {
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    
+                    // Delay slightly to ensure SW is ready
+                    await navigator.serviceWorker.ready;
+                    
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlB64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY)
+                    });
+                    
+                    const subData = JSON.parse(JSON.stringify(subscription));
+                    await fetchApi('/notifications/push/subscribe', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            endpoint: subData.endpoint,
+                            keys: subData.keys,
+                            user_id: userId
+                        })
+                    });
+                } catch (err) {
+                    console.error("Push registration failed", err);
+                }
+            }
+        };
+
+        if (Notification.permission === 'granted') {
+            registerPush();
+        } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') registerPush();
+            });
+        }
+
         const connectWebSocket = () => {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             // Determine base URL, if running locally vite proxy might handle it, or we use relative path
