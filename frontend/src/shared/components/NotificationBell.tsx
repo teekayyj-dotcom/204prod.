@@ -78,7 +78,7 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
                     
                     const subscription = await registration.pushManager.subscribe({
                         userVisibleOnly: true,
-                        applicationServerKey: urlB64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY)
+                        applicationServerKey: urlB64ToUint8Array("BPXIIYEQ6MU04J9ThChfoj16pRGwXlG8Uotkz-lkWFOKfav0bN6tDbpRQbsD98G_wFuUuO_EPTJ3_lJcjopz-TI")
                     });
                     
                     const subData = JSON.parse(JSON.stringify(subscription));
