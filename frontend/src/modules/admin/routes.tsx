@@ -1,4 +1,5 @@
 import { MainLayout } from "./layout/MainLayout";
+import { Navigate } from "react-router-dom";
 
 export function AdminNotFound() {
     return (<div className="flex flex-col items-center justify-center h-full py-32" style={{ color: "#666" }}>
@@ -38,6 +39,7 @@ export const adminRoute = {
         { path: "crew/:id", lazy: () => import("./pages/CrewProfilePage").then(m => ({ Component: m.CrewProfilePage })) },
         { path: "media", lazy: () => import("./pages/MediaLibraryPage").then(m => ({ Component: m.MediaLibraryPage })) },
         { path: "crm/overview", lazy: () => import("./pages/CRMOverviewPage").then(m => ({ Component: m.CRMOverviewPage })) },
+        { path: "hr", element: <Navigate to="/admin/hr/attendance" replace /> },
         { path: "hr/overview", lazy: () => import("./pages/HROverviewPage").then(m => ({ Component: m.HROverviewPage })) },
         { path: "hr/attendance", lazy: () => import("./pages/AttendancePage").then(m => ({ Component: m.AttendancePage })) },
         { path: "hr/attendance/edit", lazy: () => import("./pages/EditSchedulePage").then(m => ({ Component: m.EditSchedulePage })) },

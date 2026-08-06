@@ -53,7 +53,7 @@ export function ActionCenter() {
       count: pendingLeaves,
       icon: <FileText size={18} color="#f59e0b" />,
       color: "#f59e0b",
-      path: "/admin/hr"
+      path: "/admin/hr/attendance"
     },
     {
       id: "publish",
