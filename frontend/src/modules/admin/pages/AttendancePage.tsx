@@ -182,15 +182,10 @@ interface OverviewTabProps {
 }
 
 function OverviewTab({ liveLog, stats }: OverviewTabProps) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 4000);
-    return () => clearInterval(id);
-  }, []);
-
+  // Use local timezone to get current date in YYYY-MM-DD
+  const todayLocal = new Date().toLocaleDateString("en-CA"); // "en-CA" format is YYYY-MM-DD
   const visibleLogs = liveLog
-    .filter(log => log.date === new Date().toISOString().split("T")[0])
-    .slice(0, 5 + (tick % 4));
+    .filter(log => log.date === todayLocal);
 
   const workingCount = stats?.workingCount || 0;
   const wfhCount = stats?.wfhCount || 0;
@@ -259,11 +254,7 @@ function OverviewTab({ liveLog, stats }: OverviewTabProps) {
           {visibleLogs.map((log, i) => (
             <div
               key={log.id}
-              className="flex items-center gap-4 px-5 py-3 transition-all"
-              style={{
-                opacity: i === visibleLogs.length - 1 && tick > 0 ? 0.7 : 1,
-                background: i === visibleLogs.length - 1 && tick > 0 ? "#1D1616" : "transparent",
-              }}
+              className="flex items-center gap-4 px-5 py-3 hover:bg-[#1D1616] transition-colors"
             >
               <Avatar initials={log.avatar} />
               <div className="flex-1 min-w-0">
