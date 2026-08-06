@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { wsService } from "../services/websocket";
 import { toast } from "sonner";
+import { playNotificationSound } from "../../../shared/utils/sound";
+
 import { ensureUTC } from "../utils/time";
 
 export type Attachment = {
@@ -206,6 +208,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
               toastAvatarUrl = sender?.avatar_url;
             }
             
+            playNotificationSound();
             toast.custom((t) => (
               <div 
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors w-[356px] pointer-events-auto"

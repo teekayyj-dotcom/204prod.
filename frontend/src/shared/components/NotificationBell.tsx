@@ -3,6 +3,8 @@ import { Bell, Check, X } from 'lucide-react';
 import { fetchApi } from '../../modules/admin/utils/apiClient';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { playNotificationSound } from '../utils/sound';
+
 
 interface NotificationItem {
     id: number;
@@ -65,6 +67,7 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
                     setNotifications(prev => [newNotif, ...prev]);
                     setUnreadCount(prev => prev + 1);
                     
+                    playNotificationSound();
                     toast.info(newNotif.title, {
                         id: `notif-${newNotif.id}`,
                         description: newNotif.message,
