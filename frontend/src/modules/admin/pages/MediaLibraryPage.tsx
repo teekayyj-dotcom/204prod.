@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight, Link, FolderPlus, Video as VideoIcon, Move, Share2, MoreVertical, Edit2 } from "lucide-react";
+import { Search, Upload, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Trash2, Eye, Loader2, X, Folder, ChevronRight, Link, FolderPlus, Video as VideoIcon, Move, Share2, MoreVertical, Edit2, Plus } from "lucide-react";
 import { API_BASE_URL, fetchApi } from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import { ContextMenu, ContextMenuItem } from "../../../shared/components/ContextMenu";
@@ -35,6 +35,7 @@ export function MediaLibraryPage() {
     
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{x: number, y: number, items: ContextMenuItem[]} | null>(null);
+    const [newMenuOpen, setNewMenuOpen] = useState(false);
     
     // Modals
     const [createFolderModal, setCreateFolderModal] = useState(false);
@@ -341,10 +342,40 @@ export function MediaLibraryPage() {
                     <p style={{ color: "#666", fontSize: "14px" }} className="mt-0.5">Quản lý file thông minh bằng Chuột phải & Kéo thả</p>
                 </div>
                 <input type="file" id="media-library-upload" className="hidden" onChange={handleMediaUpload}/>
-                <button onClick={() => document.getElementById("media-library-upload")?.click()} disabled={uploading} className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all" style={{ background: uploading ? "#555" : "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>
-                    {uploading ? <Loader2 size={16} className="animate-spin"/> : <Upload size={16}/>} Upload
-                </button>
+                <div style={{ position: "relative" }}>
+                    <button 
+                        onClick={() => setNewMenuOpen(!newMenuOpen)} 
+                        disabled={uploading} 
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-lg transition-all" 
+                        style={{ background: uploading ? "#555" : "#D84040", color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}
+                    >
+                        {uploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>} Mới
+                    </button>
+                    {newMenuOpen && (
+                        <div 
+                            style={{ position: "absolute", top: "100%", right: 0, marginTop: "8px", background: "#1D1616", border: "1px solid #2A1F1F", borderRadius: "10px", overflow: "hidden", zIndex: 100, minWidth: "180px", boxShadow: "0 8px 24px rgba(0,0,0,0.8)" }}
+                        >
+                            <button 
+                                onClick={() => { setNewMenuOpen(false); setCreateFolderModal(true); }}
+                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
+                                style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500, borderBottom: "1px solid #2A1F1F" }}
+                            >
+                                <FolderPlus size={16} color="#6B8FD6" /> Thư mục mới
+                            </button>
+                            <button 
+                                onClick={() => { setNewMenuOpen(false); document.getElementById("media-library-upload")?.click(); }}
+                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
+                                style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}
+                            >
+                                <Upload size={16} color="#4CAF50" /> Tải lên File
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* Click outside to close menu */}
+            {newMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 90 }} onClick={() => setNewMenuOpen(false)} />}
 
             {/* Breadcrumbs */}
             {!search.trim() && (

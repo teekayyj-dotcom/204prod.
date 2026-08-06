@@ -1652,8 +1652,8 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
             </div>
 
             
-            {/* Create Album Section */}
-            {mediaView === "grid" && (
+            {/* Create Album Section - TẠM THỜI ẨN THEO YÊU CẦU */}
+            {/* mediaView === "grid" && (
                 <div style={{ background: "rgba(29,22,22,0.4)", borderRadius: "10px", padding: "15px", border: "1px solid rgba(46,32,32,0.5)", marginBottom: "15px" }}>
                     <h4 style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600, marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <Image size={14} color="#6B8FD6" />
@@ -1673,7 +1673,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                         </button>
                     </div>
                 </div>
-            )}
+            ) */}
 
             {mediaView === "grid" && albums.length > 0 && (
                 <div style={{ marginBottom: "15px" }}>
@@ -1909,6 +1909,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                         </div>
                     ))}
 
+                    {/* TẠM THỜI ẨN THEO YÊU CẦU 
                     <div 
                         onClick={handleFileUpload}
                         style={{ borderRadius: "10px", border: "2px dashed #2A1F1F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "240px", cursor: "pointer", gap: "6px", transition: "all 0.2s" }}
@@ -1918,6 +1919,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                         <Upload size={18} color="#555" />
                         <span style={{ color: "#555", fontSize: "10px" }}>Upload file</span>
                     </div>
+                    */}
                 </div>
             ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
