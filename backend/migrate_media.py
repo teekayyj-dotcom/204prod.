@@ -14,7 +14,9 @@ def migrate():
     # 1. Alter table
     print("Altering media_assets table...")
     try:
-        db.execute(text("ALTER TABLE media_assets ADD COLUMN folder_id VARCHAR(160) REFERENCES media_folders(id) ON DELETE SET NULL;"))
+        db.execute(text("ALTER TABLE media_assets ADD COLUMN folder_id VARCHAR(160);"))
+        db.commit()
+        db.execute(text("ALTER TABLE media_assets ADD CONSTRAINT fk_media_folder FOREIGN KEY (folder_id) REFERENCES media_folders(id) ON DELETE SET NULL;"))
         db.commit()
     except Exception as e:
         print("Column folder_id might already exist or error:", e)

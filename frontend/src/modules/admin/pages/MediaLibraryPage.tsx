@@ -275,6 +275,28 @@ export function MediaLibraryPage() {
         } catch(err) { alert("Lỗi khi đổi tên"); }
     };
 
+    const handleMove = async (targetFolderId: string | null) => {
+        if (!moveModal) return;
+        try {
+            if (moveModal.isFolder) {
+                await fetchApi(`/media/folders/${moveModal.id}`, { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ parent_id: targetFolderId })
+                });
+                setFolders(folders.map(f => f.id === moveModal.id ? {...f, parent_id: targetFolderId} : f));
+            } else {
+                await fetchApi(`/media/${moveModal.id}/move`, { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ folder_id: targetFolderId })
+                });
+                setAssets(assets.map(a => a.id === moveModal.id ? {...a, folderId: targetFolderId} : a));
+            }
+            setMoveModal(null);
+        } catch(err) { alert("Lỗi khi di chuyển"); }
+    };
+
     const handleShare = async (isPublished: boolean) => {
         if (!shareModal) return;
         try {
@@ -285,6 +307,7 @@ export function MediaLibraryPage() {
                     body: JSON.stringify({ is_published: isPublished })
                 });
                 setFolders(folders.map(f => f.id === shareModal.id ? {...f, is_published: isPublished} : f));
+                setShareModal({...shareModal, isPublished});
             } else {
                 await fetchApi(`/media/${shareModal.id}/publish`, { 
                     method: 'PUT', 
@@ -292,8 +315,9 @@ export function MediaLibraryPage() {
                     body: JSON.stringify({ is_published: isPublished })
                 });
                 setAssets(assets.map(a => a.id === shareModal.id ? {...a, isPublished: isPublished} : a));
+                setShareModal({...shareModal, isPublished});
             }
-            setShareModal(null);
+            // Do not close immediately so user can copy the link
         } catch(err) { alert("Lỗi phân quyền"); }
     };
 
@@ -503,13 +527,72 @@ export function MediaLibraryPage() {
                 <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-[#1D1616] border border-[#2E2020] rounded-2xl p-6 w-full max-w-sm">
                         <h3 className="text-white text-lg font-bold mb-4">Phân quyền (Share)</h3>
-                        <p className="text-gray-400 text-sm mb-4">Mục này hiện đang: <strong>{shareModal.isPublished ? "Đã Publish cho Client" : "Nội bộ (Internal)"}</strong></p>
-                        <div className="flex gap-3 mt-6">
-                            <button onClick={() => handleShare(false)} className={`flex-1 py-2.5 rounded-xl border ${!shareModal.isPublished ? 'border-[#D84040] text-[#D84040]' : 'border-[#2E2020] text-gray-400'} font-medium`}>Internal</button>
-                            <button onClick={() => handleShare(true)} className={`flex-1 py-2.5 rounded-xl border ${shareModal.isPublished ? 'border-[#D84040] text-[#D84040]' : 'border-[#2E2020] text-gray-400'} font-medium`}>Publish</button>
+                        <p className="text-gray-400 text-sm mb-4">Mục này hiện đang: <strong>{shareModal.isPublished ? "Đã Publish (Công khai)" : "Nội bộ (Internal)"}</strong></p>
+                        
+                        {shareModal.isPublished && (
+                            <div className="mb-4 bg-[#2A1F1F] p-3 rounded-lg border border-[#3A2A2A]">
+                                <p className="text-xs text-gray-400 mb-2">Tất cả user có link này đều có thể xem được:</p>
+                                <div className="flex gap-2">
+                                    <input 
+                                        readOnly 
+                                        value={`${window.location.origin}/media/${shareModal.id}`} 
+                                        className="flex-1 bg-transparent text-white text-xs outline-none"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/media/${shareModal.id}`);
+                                            alert("Đã copy link!");
+                                        }}
+                                        className="text-[#D84040] text-xs font-bold whitespace-nowrap hover:text-white"
+                                    >
+                                        Copy Link
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 mt-4">
+                            <button onClick={() => handleShare(false)} className={`flex-1 py-2.5 rounded-xl border ${!shareModal.isPublished ? 'border-[#D84040] text-[#D84040]' : 'border-[#2E2020] text-gray-400 hover:border-gray-500'} transition-colors font-medium`}>Chỉ Nội Bộ</button>
+                            <button onClick={() => handleShare(true)} className={`flex-1 py-2.5 rounded-xl border ${shareModal.isPublished ? 'border-[#D84040] text-[#D84040]' : 'border-[#2E2020] text-gray-400 hover:border-gray-500'} transition-colors font-medium`}>Công Khai</button>
                         </div>
                         <div className="mt-4 text-center">
                             <button onClick={() => setShareModal(null)} className="text-sm text-gray-500 hover:text-white">Đóng</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {moveModal && (
+                <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-[#1D1616] border border-[#2E2020] rounded-2xl p-6 w-full max-w-sm max-h-[80vh] flex flex-col">
+                        <h3 className="text-white text-lg font-bold mb-4">Di chuyển tới...</h3>
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-2">
+                            <button 
+                                onClick={() => handleMove(null)} 
+                                className="w-full text-left p-3 rounded-lg border border-[#2E2020] hover:border-[#D84040] text-white flex items-center gap-3 transition-colors"
+                            >
+                                <Folder size={16} className="text-gray-400" />
+                                <span>Thư mục gốc (Root)</span>
+                            </button>
+                            
+                            {folders.filter(f => f.id !== moveModal.id).map(folder => (
+                                <button 
+                                    key={folder.id}
+                                    onClick={() => handleMove(folder.id)} 
+                                    className="w-full text-left p-3 rounded-lg border border-[#2E2020] hover:border-[#D84040] text-white flex items-center gap-3 transition-colors"
+                                >
+                                    <Folder size={16} className="text-[#D84040]" />
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium">{folder.name}</span>
+                                        <span className="text-xs text-gray-500">
+                                            {folder.project_slug ? `Dự án: ${folder.project_slug}` : 'Thư mục cấp 1'}
+                                        </span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-6 pt-4 border-t border-[#2E2020]">
+                            <button onClick={() => setMoveModal(null)} className="w-full py-2.5 rounded-xl bg-[#241C1C] text-gray-400 hover:text-white font-medium">Hủy</button>
                         </div>
                     </div>
                 </div>
