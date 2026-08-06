@@ -457,7 +457,7 @@ def execute_auto_checkout(db: Session, employee_name: str, shift_name: str, is_o
         type="hr",
         title="Tự động Check-out nhân sự",
         message=f"{resolved_name} đã được hệ thống tự động check-out lúc {time_str} ({'ca OT' if is_ot else f'ca {shift_name}'})",
-        link="/admin/hr"
+        link="/admin/hr/attendance"
     ))
     
     return db_log
@@ -583,7 +583,7 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
             type="hr",
             title="Nhân sự đi muộn",
             message=f"{resolved_name} vừa check-in muộn lúc {time}",
-            link="/admin/hr"
+            link="/admin/hr/attendance"
         ))
     elif action == "check-in" and resolved_status == "ot":
         from app.modules.notifications import crud as notif_crud, schemas as notif_schemas
@@ -592,7 +592,7 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
             type="hr",
             title="Nhân sự bắt đầu ca OT",
             message=f"{resolved_name} vừa bắt đầu ca OT (4 giờ) lúc {time}",
-            link="/admin/hr"
+            link="/admin/hr/attendance"
         ))
 
     return db_log
@@ -656,7 +656,7 @@ def create_leave_request_record(db: Session, payload: LeaveRequestCreate) -> Lea
         type="hr",
         title="Đơn từ mới",
         message=f"{resolved_name} vừa nộp đơn {payload.type} cho ngày {payload.date}",
-        link="/admin/hr"
+        link="/admin/hr/attendance"
     ))
 
     return db_req

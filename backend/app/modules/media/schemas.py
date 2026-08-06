@@ -17,11 +17,41 @@ class MediaAsset(BaseModel):
     client_slug: str | None = None
     project_slug: str | None = None
     folder: str | None = None
+    folder_id: str | None = None
+    is_published: bool = False
     created_at: datetime
 
     model_config = {
         "from_attributes": True
     }
+
+
+class MediaFolder(BaseModel):
+    id: str
+    name: str
+    client_slug: str | None = None
+    project_slug: str | None = None
+    parent_id: str | None = None
+    is_published: bool = False
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class MediaFolderCreate(BaseModel):
+    name: str
+    client_slug: str | None = None
+    project_slug: str | None = None
+    parent_id: str | None = None
+    is_published: bool = False
+
+
+class MediaFolderUpdate(BaseModel):
+    name: str | None = None
+    parent_id: str | None = None
+    is_published: bool | None = None
 
 
 class PresignedUrlRequest(BaseModel):
@@ -55,6 +85,8 @@ class MediaFinalizeRequest(BaseModel):
     client_slug: str | None = None
     project_slug: str | None = None
     folder: str | None = None
+    folder_id: str | None = None
+    is_published: bool = False
 
 
 class MediaRenameRequest(BaseModel):
@@ -79,3 +111,11 @@ class VideoSaveRequest(BaseModel):
     client_slug: str | None = None
     project_slug: str | None = None
     folder: str | None = None
+    folder_id: str | None = None
+    is_published: bool = False
+
+class MediaMoveRequest(BaseModel):
+    folder_id: str | None = None
+
+class MediaPublishRequest(BaseModel):
+    is_published: bool

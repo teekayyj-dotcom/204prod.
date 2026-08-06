@@ -17,6 +17,10 @@ from app.modules.media.service import (
     create_media_asset_from_file,
     delete_media_asset,
     finalize_media_asset,
+    get_media_folders,
+    create_media_folder,
+    update_media_folder,
+    delete_media_folder,
 )
 from app.modules.media.schemas import (
     PresignedUrlRequest, 
@@ -26,6 +30,11 @@ from app.modules.media.schemas import (
     VideoUploadRequest,
     VideoUploadResponse,
     VideoSaveRequest,
+    MediaFolder as MediaFolderSchema,
+    MediaFolderCreate,
+    MediaFolderUpdate,
+    MediaMoveRequest,
+    MediaPublishRequest,
 )
 from app.modules.media.storage import get_storage_provider
 from app.core.config import settings
@@ -45,6 +54,42 @@ router = APIRouter(prefix="/media", tags=["media"])
 @router.get("")
 def list_media_route(db: Session = Depends(get_db_session)):
     return get_media_assets(db)
+
+@router.get("/folders", response_model=list[MediaFolderSchema])
+def list_folders_route(
+    client_slug: str | None = Query(None),
+    project_slug: str | None = Query(None),
+    db: Session = Depends(get_db_session)
+):
+    return get_media_folders(db, client_slug, project_slug)
+
+@router.post("/folders", response_model=MediaFolderSchema)
+def create_folder_route(
+    request: MediaFolderCreate,
+    db: Session = Depends(get_db_session)
+):
+    return create_media_folder(db, request)
+
+@router.put("/folders/{id}", response_model=MediaFolderSchema)
+def update_folder_route(
+    id: str,
+    request: MediaFolderUpdate,
+    db: Session = Depends(get_db_session)
+):
+    updated = update_media_folder(db, id, request)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    return updated
+
+@router.delete("/folders/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_folder_route(
+    id: str,
+    db: Session = Depends(get_db_session)
+):
+    success = delete_media_folder(db, id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    return None
 
 
 @router.post("/presigned-url", response_model=PresignedUrlResponse)
@@ -284,6 +329,41 @@ def rename_media_route(
         
     db.commit()
     return {"status": "ok", "id": id, "title": req.title}
+
+
+@router.put("/{id}/move", status_code=status.HTTP_200_OK)
+def move_media_route(
+    id: str,
+    req: MediaMoveRequest,
+    db: Session = Depends(get_db_session)
+):
+    from app.modules.media.models import MediaAsset
+    asset = db.query(MediaAsset).filter(MediaAsset.id == id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Media asset not found"
+        )
+    asset.folder_id = req.folder_id
+    db.commit()
+    return {"status": "ok", "id": id, "folder_id": req.folder_id}
+
+@router.put("/{id}/publish", status_code=status.HTTP_200_OK)
+def publish_media_route(
+    id: str,
+    req: MediaPublishRequest,
+    db: Session = Depends(get_db_session)
+):
+    from app.modules.media.models import MediaAsset
+    asset = db.query(MediaAsset).filter(MediaAsset.id == id).first()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Media asset not found"
+        )
+    asset.is_published = req.is_published
+    db.commit()
+    return {"status": "ok", "id": id, "is_published": req.is_published}
 
 
 @router.get("/cors-proxy")

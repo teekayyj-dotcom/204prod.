@@ -10,8 +10,8 @@ except ImportError:
     PILImage = None
 
 from app.modules.media.repository import list_media_assets, save_media_asset
-from app.modules.media.schemas import MediaAsset as MediaAssetSchema
-from app.modules.media.models import MediaAsset as DbMediaAsset
+from app.modules.media.schemas import MediaAsset as MediaAssetSchema, MediaFolderCreate, MediaFolderUpdate
+from app.modules.media.models import MediaAsset as DbMediaAsset, MediaFolder as DbMediaFolder
 from app.modules.media.storage import get_storage_provider
 
 
@@ -23,6 +23,52 @@ def get_media_asset_by_id(db: Session, id: str) -> DbMediaAsset | None:
 
 def create_media_asset(db: Session, media_asset: DbMediaAsset):
     return save_media_asset(db, media_asset)
+
+def get_media_folders(db: Session, client_slug: str | None = None, project_slug: str | None = None) -> list[DbMediaFolder]:
+    query = db.query(DbMediaFolder)
+    if client_slug:
+        query = query.filter(DbMediaFolder.client_slug == client_slug)
+    if project_slug:
+        query = query.filter(DbMediaFolder.project_slug == project_slug)
+    return query.all()
+
+def create_media_folder(db: Session, folder: MediaFolderCreate) -> DbMediaFolder:
+    folder_id = str(uuid.uuid4())
+    db_folder = DbMediaFolder(
+        id=folder_id,
+        name=folder.name,
+        client_slug=folder.client_slug,
+        project_slug=folder.project_slug,
+        parent_id=folder.parent_id,
+        is_published=folder.is_published,
+    )
+    db.add(db_folder)
+    db.commit()
+    db.refresh(db_folder)
+    return db_folder
+
+def update_media_folder(db: Session, folder_id: str, folder_update: MediaFolderUpdate) -> DbMediaFolder | None:
+    db_folder = db.query(DbMediaFolder).filter(DbMediaFolder.id == folder_id).first()
+    if not db_folder:
+        return None
+    if folder_update.name is not None:
+        db_folder.name = folder_update.name
+    if folder_update.parent_id is not None:
+        db_folder.parent_id = folder_update.parent_id
+    if folder_update.is_published is not None:
+        db_folder.is_published = folder_update.is_published
+    db.commit()
+    db.refresh(db_folder)
+    return db_folder
+
+def delete_media_folder(db: Session, folder_id: str) -> bool:
+    db_folder = db.query(DbMediaFolder).filter(DbMediaFolder.id == folder_id).first()
+    if not db_folder:
+        return False
+    # Move all assets inside to root (folder_id = None) or delete them? The schema uses ON DELETE SET NULL, so we can just delete the folder.
+    db.delete(db_folder)
+    db.commit()
+    return True
 
 def create_media_asset_from_file(
     db: Session,
@@ -114,6 +160,8 @@ def create_media_asset_from_file(
         client_slug=client_slug,
         project_slug=project_slug,
         folder=folder,
+        folder_id=None,
+        is_published=False
     )
     
     return save_media_asset(db, db_media_asset)
@@ -160,6 +208,8 @@ def finalize_media_asset(
         client_slug=client_slug,
         project_slug=project_slug,
         folder=folder,
+        folder_id=None,
+        is_published=False,
     )
     saved_asset = save_media_asset(db, db_media_asset)
 

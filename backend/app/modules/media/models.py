@@ -1,13 +1,41 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Integer, String, func, ForeignKey
+from sqlalchemy import DateTime, Integer, String, Boolean, func, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.modules.projects.models import Client, Project, ProjectGalleryImage
+
+
+class MediaFolder(Base):
+    __tablename__ = "media_folders"
+    
+    id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    client_slug: Mapped[str | None] = mapped_column(
+        String(120),
+        ForeignKey("clients.slug", ondelete="CASCADE"),
+        nullable=True,
+    )
+    project_slug: Mapped[str | None] = mapped_column(
+        String(160),
+        ForeignKey("projects.slug", ondelete="CASCADE"),
+        nullable=True,
+    )
+    parent_id: Mapped[str | None] = mapped_column(
+        String(160),
+        ForeignKey("media_folders.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
 
 
 class MediaAsset(Base):
@@ -34,7 +62,13 @@ class MediaAsset(Base):
         ForeignKey("projects.slug", ondelete="SET NULL"),
         nullable=True,
     )
-    folder: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    folder: Mapped[str | None] = mapped_column(String(100), nullable=True) # Legacy string folder
+    folder_id: Mapped[str | None] = mapped_column(
+        String(160),
+        ForeignKey("media_folders.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

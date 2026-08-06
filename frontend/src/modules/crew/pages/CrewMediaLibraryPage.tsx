@@ -1,302 +1,273 @@
 import { useState, useEffect } from "react";
-import {
-  Library,
-  Palette,
-  Music2,
-  FileVideo,
-  BookOpen,
-  Search,
-  Download,
-  Eye,
-  ChevronRight,
-  Layers,
-  Headphones,
-  FileText,
-  Image,
-  Type,
-  Zap,
-  Lock,
-} from "lucide-react";
-import { fetchApi } from "../../admin/utils/apiClient";
+import { Search, Grid3X3, List, FileText, Image, Video, Archive, Figma, Download, Eye, Loader2, X, Folder, ChevronRight, Lock } from "lucide-react";
+import { API_BASE_URL, fetchApi } from "../../admin/utils/apiClient";
 
-type Tab = "brand" | "stock" | "guidelines";
+const typeIcons = { document: FileText, image: Image, video: Video, archive: Archive, design: Figma };
+const typeColors = { document: "#6B8FD6", image: "#4CAF50", video: "#E8A838", archive: "#888", design: "#D84040" };
+
+const getImagePreviewUrl = (asset) => {
+    if (asset.kind !== "image" && asset.type !== "image") return asset.url;
+    return `${API_BASE_URL}/media/${asset.id}/proxy?width=420`;
+};
 
 export function CrewMediaLibraryPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("brand");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [mediaAssets, setMediaAssets] = useState<any[]>([]);
+    const [search, setSearch] = useState("");
+    const [typeFilter, setTypeFilter] = useState("All");
+    const [view, setView] = useState("grid");
+    
+    const [assets, setAssets] = useState([]);
+    const [folders, setFolders] = useState([]);
+    const [clients, setClients] = useState([]);
+    const [allProjects, setAllProjects] = useState([]);
+    
+    // Navigation state: array of {id, name, type: 'client'|'project'|'folder'}
+    const [pathStack, setPathStack] = useState([]);
+    
+    const [loading, setLoading] = useState(true);
+    const [previewAsset, setPreviewAsset] = useState<any>(null);
 
-  useEffect(() => {
-    fetchApi<any[]>("/media")
-      .then((data) => setMediaAssets(data))
-      .catch(console.error);
-  }, []);
+    const loadLibraryData = () => {
+        setLoading(true);
+        Promise.all([
+            fetchApi('/media'),
+            fetchApi('/media/folders'),
+            fetchApi('/projects/clients/all'),
+            fetchApi('/projects/all')
+        ]).then(([mediaData, foldersData, clientsData, projectsData]) => {
+            const mapped = mediaData.map(m => ({
+                id: m.id,
+                name: (m.kind === 'video' && m.caption) ? m.caption : (m.url.split('/').pop() || m.id),
+                type: m.kind,
+                clientSlug: m.client_slug,
+                projectSlug: m.project_slug,
+                folderId: m.folder_id,
+                folderStr: m.folder,
+                isPublished: m.is_published,
+                size: m.file_size ? `${(m.file_size / 1024 / 1024).toFixed(1)} MB` : "1.2 MB",
+                uploaded: m.created_at ? new Date(m.created_at).toLocaleDateString() : "2026-05-18",
+                image: m.url,
+                previewImage: (m.kind === 'video' && m.url?.includes('/play_1080p.mp4')) ? m.url.replace('/play_1080p.mp4', '/thumbnail.jpg') : (m.thumbnail_url || getImagePreviewUrl(m))
+            }));
+            setAssets(mapped);
+            setFolders(foldersData);
+            setClients(clientsData);
+            setAllProjects(projectsData);
+            setLoading(false);
+        }).catch(err => {
+            console.error("Failed to load media data:", err);
+            setLoading(false);
+        });
+    };
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "brand", label: "Brand Assets", icon: Palette },
-    { id: "stock", label: "Kho Stock & Templates", icon: Library },
-    { id: "guidelines", label: "Quy trình", icon: BookOpen },
-  ];
+    useEffect(() => { loadLibraryData(); }, []);
 
-  // Map backend assets to frontend tabs based on folder
-  const filterByFolder = (folder: string) => {
-    return mediaAssets.filter(
-      (m) => (m.folder || "").toLowerCase() === folder && m.caption?.toLowerCase().includes(searchQuery.toLowerCase())
+    const getCurrentContext = () => {
+        let clientSlug = null;
+        let projectSlug = null;
+        let parentId = null;
+        
+        if (pathStack.length > 0) {
+            const first = pathStack[0];
+            if (first.type === 'client') clientSlug = first.id;
+            
+            if (pathStack.length > 1) {
+                const second = pathStack[1];
+                if (second.type === 'project') projectSlug = second.id;
+            }
+            
+            const last = pathStack[pathStack.length - 1];
+            if (last.type === 'folder') parentId = last.id;
+        }
+        return { clientSlug, projectSlug, parentId };
+    };
+
+    let foldersToRender = [];
+    let filesToRender = [];
+    const { clientSlug, projectSlug, parentId } = getCurrentContext();
+
+    if (search.trim()) {
+        filesToRender = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) && (typeFilter === "All" || a.type === typeFilter));
+        foldersToRender = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
+    } else {
+        if (pathStack.length === 0) {
+            foldersToRender = [
+                ...clients.map(c => ({ id: c.slug, name: c.name, type: "client" })),
+                ...folders.filter(f => !f.client_slug && !f.project_slug && !f.parent_id).map(f => ({ ...f, type: 'folder' }))
+            ];
+            filesToRender = assets.filter(a => !a.clientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
+        } else if (pathStack.length === 1 && pathStack[0].type === 'client') {
+            const projList = allProjects.filter(p => p.client_slug === clientSlug);
+            foldersToRender = [
+                ...projList.map(p => ({ id: p.slug, name: p.title, type: "project" })),
+                ...folders.filter(f => f.client_slug === clientSlug && !f.project_slug && !f.parent_id).map(f => ({ ...f, type: 'folder' }))
+            ];
+            filesToRender = assets.filter(a => a.clientSlug === clientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
+        } else {
+            foldersToRender = folders.filter(f => f.client_slug === clientSlug && f.project_slug === projectSlug && f.parent_id === parentId).map(f => ({ ...f, type: 'folder' }));
+            filesToRender = assets.filter(a => {
+                if (parentId) return a.folderId === parentId;
+                return a.clientSlug === clientSlug && a.projectSlug === projectSlug && !a.folderId && !a.folderStr;
+            });
+        }
+        
+        if (typeFilter !== "All") filesToRender = filesToRender.filter(a => a.type === typeFilter);
+    }
+
+    const getFileCount = (folderId) => {
+        return assets.filter(a => a.folderId === folderId).length;
+    };
+
+    return (
+        <div className="px-8 py-7 min-h-screen">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>Thư viện Tài nguyên</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Lock size={12} style={{ color: "#777" }} />
+                        <p style={{ color: "#777", fontSize: "13px" }}>Read-only — Liên hệ Admin để cập nhật file/thư mục</p>
+                    </div>
+                </div>
+            </div>
+
+            {!search.trim() && (
+                <div className="flex items-center gap-2 mb-6 px-4 py-2.5 rounded-lg border border-[#2E2020]/60 bg-[#1D1616]/30 text-xs text-gray-400 font-medium overflow-x-auto">
+                    <button onClick={() => setPathStack([])} className="hover:text-white transition-colors">Tất cả tệp (Root)</button>
+                    {pathStack.map((pathItem, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <ChevronRight size={12} className="text-gray-600" />
+                            <button onClick={() => setPathStack(pathStack.slice(0, index + 1))} className="hover:text-white transition-colors font-semibold truncate max-w-[180px]">
+                                {pathItem.name}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <div className="rounded-xl px-5 py-4 mb-6 flex items-center gap-4" style={{ background: "rgba(36, 28, 28, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)", backdropFilter: "blur(8px)" }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg flex-1" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.6)" }}>
+                    <Search size={14} color="#666"/>
+                    <input placeholder="Search files globally..." value={search} onChange={(e) => setSearch(e.target.value)} className="outline-none bg-transparent flex-1" style={{ color: "#EEEEEE", fontSize: "13px" }}/>
+                </div>
+                <div className="flex gap-1">
+                    {["All", "image", "video", "document", "design"].map(type => (
+                        <button key={type} onClick={() => setTypeFilter(type)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${typeFilter === type ? 'bg-[#D84040] text-white' : 'bg-[#1D1616] text-gray-400 hover:text-white'}`}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {!search.trim() && foldersToRender.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                    {foldersToRender.map((folder) => (
+                        <div 
+                            key={folder.id} 
+                            onClick={() => setPathStack(prev => [...prev, { id: folder.id, name: folder.name, type: folder.type }])}
+                            className="rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all border border-[#2E2020] bg-[#1D1616]/40 hover:border-[#D84040]/70 group"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#D84040]/10 text-[#D84040]">
+                                    <Folder size={20} fill="rgba(216,64,64,0.2)" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }} className="truncate">
+                                        {folder.name}
+                                    </p>
+                                    <p style={{ color: "#777", fontSize: "11px" }}>
+                                        {folder.type === 'folder' ? `${getFileCount(folder.id)} tệp` : folder.type === 'client' ? 'Khách hàng' : 'Dự án'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {filesToRender.length > 0 && !search.trim() && (
+                <h3 className="text-sm tracking-wider text-gray-400 font-bold mb-4 flex items-center gap-2">
+                    <FileText size={16}/> CÁC TỆP TIN
+                </h3>
+            )}
+
+            {filesToRender.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {filesToRender.map((asset) => {
+                        const IconComp = typeIcons[asset.type] || FileText;
+                        return (
+                            <div 
+                                key={asset.id} 
+                                className="rounded-xl overflow-hidden group cursor-pointer flex flex-col" 
+                                style={{ background: "rgba(36, 28, 28, 0.6)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
+                                onClick={() => setPreviewAsset(asset)}
+                            >
+                                <div className="relative w-full pt-[75%] overflow-hidden bg-[#1D1616]">
+                                    {asset.type === "video" || asset.type === "image" ? (
+                                        <div className="absolute inset-0 w-full h-full">
+                                            <img src={asset.previewImage || asset.image} alt={asset.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            {asset.type === "video" && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                                                    <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center backdrop-blur-sm">
+                                                        <Video size={16} color="#fff" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2" style={{ background: `${typeColors[asset.type]}10` }}>
+                                            <IconComp size={48} color={typeColors[asset.type]}/>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-3 flex items-start justify-between gap-2 border-t border-[#2E2020]">
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <IconComp size={14} color={typeColors[asset.type]} className="flex-shrink-0 mt-0.5" />
+                                        <div className="min-w-0">
+                                            <p className="truncate" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>{asset.name}</p>
+                                            <p style={{ color: "#777", fontSize: "11px" }}>{asset.size}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {filesToRender.length === 0 && foldersToRender.length === 0 && !loading && (
+                <div className="text-center py-32 rounded-xl border border-dashed border-[#2E2020] bg-[#1D1616]/30">
+                    <Folder size={48} color="#4A3A3A" className="mx-auto mb-4"/>
+                    <p style={{ color: "#EEEEEE", fontSize: "16px", fontWeight: 600 }}>Thư mục trống</p>
+                </div>
+            )}
+
+            {previewAsset && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }} onClick={() => setPreviewAsset(null)}>
+                    <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => setPreviewAsset(null)} className="absolute -top-12 right-0 p-2 rounded-full hover:bg-white/10 transition-colors text-white">
+                            <X size={24} />
+                        </button>
+                        {previewAsset.type === "image" ? (
+                            <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
+                        ) : previewAsset.type === "video" ? (
+                            <div className="w-full h-full min-w-[60vw] min-h-[60vh] relative bg-black rounded-lg overflow-hidden shadow-2xl">
+                                {previewAsset.image?.includes("iframe.mediadelivery.net") ? (
+                                    <iframe src={previewAsset.image} className="absolute inset-0 w-full h-full" allowFullScreen={true} />
+                                ) : (
+                                    <video src={previewAsset.image} controls autoPlay className="absolute inset-0 w-full h-full object-contain" />
+                                )}
+                            </div>
+                        ) : (
+                            <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1D1616] border border-[#2E2020]">
+                                <FileText size={64} style={{ color: typeColors[previewAsset.type] || "#888" }} />
+                                <p className="text-white text-sm text-center px-4 truncate w-full">{previewAsset.name}</p>
+                                <button onClick={() => window.open(previewAsset.image, '_blank')} className="px-4 py-2 rounded-lg bg-[#D84040] text-white text-sm flex items-center gap-2">
+                                    <Download size={14} /> Tải xuống
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
     );
-  };
-
-  const brandItems = filterByFolder("brand");
-  const stockItems = filterByFolder("stock");
-  const guidelinesItems = filterByFolder("guidelines");
-
-  const getExt = (url: string) => {
-    if (!url) return "FILE";
-    const parts = url.split(".");
-    return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : "FILE";
-  };
-
-  const formatSize = (bytes: number) => {
-    if (!bytes) return "";
-    const mb = bytes / (1024 * 1024);
-    if (mb >= 1000) return (mb / 1024).toFixed(2) + " GB";
-    if (mb >= 1) return mb.toFixed(1) + " MB";
-    return Math.round(bytes / 1024) + " KB";
-  };
-
-  return (
-    <div className="px-8 py-7">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 style={{ color: "#EEEEEE", fontSize: "24px", fontWeight: 700 }}>
-            Thư viện Tài nguyên
-          </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Lock size={11} style={{ color: "#555" }} />
-            <p style={{ color: "#555", fontSize: "13px" }}>
-              Read-only — Chỉ xem · Liên hệ Admin để upload tài nguyên mới
-            </p>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg"
-          style={{ background: "#1D1616", border: "1px solid #2A1F1F", width: "220px" }}
-        >
-          <Search size={14} style={{ color: "#555" }} />
-          <input
-            placeholder="Tìm kiếm tài nguyên..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent outline-none flex-1"
-            style={{ color: "#EEEEEE", fontSize: "12px" }}
-          />
-        </div>
-      </div>
-
-      {/* Tab switcher */}
-      <div
-        className="flex gap-1 p-1 mb-6 w-fit rounded-xl"
-        style={{ background: "#141010", border: "1px solid #2A1F1F" }}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
-            style={{
-              background: activeTab === tab.id ? "#D84040" : "transparent",
-              color: activeTab === tab.id ? "#EEEEEE" : "#666",
-              fontSize: "13px",
-              fontWeight: activeTab === tab.id ? 600 : 400,
-            }}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab: Brand Assets */}
-      {activeTab === "brand" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-4 gap-3">
-            {brandItems.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-xl overflow-hidden transition-all duration-200"
-                style={{ border: "1px solid #2A1F1F" }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A1F1F")}
-              >
-                <div
-                  className="h-16 flex items-center justify-center bg-[#2A1F1F]"
-                >
-                  {item.thumbnail_url || item.url ? (
-                    <img src={item.thumbnail_url || item.url} alt={item.caption} className="w-full h-full object-cover opacity-50" />
-                  ) : (
-                    <Image size={20} style={{ color: "rgba(255,255,255,0.2)" }} />
-                  )}
-                </div>
-                <div className="px-3 py-2.5" style={{ background: "#141010" }}>
-                  <p style={{ color: "#EEEEEE", fontSize: "11px", fontWeight: 500, lineHeight: 1.3 }} className="truncate">
-                    {item.caption || "Untitled"}
-                  </p>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <span
-                      className="px-1.5 py-0.5 rounded uppercase"
-                      style={{ background: "#1D1616", color: "#666", fontSize: "9px", fontWeight: 700 }}
-                    >
-                      {getExt(item.url)}
-                    </span>
-                    <span style={{ color: "#444", fontSize: "9px" }}>{formatSize(item.file_size)}</span>
-                  </div>
-                  <div className="flex gap-1.5 mt-2">
-                    <button
-                      className="flex-1 py-1 rounded-lg flex items-center justify-center gap-1 transition-all"
-                      style={{ background: "#1D1616", border: "1px solid #2A1F1F", color: "#888", fontSize: "10px" }}
-                      onClick={() => window.open(item.url, "_blank")}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = "#EEEEEE")}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = "#888")}
-                    >
-                      <Eye size={10} /> Xem
-                    </button>
-                    <button
-                      className="flex-1 py-1 rounded-lg flex items-center justify-center gap-1 transition-all"
-                      style={{ background: "#D84040", color: "#EEEEEE", fontSize: "10px" }}
-                      onClick={() => {
-                        const a = document.createElement("a");
-                        a.href = item.url;
-                        a.download = item.caption || "download";
-                        a.click();
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#c03030")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#D84040")}
-                    >
-                      <Download size={10} /> Tải
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {brandItems.length === 0 && (
-            <div className="py-10 text-center text-[#555] text-sm">Chưa có tài nguyên Brand.</div>
-          )}
-        </div>
-      )}
-
-      {/* Tab: Stock & Templates */}
-      {activeTab === "stock" && (
-        <div className="grid grid-cols-3 gap-4">
-          {stockItems.map((asset) => (
-            <div
-              key={asset.id}
-              className="rounded-2xl p-5 transition-all duration-200"
-              style={{ background: "#141010", border: "1px solid #2A1F1F" }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#D84040")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A1F1F")}
-            >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: "rgba(216, 64, 64, 0.1)", border: `1px solid rgba(216, 64, 64, 0.2)` }}
-              >
-                <Layers size={22} style={{ color: "#D84040" }} />
-              </div>
-              <p style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }} className="truncate">
-                {asset.caption || "Untitled"}
-              </p>
-              <div className="flex items-center gap-2 mb-4">
-                <span
-                  className="px-2 py-0.5 rounded-full"
-                  style={{
-                    background: "rgba(216, 64, 64, 0.1)",
-                    border: `1px solid rgba(216, 64, 64, 0.2)`,
-                    color: "#D84040",
-                    fontSize: "9px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {getExt(asset.url)}
-                </span>
-                <span style={{ color: "#555", fontSize: "10px" }}>{formatSize(asset.file_size)}</span>
-              </div>
-              <button
-                className="w-full py-2 rounded-xl flex items-center justify-center gap-2 transition-all"
-                style={{
-                  background: "#1D1616",
-                  border: "1px solid #2A1F1F",
-                  color: "#888",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                }}
-                onClick={() => {
-                  const a = document.createElement("a");
-                  a.href = asset.url;
-                  a.download = asset.caption || "download";
-                  a.click();
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(216, 64, 64, 0.1)";
-                  e.currentTarget.style.borderColor = "rgba(216, 64, 64, 0.2)";
-                  e.currentTarget.style.color = "#D84040";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#1D1616";
-                  e.currentTarget.style.borderColor = "#2A1F1F";
-                  e.currentTarget.style.color = "#888";
-                }}
-              >
-                <Download size={13} /> Tải xuống
-              </button>
-            </div>
-          ))}
-          {stockItems.length === 0 && (
-            <div className="col-span-3 py-10 text-center text-[#555] text-sm">Chưa có tài nguyên Stock & Templates.</div>
-          )}
-        </div>
-      )}
-
-      {/* Tab: Guidelines */}
-      {activeTab === "guidelines" && (
-        <div className="grid grid-cols-2 gap-5">
-          {guidelinesItems.map((guide) => (
-            <div
-              key={guide.id}
-              className="rounded-2xl p-6 cursor-pointer transition-all duration-200 group"
-              style={{ background: "#141010", border: "1px solid #2A1F1F" }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#8B5CF6")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2A1F1F")}
-              onClick={() => window.open(guide.url, "_blank")}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(139, 92, 246, 0.1)", border: `1px solid rgba(139, 92, 246, 0.2)` }}
-                >
-                  <FileText size={20} style={{ color: "#8B5CF6" }} />
-                </div>
-                <ChevronRight
-                  size={16}
-                  style={{ color: "#333", transition: "color 0.2s" }}
-                  className="group-hover:text-[#888]"
-                />
-              </div>
-              <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 700, marginBottom: "8px" }}>
-                {guide.caption || "Tài liệu"}
-              </h3>
-              <p style={{ color: "#444", fontSize: "10px", marginTop: "12px" }}>
-                Cập nhật: {new Date(guide.created_at || Date.now()).toLocaleDateString("vi-VN")}
-              </p>
-            </div>
-          ))}
-          {guidelinesItems.length === 0 && (
-            <div className="col-span-2 py-10 text-center text-[#555] text-sm">Chưa có tài liệu Guidelines.</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
