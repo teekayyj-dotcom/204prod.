@@ -29,7 +29,8 @@ def evaluate_attendance_lifecycle(db: Session, now_dt: datetime.datetime | None 
     5. 15m post-OT auto-checkout (at 4h15m)
     """
     if now_dt is None:
-        now_dt = datetime.datetime.now()
+        # Use Vietnam Time (UTC+7)
+        now_dt = datetime.datetime.utcnow() + datetime.timedelta(hours=7)
 
     date_str = now_dt.strftime("%Y-%m-%d")
     now_min = now_dt.hour * 60 + now_dt.minute

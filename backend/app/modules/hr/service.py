@@ -409,7 +409,9 @@ def execute_auto_checkout(db: Session, employee_name: str, shift_name: str, is_o
     
     resolved_name, _ = resolve_employee_name_and_mode(db, employee_name)
     aliases = get_user_identifiers(db, resolved_name)
-    now_dt = datetime.datetime.now()
+    
+    # Use Vietnam Time (UTC+7)
+    now_dt = datetime.datetime.utcnow() + datetime.timedelta(hours=7)
     date_str = now_dt.strftime("%Y-%m-%d")
     time_str = now_dt.strftime("%H:%M")
     
@@ -536,17 +538,13 @@ def create_attendance_record(db: Session, employee_name: str, avatar: str, actio
                         matched_shift = s
                         break
                 
-                # Check if all registered shifts have already been completed today
-                completed_checkouts = [l for l in today_logs if l.action == "check-out"]
-                has_completed_shifts = len(completed_checkouts) >= len(registered_shifts)
-
-                if matched_shift and not has_completed_shifts:
+                if matched_shift:
                     if action_min <= matched_shift["start_min"]:
                         resolved_status = "on-time"
                     else:
                         resolved_status = "late"
                 else:
-                    # Outside shift or additional check-in after finishing registered shifts -> OT Shift (4h)
+                    # Outside shift -> OT Shift (4h)
                     resolved_status = "ot"
                     if not note:
                         note = "OT (Ca 4h)"
