@@ -144,7 +144,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
 
     if (search.trim()) {
         filesToRender = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) && (typeFilter === "All" || a.type === typeFilter));
-        foldersToRender = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
+        foldersToRender = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase())).map(f => ({ ...f, type: 'folder' }));
     } else {
         if (pathStack.length === 0 && !isComponent) {
             // Global Root
@@ -163,7 +163,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
             filesToRender = assets.filter(a => a.clientSlug === ctxClientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
         } else {
             // Inside a Project or Folder (or Component Mode Root)
-            foldersToRender = folders.filter(f => f.parent_id === ctxParentId);
+            foldersToRender = folders.filter(f => f.parent_id === ctxParentId).map(f => ({ ...f, type: 'folder' }));
             
             filesToRender = assets.filter(a => a.folderId === ctxParentId &&
                 (!ctxClientSlug || a.clientSlug === ctxClientSlug) &&

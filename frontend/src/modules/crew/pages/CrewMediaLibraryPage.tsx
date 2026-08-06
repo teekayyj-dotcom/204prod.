@@ -87,7 +87,7 @@ export function CrewMediaLibraryPage() {
 
     if (search.trim()) {
         filesToRender = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) && (typeFilter === "All" || a.type === typeFilter));
-        foldersToRender = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
+        foldersToRender = folders.filter(f => f.name.toLowerCase().includes(search.toLowerCase())).map(f => ({ ...f, type: 'folder' }));
     } else {
         if (pathStack.length === 0) {
             foldersToRender = [
