@@ -28,6 +28,7 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
     from app.modules.projects.models import ProjectCredit, ProjectTask
     credits = db.query(ProjectCredit).filter(ProjectCredit.project_slug == project_slug).all()
     crew_ids = [c.crew_id for c in credits if c.crew_id is not None]
+    crew_names = [c.name.strip() for c in credits if c.crew_id is None and c.name]
 
     # 2. Get all Kanban assignees
     tasks = db.query(ProjectTask).filter(ProjectTask.project_slug == project_slug).all()
@@ -37,11 +38,13 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
             names = [n.strip() for n in t.assignee_name.split(",") if n.strip()]
             assignee_names.extend(names)
     
-    kanban_user_ids = []
-    if assignee_names:
-        assignee_names = list(set(assignee_names))
-        kanban_users = db.query(User).filter(User.display_name.in_(assignee_names), User.active == True).all()
-        kanban_user_ids = [u.id for u in kanban_users]
+    # Combine names from Kanban and Credits
+    all_names_to_resolve = list(set(assignee_names + crew_names))
+    
+    resolved_user_ids = []
+    if all_names_to_resolve:
+        named_users = db.query(User).filter(User.display_name.in_(all_names_to_resolve), User.active == True).all()
+        resolved_user_ids = [u.id for u in named_users]
 
     final_crew_ids = []
     if crew_ids:
@@ -53,7 +56,7 @@ def sync_project_group_chat(db: Session, project_slug: str, project_title: str) 
         final_crew_ids = [u.id for u in crew_users]
 
     # Only include users who are actually assigned to the project (crew or kanban)
-    desired_participant_ids = set(final_crew_ids + kanban_user_ids)
+    desired_participant_ids = set(final_crew_ids + resolved_user_ids)
 
     # 4. Sync participants
     existing_participants = db.query(ConversationParticipant).filter_by(conversation_id=conv.id).all()

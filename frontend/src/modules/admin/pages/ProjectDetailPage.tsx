@@ -2816,11 +2816,14 @@ export function ProjectDetailPage() {
                 dueDate: data.dueDate || null,
                 budget: data.budget || "TBD",
                 credits: assignedCrew.map((c: any) => `${c.role}: ${c.name}`),
-                structured_credits: assignedCrew.map((c: any) => ({
-                    role: c.role,
-                    name: c.name,
-                    crew_id: c.crewId || null
-                })),
+                structured_credits: assignedCrew.map((c: any) => {
+                    const realMember = c.crewId ? dbCrew.find((m: any) => m.id === c.crewId) : dbCrew.find((m: any) => m.name.toLowerCase() === c.name.toLowerCase());
+                    return {
+                        role: c.role,
+                        name: c.name,
+                        crew_id: realMember ? realMember.id : null
+                    };
+                }),
                 gallery_media_ids: finalGalleryMediaIds,
             };
             const updated = await fetchApi(`/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) });
