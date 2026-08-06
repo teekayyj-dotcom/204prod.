@@ -18,36 +18,45 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # Create media_folders table
-    op.create_table(
-        'media_folders',
-        sa.Column('id', sa.String(length=160), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('client_slug', sa.String(length=120), nullable=True),
-        sa.Column('project_slug', sa.String(length=160), nullable=True),
-        sa.Column('parent_id', sa.String(length=160), nullable=True),
-        sa.Column('is_published', sa.Boolean(), nullable=False, server_default='0'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.ForeignKeyConstraint(['client_slug'], ['clients.slug'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['parent_id'], ['media_folders.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['project_slug'], ['projects.slug'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
-    )
+    connection = op.get_bind()
+    from sqlalchemy.engine import reflection
+    inspector = reflection.Inspector.from_engine(connection)
     
-    # Add folder_id and is_published to media_assets
-    op.add_column('media_assets', sa.Column('folder_id', sa.String(length=160), nullable=True))
-    op.add_column('media_assets', sa.Column('is_published', sa.Boolean(), nullable=False, server_default='0'))
+    # Check if media_folders table exists
+    if 'media_folders' not in inspector.get_table_names():
+        # Create media_folders table
+        op.create_table(
+            'media_folders',
+            sa.Column('id', sa.String(length=160), nullable=False),
+            sa.Column('name', sa.String(length=255), nullable=False),
+            sa.Column('client_slug', sa.String(length=120), nullable=True),
+            sa.Column('project_slug', sa.String(length=160), nullable=True),
+            sa.Column('parent_id', sa.String(length=160), nullable=True),
+            sa.Column('is_published', sa.Boolean(), nullable=False, server_default='0'),
+            sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+            sa.ForeignKeyConstraint(['client_slug'], ['clients.slug'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['parent_id'], ['media_folders.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['project_slug'], ['projects.slug'], ondelete='CASCADE'),
+            sa.PrimaryKeyConstraint('id')
+        )
     
-    # Create foreign key for folder_id
-    op.create_foreign_key(
-        'fk_media_assets_folder_id',
-        'media_assets', 'media_folders',
-        ['folder_id'], ['id'],
-        ondelete='SET NULL'
-    )
+    # Check if folder_id column exists in media_assets
+    columns = [c['name'] for c in inspector.get_columns('media_assets')]
+    
+    if 'folder_id' not in columns:
+        op.add_column('media_assets', sa.Column('folder_id', sa.String(length=160), nullable=True))
+        # Create foreign key for folder_id
+        op.create_foreign_key(
+            'fk_media_assets_folder_id',
+            'media_assets', 'media_folders',
+            ['folder_id'], ['id'],
+            ondelete='SET NULL'
+        )
+        
+    if 'is_published' not in columns:
+        op.add_column('media_assets', sa.Column('is_published', sa.Boolean(), nullable=False, server_default='0'))
     
     # Migrate string folders
-    connection = op.get_bind()
     import uuid
     from sqlalchemy.sql import text
     
