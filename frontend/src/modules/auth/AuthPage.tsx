@@ -297,10 +297,10 @@ export function AuthPage() {
                 }
                 alert("Đăng nhập thành công!");
                 const role = response.user.role;
-                if (role === "pending") navigate("/pending");
-                else if (role === "client") navigate("/client");
-                else if (role === "crew" || role === "editor") navigate("/crew-dashboard");
-                else navigate("/admin");
+                if (role === "pending") window.location.href = "/pending";
+                else if (role === "client") window.location.href = "/client";
+                else if (role === "crew" || role === "editor") window.location.href = "/crew-dashboard";
+                else window.location.href = "/admin";
 
             } else if (isRegister) {
                 const userCredential = await createUserWithEmailAndPassword(auth, username, password);
@@ -551,10 +551,10 @@ export function AuthPage() {
                                             }
                                             alert(`${isLogin ? "Đăng nhập" : "Đăng ký"} bằng tài khoản Google thành công!`);
                                             const role = response.user.role;
-                                            if (role === "pending") navigate("/pending");
-                                            else if (role === "client") navigate("/client");
-                                            else if (role === "crew" || role === "editor") navigate("/crew-dashboard");
-                                            else navigate("/admin");
+                                            if (role === "pending") window.location.href = "/pending";
+                                            else if (role === "client") window.location.href = "/client";
+                                            else if (role === "crew" || role === "editor") window.location.href = "/crew-dashboard";
+                                            else window.location.href = "/admin";
                                         } catch (error: any) {
                                             console.error("Google auth error:", error);
                                             // Ignore user closed popup error
