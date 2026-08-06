@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Gauge, Eye, EyeOff, Check, X, Shield, Lock, User, Mail, Loader2 } from "lucide-react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../../shared/config/firebase";
 import { fetchApi } from "../admin/utils/apiClient";
 
@@ -103,46 +103,7 @@ export function AuthPage() {
         const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
         const isApp = /FBAN|FBAV|Instagram|Zalo|Line|Messenger/i.test(ua);
         setIsInAppBrowser(isApp);
-
-        // Handle Google Sign-In redirect result
-        const checkRedirectResult = async () => {
-            try {
-                setLoading(true);
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    const idToken = await result.user.getIdToken();
-                    const response = await fetchApi<{ access_token: string, user: { role: string, username: string, email: string, display_name: string, client_slug?: string } }>("/auth/firebase", {
-                        method: "POST",
-                        body: JSON.stringify({ 
-                            id_token: idToken,
-                            display_name: result.user.displayName,
-                            photo_url: result.user.photoURL
-                        }),
-                    });
-
-                    localStorage.setItem("token", response.access_token);
-                    localStorage.setItem("role", response.user.role);
-                    localStorage.setItem("user", JSON.stringify(response.user));
-                    if (response.user.client_slug) {
-                        localStorage.setItem("client_slug", response.user.client_slug);
-                    }
-                    
-                    const role = response.user.role;
-                    if (role === "pending") navigate("/pending");
-                    else if (role === "client") navigate("/client");
-                    else if (role === "crew" || role === "editor") navigate("/crew-dashboard");
-                    else navigate("/admin");
-                }
-            } catch (error: any) {
-                console.error("Google auth redirect error:", error);
-                alert("Đăng nhập Google thất bại: " + error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        checkRedirectResult();
-    }, [navigate]);
+    }, []);
 
     // Password requirements verification
     const hasUppercase = /[A-Z]/.test(password);
@@ -570,14 +531,39 @@ export function AuthPage() {
                                     onClick={async () => {
                                         try {
                                             setLoading(true);
-                                            await signInWithRedirect(auth, googleProvider);
-                                            // The page will redirect away. The result is handled in useEffect.
+                                            const result = await signInWithPopup(auth, googleProvider);
+                                            const idToken = await result.user.getIdToken();
+                                            
+                                            const response = await fetchApi<{ access_token: string, user: { role: string, username: string, email: string, display_name: string, client_slug?: string } }>("/auth/firebase", {
+                                                method: "POST",
+                                                body: JSON.stringify({ 
+                                                    id_token: idToken,
+                                                    display_name: result.user.displayName,
+                                                    photo_url: result.user.photoURL
+                                                }),
+                                            });
+
+                                            localStorage.setItem("token", response.access_token);
+                                            localStorage.setItem("role", response.user.role);
+                                            localStorage.setItem("user", JSON.stringify(response.user));
+                                            if (response.user.client_slug) {
+                                                localStorage.setItem("client_slug", response.user.client_slug);
+                                            }
+                                            alert(`${isLogin ? "Đăng nhập" : "Đăng ký"} bằng tài khoản Google thành công!`);
+                                            const role = response.user.role;
+                                            if (role === "pending") navigate("/pending");
+                                            else if (role === "client") navigate("/client");
+                                            else if (role === "crew" || role === "editor") navigate("/crew-dashboard");
+                                            else navigate("/admin");
                                         } catch (error: any) {
                                             console.error("Google auth error:", error);
-                                            if (isInAppBrowser) {
-                                                alert("Lỗi đăng nhập Google do bị chặn bởi trình duyệt ứng dụng. Vui lòng chọn 'Mở bằng trình duyệt' (Open in Browser) ở tuỳ chọn góc phải.");
-                                            } else {
-                                                alert(error.message || "Đăng nhập Google thất bại.");
+                                            // Ignore user closed popup error
+                                            if (error.code !== 'auth/popup-closed-by-user') {
+                                                if (isInAppBrowser) {
+                                                    alert("Lỗi đăng nhập Google do bị chặn bởi trình duyệt ứng dụng. Vui lòng chọn 'Mở bằng trình duyệt' (Open in Browser) ở tuỳ chọn góc phải.");
+                                                } else {
+                                                    alert(error.message || "Đăng nhập Google thất bại.");
+                                                }
                                             }
                                         } finally {
                                             setLoading(false);
