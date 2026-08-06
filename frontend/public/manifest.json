@@ -1,7 +1,6 @@
 {
   "name": "204PROD.",
   "short_name": "204PROD",
-  "start_url": ".",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0A0707",
