@@ -21,10 +21,17 @@ export function CrewMediaLibraryPage() {
     const [allProjects, setAllProjects] = useState([]);
     
     // Navigation state: array of {id, name, type: 'client'|'project'|'folder'}
-    const [pathStack, setPathStack] = useState([]);
+    const [pathStack, setPathStack] = useState<any[]>([]);
     
     const [loading, setLoading] = useState(true);
     const [previewAsset, setPreviewAsset] = useState<any>(null);
+    const [dragTarget, setDragTarget] = useState<string | null>(null);
+    const [draggedItem, setDraggedItem] = useState<any>(null);
+
+    const handleDropMove = async (item: any, targetFolderId: string | null) => {
+        // Handle logic here or mock it for now to prevent crashes
+        console.log("Moved item", item.id, "to", targetFolderId);
+    };
 
     const loadLibraryData = () => {
         setLoading(true);
