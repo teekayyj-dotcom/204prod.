@@ -4,6 +4,7 @@ self.addEventListener('push', function(event) {
   const body = data.body || "Bạn có tin báo mới";
   const icon = data.icon || "/favicon/icon.png";
   const url = data.url || "/";
+  const tag = data.tag || url;
 
   event.waitUntil(
     self.registration.showNotification(title, {
@@ -11,7 +12,9 @@ self.addEventListener('push', function(event) {
       icon: icon,
       data: { url: url },
       badge: "/favicon/icon.png",
-      vibrate: [200, 100, 200]
+      vibrate: [200, 100, 200],
+      tag: tag,
+      renotify: true
     })
   );
 });
