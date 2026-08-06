@@ -1650,6 +1650,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
                         {tab.label}
                     </button>
                 ))}
+            </div>
             {/* Media Drive UI */}
             {mediaView === "grid" && (
                 <div style={{ marginTop: "-15px" }}>
@@ -1658,7 +1659,7 @@ function MediaAdminTab({ project, feedbacks, setFeedbacks, setProject }: { proje
             )}
 
             {/* Old Media Grid UI Removed - Using Drive Mode Component Instead */}
-            ) : mediaView === "feedback" ? (
+            {mediaView === "feedback" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {formattedFeedbacks.map(fb => (
                         <div key={fb.id} style={{ borderRadius: "10px", padding: "12px 14px", background: fb.resolved ? "rgba(29,22,22,0.3)" : "rgba(232,168,56,0.06)", border: `1px solid ${fb.resolved ? "rgba(46,32,32,0.4)" : "rgba(232,168,56,0.25)"}`, backdropFilter: "blur(8px)", opacity: fb.resolved ? 0.6 : 1, transition: "all 0.2s" }}>

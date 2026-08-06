@@ -140,7 +140,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
     // Derived view data
     let foldersToRender = [];
     let filesToRender = [];
-    const { clientSlug, projectSlug, parentId } = getCurrentContext();
+    const { clientSlug: ctxClientSlug, projectSlug: ctxProjectSlug, parentId: ctxParentId } = getCurrentContext();
 
     if (search.trim()) {
         filesToRender = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) && (typeFilter === "All" || a.type === typeFilter));
@@ -155,21 +155,21 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
             filesToRender = assets.filter(a => !a.clientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
         } else if (pathStack.length === 1 && pathStack[0].type === 'client') {
             // Client Root
-            const projList = allProjects.filter(p => p.client_slug === clientSlug);
+            const projList = allProjects.filter(p => p.client_slug === ctxClientSlug);
             foldersToRender = [
                 ...projList.map(p => ({ id: p.slug, name: p.title, type: "project" })),
-                ...folders.filter(f => f.client_slug === clientSlug && !f.project_slug && !f.parent_id).map(f => ({ ...f, type: 'folder' }))
+                ...folders.filter(f => f.client_slug === ctxClientSlug && !f.project_slug && !f.parent_id).map(f => ({ ...f, type: 'folder' }))
             ];
-            filesToRender = assets.filter(a => a.clientSlug === clientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
+            filesToRender = assets.filter(a => a.clientSlug === ctxClientSlug && !a.projectSlug && !a.folderId && !a.folderStr);
         } else {
             // Inside a Project or Folder
-            foldersToRender = folders.filter(f => f.client_slug === clientSlug && f.project_slug === projectSlug && f.parent_id === parentId).map(f => ({ ...f, type: 'folder' }));
+            foldersToRender = folders.filter(f => f.parent_id === ctxParentId);
             
-            filesToRender = assets.filter(a => {
-                if (parentId) return a.folderId === parentId;
-                // If in project root, show files with no folder
-                return a.clientSlug === clientSlug && a.projectSlug === projectSlug && !a.folderId && !a.folderStr;
-            });
+            filesToRender = assets.filter(a => a.folderId === ctxParentId &&
+                (!ctxClientSlug || a.clientSlug === ctxClientSlug) &&
+                (!ctxProjectSlug || a.projectSlug === ctxProjectSlug) &&
+                (typeFilter === "All" || a.type === typeFilter)
+            );
         }
         
         if (typeFilter !== "All") filesToRender = filesToRender.filter(a => a.type === typeFilter);
