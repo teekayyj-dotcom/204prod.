@@ -50,6 +50,7 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
           });
         });
         
+        alert(`Bị đăng xuất do lỗi xác thực từ máy chủ (HTTP ${response.status}): ` + errorDetail);
         window.location.href = '/login';
       }
     }
