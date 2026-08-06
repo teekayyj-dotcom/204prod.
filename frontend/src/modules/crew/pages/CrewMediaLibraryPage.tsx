@@ -62,23 +62,17 @@ export function CrewMediaLibraryPage() {
     useEffect(() => { loadLibraryData(); }, []);
 
     const getCurrentContext = () => {
-        let clientSlug = null;
-        let projectSlug = null;
+        let currentClient = clientSlug || null;
+        let currentProject = projectSlug || null;
         let parentId = null;
         
-        if (pathStack.length > 0) {
-            const first = pathStack[0];
-            if (first.type === 'client') clientSlug = first.id;
-            
-            if (pathStack.length > 1) {
-                const second = pathStack[1];
-                if (second.type === 'project') projectSlug = second.id;
-            }
-            
-            const last = pathStack[pathStack.length - 1];
-            if (last.type === 'folder') parentId = last.id;
-        }
-        return { clientSlug, projectSlug, parentId };
+        pathStack.forEach(item => {
+            if (item.type === 'client') currentClient = item.id;
+            else if (item.type === 'project') currentProject = item.id;
+            else if (item.type === 'folder') parentId = item.id;
+        });
+
+        return { clientSlug: currentClient, projectSlug: currentProject, parentId };
     };
 
     let foldersToRender = [];

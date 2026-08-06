@@ -108,16 +108,16 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
 
     // Helper to get current location context
     const getCurrentContext = () => {
-        let currentClient = clientSlug || "";
-        let currentProject = projectSlug || "";
+        let currentClient = clientSlug || null;
+        let currentProject = projectSlug || null;
         let parentId = null;
         
-        if (pathStack.length > 0) {
-            const last = pathStack[pathStack.length - 1];
-            if (last.type === 'client') currentClient = last.id;
-            else if (last.type === 'project') currentProject = last.id;
-            else if (last.type === 'folder') parentId = last.id;
-        }
+        pathStack.forEach(item => {
+            if (item.type === 'client') currentClient = item.id;
+            else if (item.type === 'project') currentProject = item.id;
+            else if (item.type === 'folder') parentId = item.id;
+        });
+
         return { clientSlug: currentClient, projectSlug: currentProject, parentId };
     };
 
