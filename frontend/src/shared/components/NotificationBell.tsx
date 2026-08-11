@@ -71,12 +71,13 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
         const registerPush = async () => {
             if ('serviceWorker' in navigator && 'PushManager' in window) {
                 try {
-                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    // Register the service worker
+                    await navigator.serviceWorker.register('/sw.js');
                     
-                    // Delay slightly to ensure SW is ready
-                    await navigator.serviceWorker.ready;
+                    // Wait for it to be fully active and ready
+                    const activeRegistration = await navigator.serviceWorker.ready;
                     
-                    const subscription = await registration.pushManager.subscribe({
+                    const subscription = await activeRegistration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: urlB64ToUint8Array("BPXIIYEQ6MU04J9ThChfoj16pRGwXlG8Uotkz-lkWFOKfav0bN6tDbpRQbsD98G_wFuUuO_EPTJ3_lJcjopz-TI")
                     });
