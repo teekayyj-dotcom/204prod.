@@ -1,11 +1,8 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { fetchApi, API_BASE_URL } from "../../../utils/apiClient";
+import { fetchApi, API_BASE_URL } from "../utils/apiClient";
 import { Loader2, FileText, ImageIcon, Video, Archive, Figma, Download, X } from "lucide-react";
-import { Header } from "../../client-site/components/Header";
-import { Footer } from "../../client-site/components/Footer";
-import { Helmet } from "react-helmet";
 
 const typeIcons = { document: FileText, image: ImageIcon, video: Video, archive: Archive, design: Figma };
 
@@ -56,14 +53,18 @@ export function PublicMediaFolderPage() {
         }
     }, [id]);
 
+    useEffect(() => {
+        if (folder) {
+            document.title = `${folder.name} | Shared Media | 204PROD.`;
+        }
+    }, [folder]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#0A0707] text-[#EEEEEE] flex flex-col">
-                <Header />
                 <div className="flex-1 flex justify-center items-center">
                     <Loader2 size={32} className="animate-spin text-[#D84040]" />
                 </div>
-                <Footer />
             </div>
         );
     }
@@ -71,25 +72,19 @@ export function PublicMediaFolderPage() {
     if (error || !folder) {
         return (
             <div className="min-h-screen bg-[#0A0707] text-[#EEEEEE] flex flex-col">
-                <Header />
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                     <Archive size={48} className="text-[#3A2A2A] mb-4" />
                     <h2 className="text-xl font-bold text-white mb-2">Folder Unavailable</h2>
                     <p className="text-[#888]">{error || "The folder you are looking for does not exist."}</p>
                 </div>
-                <Footer />
             </div>
         );
     }
 
     return (
         <div className="min-h-screen bg-[#0A0707] text-[#EEEEEE] flex flex-col">
-            <Helmet>
-                <title>{folder.name} | Shared Media | 204PROD.</title>
-            </Helmet>
-            <Header />
             
-            <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10 pt-28">
+            <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10 pt-10">
                 <div className="mb-10">
                     <h1 className="text-3xl font-bold text-white mb-2">{folder.name}</h1>
                     <p className="text-[#888] text-sm">Shared Media Folder • {assets.length} items</p>
@@ -132,8 +127,6 @@ export function PublicMediaFolderPage() {
                     </div>
                 )}
             </main>
-
-            <Footer />
 
             {/* Preview Modal */}
             {previewAsset && (
