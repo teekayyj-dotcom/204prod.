@@ -429,8 +429,8 @@ export function CrewProjectsPage() {
   const allVideos = selectedProject ? [...(selectedProject.gallery || [])].filter((f: any) => f.type === 'video').reverse() : [];
   const lastDemo = allVideos.length > 0 ? allVideos[0] : null;
   const playbackUrl = lastDemo 
-    ? `/crew-dashboard/projects/${selectedProject?.id}/playback?video=${encodeURIComponent(lastDemo.url)}` 
-    : `/crew-dashboard/projects/${selectedProject?.id}/playback`;
+    ? `/crew-dashboard/projects/${selectedProject?.slug}/playback?video=${encodeURIComponent(lastDemo.url)}` 
+    : `/crew-dashboard/projects/${selectedProject?.slug}/playback`;
 
   const [showBadge, setShowBadge] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);

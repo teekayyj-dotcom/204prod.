@@ -43,7 +43,7 @@ interface ProjectData {
 
 export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName, isGuest }: { guestProjectSlug?: string, guestVideoUrl?: string, guestName?: string, isGuest?: boolean }) {
     const params = useParams<{ id: string }>();
-    const id = isGuest ? guestProjectSlug : params.id;
+    const id = guestProjectSlug || params.id;
     const navigate = useNavigate();
     const location = useLocation();
     const isAdmin = location.pathname.startsWith("/admin");
