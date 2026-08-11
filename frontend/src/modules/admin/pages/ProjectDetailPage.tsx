@@ -2470,7 +2470,7 @@ function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "vide
                 <div className="flex-1 flex justify-center items-center text-[#888] text-sm">Không tìm thấy video nào trong media dự án này. Hãy tải lên ở thư viện Media.</div>
             ) : (
                 <div className="flex-1 flex flex-col min-h-0">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pb-4 flex-1">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pb-4 flex-1 content-start">
                         {mediaList.map((m: any) => {
                             const isSelected = selectedUrls.includes(m.url);
                             return (
