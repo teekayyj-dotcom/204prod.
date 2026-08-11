@@ -230,4 +230,4 @@ export const uploadMediaPipeline = async (
         body: formData,
     });
   }
-
+};
