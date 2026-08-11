@@ -19,14 +19,16 @@ export function PublicMediaFolderPage() {
     const [error, setError] = useState<string | null>(null);
     const [previewAsset, setPreviewAsset] = useState<any>(null);
 
+    const [asset, setAsset] = useState<any>(null);
+
     useEffect(() => {
-        const loadFolderData = async () => {
+        const loadData = async () => {
             try {
+                // Try fetching as a folder first
                 const folderData = await fetchApi(`/media/folders/${id}`);
-                setFolder(folderData);
                 
-                // Only load assets if it's a published folder
                 if (folderData.is_published) {
+                    setFolder(folderData);
                     const assetsData = await fetchApi(`/media?folder_id=${id}`);
                     const mapped = assetsData.map(m => ({
                         id: m.id,
@@ -41,23 +43,45 @@ export function PublicMediaFolderPage() {
                 } else {
                     setError("This folder is not public.");
                 }
-            } catch (err) {
-                setError("Folder not found or you don't have permission.");
+            } catch (folderErr) {
+                // If folder not found, try fetching as a single asset
+                try {
+                    const assetData = await fetchApi(`/media/assets/${id}`);
+                    if (assetData.is_published) {
+                        const mappedAsset = {
+                            id: assetData.id,
+                            name: (assetData.kind === 'video' && assetData.caption) ? assetData.caption : (assetData.url.split('/').pop() || assetData.id),
+                            type: assetData.kind,
+                            size: assetData.file_size ? `${(assetData.file_size / 1024 / 1024).toFixed(1)} MB` : "Unknown",
+                            uploaded: assetData.created_at ? new Date(assetData.created_at).toLocaleDateString() : "",
+                            image: assetData.url,
+                            previewImage: (assetData.kind === 'video' && assetData.url?.includes('/play_1080p.mp4')) ? assetData.url.replace('/play_1080p.mp4', '/thumbnail.jpg') : (assetData.thumbnail_url || getImagePreviewUrl(assetData))
+                        };
+                        setAsset(mappedAsset);
+                        setPreviewAsset(mappedAsset);
+                    } else {
+                        setError("This file is not public.");
+                    }
+                } catch (assetErr) {
+                    setError("Item not found or you don't have permission.");
+                }
             } finally {
                 setLoading(false);
             }
         };
 
         if (id) {
-            loadFolderData();
+            loadData();
         }
     }, [id]);
 
     useEffect(() => {
         if (folder) {
             document.title = `${folder.name} | Shared Media | 204PROD.`;
+        } else if (asset) {
+            document.title = `${asset.name} | Shared Media | 204PROD.`;
         }
-    }, [folder]);
+    }, [folder, asset]);
 
     if (loading) {
         return (
@@ -69,14 +93,68 @@ export function PublicMediaFolderPage() {
         );
     }
 
-    if (error || !folder) {
+    if (error || (!folder && !asset)) {
         return (
             <div className="min-h-screen bg-[#0A0707] text-[#EEEEEE] flex flex-col">
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                     <Archive size={48} className="text-[#3A2A2A] mb-4" />
-                    <h2 className="text-xl font-bold text-white mb-2">Folder Unavailable</h2>
-                    <p className="text-[#888]">{error || "The folder you are looking for does not exist."}</p>
+                    <h2 className="text-xl font-bold text-white mb-2">Item Unavailable</h2>
+                    <p className="text-[#888]">{error || "The item you are looking for does not exist."}</p>
                 </div>
+            </div>
+        );
+    }
+
+    if (asset && !folder) {
+        return (
+            <div className="min-h-screen bg-[#0A0707] text-[#EEEEEE] flex flex-col">
+                <main className="flex-1 w-full mx-auto p-6 md:p-10 flex flex-col items-center justify-center">
+                    <div className="mb-6 text-center">
+                        <h1 className="text-2xl font-bold text-white mb-2">{asset.name}</h1>
+                        <p className="text-[#888] text-sm">Shared File • {asset.size}</p>
+                    </div>
+                    {/* The preview modal will handle the actual rendering since setPreviewAsset(mappedAsset) was called */}
+                </main>
+
+                {/* Preview Modal is rendered outside */}
+                {previewAsset && (
+                    <div className="fixed inset-0 bg-black/95 z-[100] flex flex-col backdrop-blur-sm">
+                        <div className="flex items-center justify-between p-6">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-white font-medium">{previewAsset.name}</h3>
+                                <span className="text-[#888] text-xs px-2 py-0.5 rounded bg-[#1A1A1A] border border-[#2A1F1F] uppercase">{previewAsset.type}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <a href={previewAsset.image} download target="_blank" rel="noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-white transition-colors">
+                                    <Download size={20} />
+                                </a>
+                                <button onClick={() => setPreviewAsset(null)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#D84040]/10 hover:text-[#D84040] text-white transition-colors hidden">
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 flex justify-center items-center p-6 overflow-hidden">
+                            {previewAsset.type === 'image' && (
+                                <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-full object-contain" />
+                            )}
+                            {previewAsset.type === 'video' && (
+                                <video src={previewAsset.image} controls autoPlay className="max-w-full max-h-full outline-none" />
+                            )}
+                            {previewAsset.type !== 'image' && previewAsset.type !== 'video' && (
+                                <div className="flex flex-col items-center">
+                                    <div className="w-24 h-24 rounded-2xl bg-[#1A1A1A] flex items-center justify-center mb-6">
+                                        <FileText size={40} className="text-[#555]" />
+                                    </div>
+                                    <p className="text-white mb-6 font-medium">No preview available for this file type</p>
+                                    <a href={previewAsset.image} target="_blank" rel="noreferrer" className="px-6 py-3 rounded-xl bg-[#D84040] text-white font-bold hover:bg-[#E84040] transition-colors flex items-center gap-2">
+                                        <Download size={18} /> Download File
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }

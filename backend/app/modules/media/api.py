@@ -86,6 +86,16 @@ def get_folder_route(
         raise HTTPException(status_code=404, detail="Folder not found")
     return folder
 
+@router.get("/assets/{id}", response_model=MediaAssetSchema)
+def get_asset_route(
+    id: str,
+    db: Session = Depends(get_db_session)
+):
+    asset = get_media_asset_by_id(db, id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return asset
+
 @router.put("/folders/{id}", response_model=MediaFolderSchema)
 def update_folder_route(
     id: str,
