@@ -33,6 +33,7 @@ from app.modules.media.schemas import (
     MediaFolder as MediaFolderSchema,
     MediaFolderCreate,
     MediaFolderUpdate,
+    MediaAsset as MediaAssetSchema,
     MediaMoveRequest,
     MediaPublishRequest,
 )
