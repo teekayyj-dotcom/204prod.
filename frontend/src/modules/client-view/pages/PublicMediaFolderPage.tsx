@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { fetchApi, API_BASE_URL } from "../utils/apiClient";
 import { Loader2, FileText, ImageIcon, Video, Archive, Figma, Download, X } from "lucide-react";
+import { ClientPlaybackPage } from "./ClientPlaybackPage";
 
 const typeIcons = { document: FileText, image: ImageIcon, video: Video, archive: Archive, design: Figma };
 
@@ -55,6 +56,7 @@ export function PublicMediaFolderPage() {
                             size: assetData.file_size ? `${(assetData.file_size / 1024 / 1024).toFixed(1)} MB` : "Unknown",
                             uploaded: assetData.created_at ? new Date(assetData.created_at).toLocaleDateString() : "",
                             image: assetData.url,
+                            project_slug: assetData.project_slug,
                             previewImage: (assetData.kind === 'video' && assetData.url?.includes('/play_1080p.mp4')) ? assetData.url.replace('/play_1080p.mp4', '/thumbnail.jpg') : (assetData.thumbnail_url || getImagePreviewUrl(assetData))
                         };
                         setAsset(mappedAsset);
@@ -106,6 +108,16 @@ export function PublicMediaFolderPage() {
     }
 
     if (asset && !folder) {
+        if (asset.type === 'video') {
+            return (
+                <ClientPlaybackPage 
+                    guestProjectSlug={asset.project_slug || "media-library-video"}
+                    guestVideoUrl={asset.image}
+                    isGuest={!localStorage.getItem("user")}
+                />
+            );
+        }
+
         return (
             <div className="min-h-screen bg-[#0A0707] text-[#EEEEEE] flex flex-col">
                 <main className="flex-1 w-full mx-auto p-6 md:p-10 flex flex-col items-center justify-center">

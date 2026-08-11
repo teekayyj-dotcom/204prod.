@@ -425,8 +425,9 @@ export function CrewProjectsPage() {
     }
   };
 
-  const deliverables = selectedProject ? [...(selectedProject.gallery || [])].filter((f: any) => f.folder === "demo").reverse() : [];
-  const lastDemo = deliverables.find((f: any) => f.type === 'video');
+  // Allow Cinema Review for any uploaded video in the project, prioritizing the most recent one
+  const allVideos = selectedProject ? [...(selectedProject.gallery || [])].filter((f: any) => f.type === 'video').reverse() : [];
+  const lastDemo = allVideos.length > 0 ? allVideos[0] : null;
   const playbackUrl = lastDemo 
     ? `/crew-dashboard/projects/${selectedProject?.id}/playback?video=${encodeURIComponent(lastDemo.url)}` 
     : `/crew-dashboard/projects/${selectedProject?.id}/playback`;
