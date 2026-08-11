@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { MediaLibraryPage } from "./MediaLibraryPage";
 import { useForm } from "react-hook-form";
@@ -2390,8 +2391,8 @@ function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "vide
         });
     }, [projectSlug]);
 
-    return (
-        <div className="fixed inset-0 bg-black/90 flex flex-col z-[100] p-6">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/90 flex flex-col z-[99999] p-6">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white text-lg font-bold">Chọn Video từ Media dự án</h3>
                 <button type="button" onClick={onClose} className="text-white hover:text-[#D84040]"><X size={24} /></button>
@@ -2415,7 +2416,8 @@ function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "vide
                     ))}
                 </div>
             )}
-        </div>
+        </div>,
+        document.body
     );
 }
 
