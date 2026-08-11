@@ -18,6 +18,28 @@ export interface ActiveAttendanceStatusData {
   note: string | null;
 }
 
+let serverTimeOffset = 0;
+let hasSyncedTime = false;
+
+async function syncServerTimeOffset() {
+  if (hasSyncedTime) return;
+  try {
+    // Try to get Date header from current domain
+    const res = await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
+    const dateHeader = res.headers.get('Date');
+    if (dateHeader) {
+      const serverTime = new Date(dateHeader).getTime();
+      const localTime = Date.now();
+      serverTimeOffset = serverTime - localTime;
+      hasSyncedTime = true;
+    }
+  } catch (e) {
+    console.warn("Could not sync server time", e);
+  }
+}
+
+const getTrueTime = () => Date.now() + serverTimeOffset;
+
 export function useCheckinTimer() {
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(() => {
     return localStorage.getItem("crew_checkin_active") === "true";
@@ -39,6 +61,8 @@ export function useCheckinTimer() {
 
   const syncBackendStatus = useCallback(async () => {
     try {
+      await syncServerTimeOffset();
+
       const uStr = localStorage.getItem("user");
       if (!uStr) return;
       const u = JSON.parse(uStr);
@@ -59,7 +83,7 @@ export function useCheckinTimer() {
 
         if (data.checkin_timestamp) {
           setStartTime(data.checkin_timestamp);
-          setElapsed(Math.max(0, Math.floor((Date.now() - data.checkin_timestamp) / 1000)));
+          setElapsed(Math.max(0, Math.floor((getTrueTime() - data.checkin_timestamp) / 1000)));
           localStorage.setItem("crew_checkin_start", String(data.checkin_timestamp));
         }
         localStorage.setItem("crew_checkin_active", "true");
@@ -96,9 +120,9 @@ export function useCheckinTimer() {
   // Elapsed timer tick
   useEffect(() => {
     if (isCheckedIn && startTime) {
-      setElapsed(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
+      setElapsed(Math.max(0, Math.floor((getTrueTime() - startTime) / 1000)));
       intervalRef.current = setInterval(() => {
-        setElapsed(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
+        setElapsed(Math.max(0, Math.floor((getTrueTime() - startTime) / 1000)));
       }, 1000);
     } else {
       setElapsed(0);
@@ -121,7 +145,9 @@ export function useCheckinTimer() {
         setIsLocating(false);
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        const now = Date.now();
+        
+        await syncServerTimeOffset();
+        const now = getTrueTime();
 
         try {
           const u = JSON.parse(localStorage.getItem("user") || "{}");
@@ -138,8 +164,8 @@ export function useCheckinTimer() {
               employee_name: u.display_name || u.username || "Crew",
               avatar: avatarUrl,
               action: "check-in",
-              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-              date: new Date().toISOString().split("T")[0],
+              time: new Date(now).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+              date: new Date(now).toISOString().split("T")[0],
               status: "on-time",
               note: "Office",
               lat: lat,
@@ -185,6 +211,9 @@ export function useCheckinTimer() {
         setIsLocating(false);
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        
+        await syncServerTimeOffset();
+        const now = getTrueTime();
 
         try {
           const u = JSON.parse(localStorage.getItem("user") || "{}");
@@ -201,8 +230,8 @@ export function useCheckinTimer() {
               employee_name: u.display_name || u.username || "Crew",
               avatar: avatarUrl,
               action: "check-out",
-              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-              date: new Date().toISOString().split("T")[0],
+              time: new Date(now).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+              date: new Date(now).toISOString().split("T")[0],
               status: "on-time",
               lat: lat,
               lng: lng,
@@ -255,6 +284,7 @@ export function useCheckinTimer() {
     isLocating,
     locationError,
     refreshStatus: syncBackendStatus,
+    getTrueTime,
   };
 }
 
@@ -271,6 +301,7 @@ export function CheckinWidget() {
     format,
     isLocating,
     locationError,
+    getTrueTime,
   } = useCheckinTimer();
 
   const isOt = sessionType === "ot";
@@ -354,7 +385,7 @@ export function CheckinWidget() {
               <p style={{ color: "#888", fontSize: "12px" }}>
                 Check-in lúc{" "}
                 <span className="font-semibold text-white">
-                  {new Date(Date.now() - elapsed * 1000).toLocaleTimeString("vi-VN", {
+                  {new Date(getTrueTime() - elapsed * 1000).toLocaleTimeString("vi-VN", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
