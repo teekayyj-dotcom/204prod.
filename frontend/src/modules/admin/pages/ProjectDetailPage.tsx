@@ -3211,9 +3211,14 @@ export function ProjectDetailPage() {
                                         </div>
 
                                         <div>
-                                            <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="flex items-center gap-1.5 mb-2">
-                                                <UploadCloud size={10} color="#D84040"/> Upload Video {videoFormat === "vertical" ? "Files (Ít nhất 3 video)" : "File"}
-                                            </label>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="flex items-center gap-1.5">
+                                                    <UploadCloud size={10} color="#D84040"/> Upload Video {videoFormat === "vertical" ? "Files (Ít nhất 3 video)" : "File"}
+                                                </label>
+                                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMediaSelector(true); }} className="flex items-center gap-1 text-xs text-[#D84040] hover:underline px-2 py-1 bg-[#D84040]/10 rounded-md">
+                                                    <MonitorPlay size={12} /> Chọn từ Media
+                                                </button>
+                                            </div>
                                             {(videoFormat === "horizontal" && !uploadedVideo) || (videoFormat === "vertical" && uploadedVerticalVideos.length === 0) ? (
                                                 <div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} onClick={() => document.getElementById("video-upload-edit")?.click()} className="rounded-xl flex flex-col items-center justify-center py-8 cursor-pointer transition-all select-none" style={{ border: `2px dashed ${dragActive ? "#D84040" : "#3A2A2A"}`, background: dragActive ? "rgba(216,64,64,0.05)" : "rgba(29,22,22,0.4)" }}>
                                                     <input id="video-upload-edit" type="file" accept="video/*" multiple={videoFormat === "vertical"} className="hidden" onChange={(e) => { 
