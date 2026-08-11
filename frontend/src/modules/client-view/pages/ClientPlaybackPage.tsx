@@ -41,7 +41,7 @@ interface ProjectData {
     cover_image?: string;
 }
 
-export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName, isGuest }: { guestProjectSlug?: string, guestVideoUrl?: string, guestName?: string, isGuest?: boolean }) {
+export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName, isGuest, onClose }: { guestProjectSlug?: string, guestVideoUrl?: string, guestName?: string, isGuest?: boolean, onClose?: () => void }) {
     const params = useParams<{ id: string }>();
     const id = guestProjectSlug || params.id;
     const navigate = useNavigate();
@@ -145,9 +145,13 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
             })
             .catch((err) => {
                 console.error("Error loading project data:", err);
+                if (id === "media-library-video" || guestVideoUrl) {
+                    // Provide a mock project to allow viewing the video in Cinema Review
+                    setProject({ title: "Media Library Video", slug: id, video_url: guestVideoUrl || videoUrlParam || "" });
+                }
                 setLoading(false);
             });
-    }, [id, location.search]);
+    }, [id, location.search, guestVideoUrl, isGuest]);
 
     // Handle play/pause — works for both native video and Bunny iframe
     const togglePlay = () => {
@@ -620,7 +624,13 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
                     <div className="flex items-center gap-3">
                         {!isGuest && (
                             <button
-                                onClick={() => navigate(isAdmin ? `/admin/projects/${project.slug}` : `/client/projects/${project.slug}`)}
+                                onClick={() => {
+                                    if (onClose) {
+                                        onClose();
+                                    } else {
+                                        navigate(isAdmin ? `/admin/projects/${project.slug}` : `/client/projects/${project.slug}`);
+                                    }
+                                }}
                                 className="w-9 h-9 rounded-lg flex items-center justify-center bg-[#141010] border border-[#2A1F1F] text-gray-400 hover:text-white"
                             >
                                 <ArrowLeft size={16} />
@@ -733,29 +743,37 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
                                         </button>
                                     </div>
                                     <textarea
+                                        className="w-full bg-[#1A1515] text-[#EEEEEE] rounded p-2 text-xs border border-[#2E2020] outline-none focus:border-[#D84040] placeholder:text-gray-600 transition-colors shadow-inner"
+                                        rows={2}
+                                        placeholder={project.slug === "media-library-video" ? "Tính năng bình luận không khả dụng" : "Nhập chi tiết bình luận cho tọa độ này..."}
                                         value={commentText}
+                                        disabled={project.slug === "media-library-video"}
                                         onChange={(e) => setCommentText(e.target.value)}
-                                        placeholder="Nhập nội dung góp ý tại điểm này..."
-                                        rows={3}
-                                        className="w-full bg-[#1D1616]/30 border border-[#2E2020]/60 rounded p-2 text-xs outline-none text-[#EEEEEE] resize-none focus:border-[#FFC107] backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.01)]"
                                         autoFocus
-                                        required
                                     />
-                                    <div className="flex justify-end gap-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setTempPin(null)}
-                                            className="px-2 py-1 rounded bg-[#2A1F1F] hover:bg-[#3A3A3A] font-semibold text-[10px]"
-                                        >
-                                            Hủy
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={submittingComment}
-                                            className="px-2 py-1 rounded bg-[#D84040] hover:bg-[#c03030] font-semibold text-[10px]"
-                                        >
-                                            {submittingComment ? "Đang gửi..." : "Gửi góp ý"}
-                                        </button>
+                                    <div className="mt-2 flex justify-between items-center text-[10px]">
+                                        <div className="flex gap-2 items-center">
+                                            <span className="font-semibold text-gray-400">Shift</span> + <span className="font-semibold text-gray-400">Enter</span> để xuống dòng
+                                        </div>
+                                        <div className="flex gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setTempPin(null);
+                                                    setCommentText("");
+                                                }}
+                                                className="px-2 py-1 rounded bg-[#1D1616] hover:bg-[#2A1F1F] text-gray-300 transition-colors border border-[#2E2020] font-semibold"
+                                            >
+                                                Hủy
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={project.slug === "media-library-video" || submittingComment}
+                                                className="px-2 py-1 rounded bg-[#D84040] hover:bg-[#c03030] font-semibold text-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {submittingComment ? "Đang gửi..." : "Gửi góp ý"}
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </>
@@ -1086,7 +1104,8 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
                                 type="text"
                                 value={sidebarComment}
                                 onChange={(e) => setSidebarComment(e.target.value)}
-                                placeholder="Ghi chú nhanh tại thời điểm này..."
+                                placeholder={project.slug === "media-library-video" ? "Tính năng bình luận không khả dụng" : "Ghi chú nhanh tại thời điểm này..."}
+                                disabled={project.slug === "media-library-video"}
                                 className="flex-1 bg-[#141010]/40 border border-[#2E2020]/60 rounded px-3 py-2 text-sm outline-none text-[#EEEEEE] focus:border-[#D84040] focus:bg-[#141010]/60 placeholder:text-gray-600 transition-all backdrop-blur-sm"
                                 required
                             />

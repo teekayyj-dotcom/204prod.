@@ -4,6 +4,7 @@ import { Search, Upload, Grid3X3, List, FileText, ImageIcon, Video, Archive, Fig
 import { API_BASE_URL, fetchApi } from "../utils/apiClient";
 import { useNavigate } from "react-router-dom";
 import { ContextMenu, ContextMenuItem } from "../../../shared/components/ContextMenu";
+import { ClientPlaybackPage } from "../../client-view/pages/ClientPlaybackPage";
 
 const typeIcons = { document: FileText, image: ImageIcon, video: Video, archive: Archive, design: Figma };
 const typeColors = { document: "#6B8FD6", image: "#4CAF50", video: "#E8A838", archive: "#888", design: "#D84040" };
@@ -837,12 +838,13 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                         {previewAsset.type === "image" ? (
                             <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
                         ) : previewAsset.type === "video" ? (
-                            <div className="w-full h-full min-w-[60vw] min-h-[60vh] relative bg-black rounded-lg overflow-hidden shadow-2xl">
-                                {previewAsset.image?.includes("iframe.mediadelivery.net") ? (
-                                    <iframe src={previewAsset.image} className="absolute inset-0 w-full h-full" allowFullScreen={true} />
-                                ) : (
-                                    <video src={previewAsset.image} controls autoPlay className="absolute inset-0 w-full h-full object-contain" />
-                                )}
+                            <div className="fixed inset-0 z-[100] bg-black">
+                                <ClientPlaybackPage
+                                    guestProjectSlug={previewAsset.project_slug || previewAsset.projectSlug || getCurrentContext().projectSlug || "media-library-video"}
+                                    guestVideoUrl={previewAsset.image}
+                                    isGuest={false}
+                                    onClose={() => setPreviewAsset(null)}
+                                />
                             </div>
                         ) : (
                             <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1D1616] border border-[#2E2020]">
