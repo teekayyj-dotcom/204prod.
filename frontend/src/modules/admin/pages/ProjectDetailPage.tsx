@@ -2065,6 +2065,7 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
     const [showMenu, setShowMenu] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showMediaSelector, setShowMediaSelector] = useState(false);
 
     let displayUrl = url;
     const bunnyDirectMatch = url.match(/https:\/\/[^\/]+\/([a-zA-Z0-9-]+)\/play_1080p\.mp4/);
@@ -2137,6 +2138,30 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
         }
     };
 
+    const handleSelectMediaVideo = async (selectedUrl: string) => {
+        setIsProcessing(true);
+        setShowMediaSelector(false);
+        try {
+            let currentUrls = (project?.video_url || project?.videoUrl || "").split(",").filter(Boolean);
+            const idx = currentUrls.indexOf(url);
+            if (idx !== -1) {
+                currentUrls[idx] = selectedUrl;
+            } else {
+                currentUrls.push(selectedUrl);
+            }
+            const newUrlsStr = currentUrls.join(",");
+            const updatedProject = await fetchApi(`/projects/${project.slug}`, {
+                method: "PUT",
+                body: JSON.stringify({ ...project, video_url: newUrlsStr })
+            });
+            if (setProject) setProject(updatedProject);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     return (
         <div className="relative rounded-xl overflow-hidden group bg-black flex-1" style={{ border: "1px solid #2E2020", aspectRatio: "3/2", minHeight: "200px" }}>
             {embedUrl ? (
@@ -2165,6 +2190,12 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
                         <input type="file" accept="video/*" hidden onChange={handleChangeVideo} />
                     </label>
                     <button 
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); setShowMediaSelector(true); }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#EEEEEE] hover:bg-[#2A1F1F] cursor-pointer text-left"
+                    >
+                        <MonitorPlay size={14} /> Chọn từ Media
+                    </button>
+                    <button 
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); setShowDeleteModal(true); }}
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[#D84040] hover:bg-[#2A1F1F] cursor-pointer text-left"
                     >
@@ -2189,6 +2220,14 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
                         <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(); }} className="px-4 py-1.5 rounded-lg bg-[#D84040] hover:bg-red-600 text-white text-sm font-medium transition-colors">Delete</button>
                     </div>
                 </div>
+            )}
+            
+            {showMediaSelector && (
+                <MediaSelectorModal 
+                    projectSlug={project?.slug} 
+                    onClose={() => setShowMediaSelector(false)} 
+                    onSelect={handleSelectMediaVideo} 
+                />
             )}
         </div>
     );
@@ -2337,6 +2376,49 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
     );
 }
 
+function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "video" }: { projectSlug: string; onClose: () => void; onSelect: (url: string) => void; acceptKind?: string }) {
+    const [mediaList, setMediaList] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchApi(`/media?project_slug=${projectSlug}`).then(data => {
+            setMediaList(data.filter((m: any) => m.kind === acceptKind || (m.type && m.type.startsWith(acceptKind))));
+            setLoading(false);
+        }).catch(err => {
+            console.error(err);
+            setLoading(false);
+        });
+    }, [projectSlug]);
+
+    return (
+        <div className="fixed inset-0 bg-black/90 flex flex-col z-[100] p-6">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white text-lg font-bold">Chọn Video từ Media dự án</h3>
+                <button type="button" onClick={onClose} className="text-white hover:text-[#D84040]"><X size={24} /></button>
+            </div>
+            {loading ? (
+                <div className="flex-1 flex justify-center items-center text-[#D84040]"><Loader2 size={32} className="animate-spin" /></div>
+            ) : mediaList.length === 0 ? (
+                <div className="flex-1 flex justify-center items-center text-[#888] text-sm">Không tìm thấy video nào trong media dự án này. Hãy tải lên ở thư viện Media.</div>
+            ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pb-10">
+                    {mediaList.map((m: any) => (
+                        <div key={m.id} onClick={() => onSelect(m.url)} className="relative group cursor-pointer rounded-lg overflow-hidden border border-[#3A2A2A] hover:border-[#D84040]">
+                            <video src={m.url} className="w-full aspect-video object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                <span className="bg-[#D84040] text-white px-3 py-1 rounded text-sm font-bold">Chọn Video</span>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                                <p className="text-white text-xs truncate">{m.name || m.file_name || "Video"}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function ProjectDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -2476,6 +2558,7 @@ export function ProjectDetailPage() {
     const [videoFormat, setVideoFormat] = useState<"horizontal" | "vertical">("horizontal");
     const [thumbnailPreview, setThumbnailPreview] = useState(null);
     const [thumbnailFile, setThumbnailFile] = useState(null);
+    const [showMediaSelector, setShowMediaSelector] = useState(false);
 
     const handleDrag = (e) => {
         e.preventDefault(); e.stopPropagation();
@@ -2491,6 +2574,22 @@ export function ProjectDetailPage() {
             const files = Array.from(e.dataTransfer.files || []).filter((f: any) => f.type.startsWith("video/"));
             setUploadedVerticalVideos(prev => [...prev, ...files]);
         }
+    };
+
+    const handleSelectMediaVideo = (url: string) => {
+        setValue("videoUrl", url);
+        setUploadedVideo(null);
+        setUploadedVerticalVideos([]);
+        
+        let currentUrls = (project?.video_url || project?.videoUrl || "").split(",").filter(Boolean);
+        if (videoFormat === "horizontal") {
+            currentUrls = [url];
+        } else {
+            currentUrls.push(url);
+        }
+        
+        setProject(prev => ({ ...prev, video_url: currentUrls.join(","), videoUrl: currentUrls.join(",") }));
+        setShowMediaSelector(false);
     };
 
     const watched = watch();
@@ -3499,6 +3598,14 @@ export function ProjectDetailPage() {
                             setValue("client", newClient.slug, { shouldValidate: true, shouldDirty: true });
                         }, 0);
                     }}
+                />
+            )}
+
+            {showMediaSelector && (
+                <MediaSelectorModal 
+                    projectSlug={project?.slug} 
+                    onClose={() => setShowMediaSelector(false)} 
+                    onSelect={handleSelectMediaVideo} 
                 />
             )}
         </div>);
