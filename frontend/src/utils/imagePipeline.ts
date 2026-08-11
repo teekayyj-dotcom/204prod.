@@ -108,7 +108,8 @@ export const uploadMediaPipeline = async (
   clientSlug?: string | null,
   projectSlug?: string | null,
   folder?: string | null,
-  skipThumb: boolean = false
+  skipThumb: boolean = false,
+  folderId?: string | null
 ): Promise<any> => {
   if (file.type.startsWith("image/")) {
     const processed = await processImage(file, skipThumb);
@@ -140,13 +141,12 @@ export const uploadMediaPipeline = async (
         if (!res.ok) throw new Error("S3 Upload Failed");
     };
 
-    const uploads = [uploadToS3(presignedData.main_upload_data, processed.mainBlob)];
-    if (!skipThumb && processed.thumbBlob) {
-        uploads.push(uploadToS3(presignedData.thumb_upload_data, processed.thumbBlob));
-    }
-    await Promise.all(uploads);
+    await Promise.all([
+        uploadToS3(presignedData.main_upload_data, processed.mainBlob),
+        !skipThumb && processed.thumbBlob ? uploadToS3(presignedData.thumb_upload_data, processed.thumbBlob) : Promise.resolve()
+    ]);
 
-    // 3. Finalize in database
+    // 3. Finalize upload
     return await fetchApi("/media/finalize", {
         method: "POST",
         body: JSON.stringify({
@@ -161,7 +161,8 @@ export const uploadMediaPipeline = async (
             file_size: processed.mainSize,
             client_slug: clientSlug || null,
             project_slug: projectSlug || null,
-            folder: folder || null
+            folder: folder || null,
+            folder_id: folderId || null
         })
     });
   } else if (file.type.startsWith("video/")) {
@@ -210,7 +211,8 @@ export const uploadMediaPipeline = async (
             title: file.name,
             client_slug: clientSlug || null,
             project_slug: projectSlug || null,
-            folder: folder || null
+            folder: folder || null,
+            folder_id: folderId || null
         })
     });
   } else {
@@ -222,10 +224,10 @@ export const uploadMediaPipeline = async (
     if (clientSlug) formData.append("client_slug", clientSlug);
     if (projectSlug) formData.append("project_slug", projectSlug);
     if (folder) formData.append("folder", folder);
+    if (folderId) formData.append("folder_id", folderId);
     return await fetchApi("/media/upload", {
         method: "POST",
         body: formData,
     });
   }
-};
 

@@ -132,21 +132,17 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
             const { clientSlug, projectSlug, parentId } = getCurrentContext();
             const { uploadMediaPipeline } = await import("../../../utils/imagePipeline");
             
-            // Note: imagePipeline might need to be updated to accept folderId, but for now we fallback to folder string if needed.
-            // Assuming uploadMediaPipeline passes folder string. If backend accepts folder_id as Form data, we need to adapt it.
-            // For now, we'll let it use the old way, but since we are refactoring, we might need to patch uploadMediaPipeline in real implementation to support folder_id.
-            
-            // Mocking for the UI plan
-            const formData = new FormData();
-            formData.append("file", file);
-            if (clientSlug) formData.append("client_slug", clientSlug);
-            if (projectSlug) formData.append("project_slug", projectSlug);
-            if (parentId) formData.append("folder", parentId); // Legacy fallback, we should add folder_id if supported
-
-            const res = await fetchApi('/media/upload', {
-                method: 'POST',
-                body: formData
-            });
+            const res = await uploadMediaPipeline(
+                file,
+                "media-library",
+                fetchApi,
+                (p) => setUploadProgress(p),
+                clientSlug,
+                projectSlug,
+                parentId,
+                false,
+                parentId
+            );
 
             loadLibraryData();
         } catch (err) {
