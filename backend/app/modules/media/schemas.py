@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 class MediaAsset(BaseModel):
     id: str
+    slug: str | None = None
     kind: str
     url: str
     thumbnail_url: str | None = None
@@ -28,6 +29,7 @@ class MediaAsset(BaseModel):
 
 class MediaFolder(BaseModel):
     id: str
+    slug: str | None = None
     name: str
     client_slug: str | None = None
     project_slug: str | None = None

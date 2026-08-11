@@ -76,23 +76,30 @@ def create_folder_route(
 ):
     return create_media_folder(db, request)
 
-@router.get("/folders/{id}", response_model=MediaFolderSchema)
+@router.get("/folders/{id_or_slug}", response_model=MediaFolderSchema)
 def get_folder_route(
-    id: str,
+    id_or_slug: str,
     db: Session = Depends(get_db_session)
 ):
     from app.modules.media.models import MediaFolder as DbMediaFolder
-    folder = db.query(DbMediaFolder).filter(DbMediaFolder.id == id).first()
+    from sqlalchemy import or_
+    folder = db.query(DbMediaFolder).filter(
+        or_(DbMediaFolder.id == id_or_slug, DbMediaFolder.slug == id_or_slug)
+    ).first()
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
     return folder
 
-@router.get("/assets/{id}", response_model=MediaAssetSchema)
+@router.get("/assets/{id_or_slug}", response_model=MediaAssetSchema)
 def get_asset_route(
-    id: str,
+    id_or_slug: str,
     db: Session = Depends(get_db_session)
 ):
-    asset = get_media_asset_by_id(db, id)
+    from app.modules.media.models import MediaAsset as DbMediaAsset
+    from sqlalchemy import or_
+    asset = db.query(DbMediaAsset).filter(
+        or_(DbMediaAsset.id == id_or_slug, DbMediaAsset.slug == id_or_slug)
+    ).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     return asset

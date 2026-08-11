@@ -39,10 +39,43 @@ def get_media_folders(db: Session, client_slug: str | None = None, project_slug:
         query = query.filter(DbMediaFolder.project_slug == project_slug)
     return query.all()
 
+import re
+import unicodedata
+
+def slugify(value: str) -> str:
+    if not value:
+        return ""
+    value = str(value)
+    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower())
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
+
+def generate_unique_media_slug(db: Session, base_name: str, is_folder: bool = False) -> str:
+    base_slug = slugify(base_name)
+    if not base_slug:
+        base_slug = "media"
+    
+    slug = base_slug
+    counter = 1
+    
+    while True:
+        if is_folder:
+            exists = db.query(DbMediaFolder).filter(DbMediaFolder.slug == slug).first()
+        else:
+            exists = db.query(DbMediaAsset).filter(DbMediaAsset.slug == slug).first()
+            
+        if not exists:
+            return slug
+            
+        slug = f"{base_slug}-{uuid.uuid4().hex[:4]}"
+        counter += 1
+
 def create_media_folder(db: Session, folder: MediaFolderCreate) -> DbMediaFolder:
     folder_id = str(uuid.uuid4())
+    folder_slug = generate_unique_media_slug(db, folder.name, is_folder=True)
     db_folder = DbMediaFolder(
         id=folder_id,
+        slug=folder_slug,
         name=folder.name,
         client_slug=folder.client_slug,
         project_slug=folder.project_slug,
@@ -153,9 +186,14 @@ def create_media_asset_from_file(
     storage_provider = get_storage_provider()
     public_url = storage_provider.upload_file(file_bytes, filename, mime_type, custom_key=custom_key)
     
+    # Generate unique slug for DbMediaAsset based on caption, alt, or filename
+    base_name = caption or alt or filename
+    asset_slug = generate_unique_media_slug(db, base_name, is_folder=False)
+    
     # 5. Create DbMediaAsset
     db_media_asset = DbMediaAsset(
         id=asset_id,
+        slug=asset_slug,
         kind=kind,
         url=public_url,
         alt=alt,
@@ -212,9 +250,12 @@ def finalize_media_asset(
         kind = "document"
     elif mime_type and ("zip" in mime_type or "tar" in mime_type or "rar" in mime_type):
         kind = "archive"
+    base_name = caption or alt or "video"
+    asset_slug = generate_unique_media_slug(db, base_name, is_folder=False)
         
     db_media_asset = DbMediaAsset(
         id=asset_id,
+        slug=asset_slug,
         kind=kind,
         url=url,
         thumbnail_url=thumbnail_url,

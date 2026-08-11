@@ -14,6 +14,7 @@ class MediaFolder(Base):
     __tablename__ = "media_folders"
     
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    slug: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     client_slug: Mapped[str | None] = mapped_column(
         String(120),
@@ -42,6 +43,7 @@ class MediaAsset(Base):
     __tablename__ = "media_assets"
 
     id: Mapped[str] = mapped_column(String(160), primary_key=True)
+    slug: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     kind: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     url: Mapped[str] = mapped_column(String(500), nullable=False, unique=True)
     thumbnail_url: Mapped[str | None] = mapped_column(String(500))

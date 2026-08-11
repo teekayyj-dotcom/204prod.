@@ -769,12 +769,12 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                                 <div className="flex gap-2">
                                     <input 
                                         readOnly 
-                                        value={`${window.location.origin}/media/${shareModal.id}`} 
+                                        value={`${window.location.origin}/media/${shareModal.slug || shareModal.id}`} 
                                         className="flex-1 bg-transparent text-white text-xs outline-none"
                                     />
                                     <button 
                                         onClick={() => {
-                                            navigator.clipboard.writeText(`${window.location.origin}/media/${shareModal.id}`);
+                                            navigator.clipboard.writeText(`${window.location.origin}/media/${shareModal.slug || shareModal.id}`);
                                             alert("Đã copy link!");
                                         }}
                                         className="text-[#D84040] text-xs font-bold whitespace-nowrap hover:text-white"
