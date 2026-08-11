@@ -248,6 +248,16 @@ def save_video_to_db(
         db.add(gallery_item)
         db.commit()
 
+    if request.folder == "final video" and request.project_slug:
+        from app.modules.projects.models import Project
+        project = db.query(Project).filter(Project.slug == request.project_slug).first()
+        if project:
+            current_urls = [u for u in (project.video_url or "").split(",") if u.strip()]
+            if new_asset.url not in current_urls:
+                current_urls.append(new_asset.url)
+                project.video_url = ",".join(current_urls)
+                db.commit()
+
     return new_asset
 
 

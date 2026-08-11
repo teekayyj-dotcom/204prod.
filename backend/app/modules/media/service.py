@@ -169,7 +169,19 @@ def create_media_asset_from_file(
         is_published=False
     )
     
-    return save_media_asset(db, db_media_asset)
+    saved_asset = save_media_asset(db, db_media_asset)
+
+    if folder == "final video" and project_slug:
+        from app.modules.projects.models import Project
+        project = db.query(Project).filter(Project.slug == project_slug).first()
+        if project:
+            current_urls = [u for u in (project.video_url or "").split(",") if u.strip()]
+            if saved_asset.url not in current_urls:
+                current_urls.append(saved_asset.url)
+                project.video_url = ",".join(current_urls)
+                db.commit()
+
+    return saved_asset
 
 
 def finalize_media_asset(
@@ -233,6 +245,18 @@ def finalize_media_asset(
         db.add(gallery_item)
         db.commit()
         
+        db.commit()
+        
+    if folder == "final video" and project_slug:
+        from app.modules.projects.models import Project
+        project = db.query(Project).filter(Project.slug == project_slug).first()
+        if project:
+            current_urls = [u for u in (project.video_url or "").split(",") if u.strip()]
+            if saved_asset.url not in current_urls:
+                current_urls.append(saved_asset.url)
+                project.video_url = ",".join(current_urls)
+                db.commit()
+                
     return saved_asset
 
 def update_media_asset(db: Session, id: str, media_asset: MediaAssetSchema):
