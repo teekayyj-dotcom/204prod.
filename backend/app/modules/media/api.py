@@ -55,9 +55,10 @@ router = APIRouter(prefix="/media", tags=["media"])
 def list_media_route(
     client_slug: str | None = Query(None),
     project_slug: str | None = Query(None),
+    folder_id: str | None = Query(None),
     db: Session = Depends(get_db_session)
 ):
-    return get_media_assets(db, client_slug=client_slug, project_slug=project_slug)
+    return get_media_assets(db, client_slug=client_slug, project_slug=project_slug, folder_id=folder_id)
 
 @router.get("/folders", response_model=list[MediaFolderSchema])
 def list_folders_route(
@@ -73,6 +74,17 @@ def create_folder_route(
     db: Session = Depends(get_db_session)
 ):
     return create_media_folder(db, request)
+
+@router.get("/folders/{id}", response_model=MediaFolderSchema)
+def get_folder_route(
+    id: str,
+    db: Session = Depends(get_db_session)
+):
+    from app.modules.media.models import MediaFolder as DbMediaFolder
+    folder = db.query(DbMediaFolder).filter(DbMediaFolder.id == id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    return folder
 
 @router.put("/folders/{id}", response_model=MediaFolderSchema)
 def update_folder_route(

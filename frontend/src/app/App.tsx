@@ -14,6 +14,7 @@ const router = createBrowserRouter([
   { path: '/messaging', lazy: () => import('../modules/messaging/MessagingPage').then(m => ({ Component: m.MessagingPage })) },
   { path: '/review/:token', lazy: () => import('../modules/client-view/pages/PublicReviewPage').then(m => ({ Component: m.PublicReviewPage })) },
   { path: '/album/:token', lazy: () => import('../modules/client-view/pages/PublicAlbumPage').then(m => ({ Component: m.PublicAlbumPage })) },
+  { path: '/media/:id', lazy: () => import('../modules/client-view/pages/PublicMediaFolderPage').then(m => ({ Component: m.PublicMediaFolderPage })) },
   clientSiteRoute,
   adminRoute,
   crewRoute,
