@@ -224,7 +224,7 @@ export function CrewMediaLibraryPage() {
                                 onClick={() => {
                                     if (asset.type === "video") {
                                         const projSlug = asset.projectSlug || "media-library-video";
-                                        window.open(`/crew-dashboard/projects/${projSlug}/playback?video=${encodeURIComponent(asset.image)}`, '_blank');
+                                        window.open(`/crew-dashboard/projects/${projSlug}/playback?video=${encodeURIComponent(asset.slug || asset.image)}`, '_blank');
                                     } else {
                                         setPreviewAsset(asset);
                                     }

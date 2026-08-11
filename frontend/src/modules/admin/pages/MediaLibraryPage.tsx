@@ -634,7 +634,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                                 onClick={() => {
                                     if (asset.type === "video") {
                                         const projSlug = asset.projectSlug || "media-library-video";
-                                        window.open(`/admin/projects/${projSlug}/playback?video=${encodeURIComponent(asset.image)}`, '_blank');
+                                        window.open(`/admin/projects/${projSlug}/playback?video=${encodeURIComponent(asset.slug || asset.image)}`, '_blank');
                                     } else {
                                         setPreviewAsset(asset);
                                     }

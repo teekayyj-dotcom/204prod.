@@ -1257,7 +1257,7 @@ export function CrewProjectsPage() {
                           onClick={() => {
                               // Use embed URL for Bunny Stream (direct mp4 URL returns 403)
                               // thumbnail_url holds the iframe embed URL in DB
-                              const videoUrlForReview = file.url;
+                              const videoUrlForReview = file.slug || file.url;
                               navigate(`/crew-dashboard/projects/${selectedProject.id}/playback?video=${encodeURIComponent(videoUrlForReview)}`);
                           }}
                           style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}

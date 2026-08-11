@@ -121,6 +121,8 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
     // Feedback Mode toggle
     const [isFeedbackMode, setIsFeedbackMode] = useState(false);
 
+    const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string | null>(null);
+
     useEffect(() => {
         if (!id) return;
         setLoading(true);
@@ -130,7 +132,22 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
         fetchApi<ProjectData>(`/projects/${id}`)
             .then(async (projData) => {
                 setProject(projData);
-                const currentVideo = isGuest ? guestVideoUrl : (videoUrlParam || projData.video_url);
+                let currentVideo = isGuest ? guestVideoUrl : (videoUrlParam || projData.video_url);
+                
+                // If it looks like a slug (no http/https), resolve it
+                if (currentVideo && !currentVideo.startsWith('http') && !currentVideo.startsWith('/')) {
+                    try {
+                        const asset = await fetchApi<any>(`/media/assets/${currentVideo}`);
+                        if (asset && asset.url) {
+                            currentVideo = asset.url;
+                        }
+                    } catch (e) {
+                        console.error("Could not resolve media slug:", e);
+                    }
+                }
+                
+                setResolvedVideoUrl(currentVideo || null);
+
                 try {
                     let feedbackUrl = `/projects/${id}/feedback`;
                     if (currentVideo) {
@@ -148,6 +165,7 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
                 if (id === "media-library-video" || guestVideoUrl) {
                     // Provide a mock project to allow viewing the video in Cinema Review
                     setProject({ title: "Media Library Video", slug: id, video_url: guestVideoUrl || videoUrlParam || "" });
+                    setResolvedVideoUrl(guestVideoUrl || videoUrlParam || "");
                 }
                 setLoading(false);
             });
@@ -582,10 +600,8 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
     // Direct sample video fallback
     const defaultSampleVideo = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-    // Read selected video from query parameters if present
-    const searchParamsParams = new URLSearchParams(location.search);
-    const videoUrlParamFallback = searchParamsParams.get("video");
-    const videoToPlay = isGuest ? guestVideoUrl : (videoUrlParamFallback || project.video_url);
+    // Use the resolved video URL from state
+    const videoToPlay = resolvedVideoUrl || defaultSampleVideo;
 
     // Detect YouTube / Vimeo embed (these need an iframe)
     const ytMatch = videoToPlay?.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
