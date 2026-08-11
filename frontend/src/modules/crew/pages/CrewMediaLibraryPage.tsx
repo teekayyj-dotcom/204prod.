@@ -221,7 +221,14 @@ export function CrewMediaLibraryPage() {
                                 key={asset.id} 
                                 className="rounded-xl overflow-hidden group cursor-pointer flex flex-col" 
                                 style={{ background: "rgba(36, 28, 28, 0.6)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
-                                onClick={() => setPreviewAsset(asset)}
+                                onClick={() => {
+                                    if (asset.type === "video") {
+                                        const projSlug = asset.projectSlug || "media-library-video";
+                                        window.open(`/crew-dashboard/projects/${projSlug}/playback?video=${encodeURIComponent(asset.image)}`, '_blank');
+                                    } else {
+                                        setPreviewAsset(asset);
+                                    }
+                                }}
                             >
                                 <div className="relative w-full pt-[75%] overflow-hidden bg-[#1D1616]">
                                     {asset.type === "video" || asset.type === "image" ? (
@@ -272,12 +279,9 @@ export function CrewMediaLibraryPage() {
                         {previewAsset.type === "image" ? (
                             <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
                         ) : previewAsset.type === "video" ? (
-                            <div className="w-full h-full min-w-[60vw] min-h-[60vh] relative bg-black rounded-lg overflow-hidden shadow-2xl">
-                                {previewAsset.image?.includes("iframe.mediadelivery.net") ? (
-                                    <iframe src={previewAsset.image} className="absolute inset-0 w-full h-full" allowFullScreen={true} />
-                                ) : (
-                                    <video src={previewAsset.image} controls autoPlay className="absolute inset-0 w-full h-full object-contain" />
-                                )}
+                            <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1D1616] border border-[#2E2020]">
+                                <FileText size={64} style={{ color: typeColors[previewAsset.type] || "#888" }} />
+                                <p className="text-white text-sm text-center px-4 truncate w-full">Đang mở video trong tab mới...</p>
                             </div>
                         ) : (
                             <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1D1616] border border-[#2E2020]">

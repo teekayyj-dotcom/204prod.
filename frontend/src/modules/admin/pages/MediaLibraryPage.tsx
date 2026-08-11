@@ -631,7 +631,14 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                                 className="rounded-xl overflow-hidden group cursor-pointer flex flex-col hover:border-[#D84040]/70 transition-all" 
                                 style={{ background: "rgba(36, 28, 28, 0.6)", border: "1px solid rgba(46, 32, 32, 0.6)" }}
                                 onContextMenu={(e) => handleItemContextMenu(e, asset, false)}
-                                onClick={() => setPreviewAsset(asset)}
+                                onClick={() => {
+                                    if (asset.type === "video") {
+                                        const projSlug = asset.projectSlug || "media-library-video";
+                                        window.open(`/admin/projects/${projSlug}/playback?video=${encodeURIComponent(asset.image)}`, '_blank');
+                                    } else {
+                                        setPreviewAsset(asset);
+                                    }
+                                }}
                             >
                                 {/* Preview / Thumbnail - Fixed aspect ratio 1:1 or 16:9 like drive */}
                                 <div className="relative w-full pt-[75%] overflow-hidden bg-[#1D1616]">
@@ -834,13 +841,9 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                         {previewAsset.type === "image" ? (
                             <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
                         ) : previewAsset.type === "video" ? (
-                            <div className="fixed inset-0 z-[100] bg-black">
-                                <ClientPlaybackPage
-                                    guestProjectSlug={previewAsset.project_slug || previewAsset.projectSlug || getCurrentContext().projectSlug || "media-library-video"}
-                                    guestVideoUrl={previewAsset.image}
-                                    isGuest={false}
-                                    onClose={() => setPreviewAsset(null)}
-                                />
+                            <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1D1616] border border-[#2E2020]">
+                                <FileText size={64} style={{ color: typeColors[previewAsset.type] || "#888" }} />
+                                <p className="text-white text-sm text-center px-4 truncate w-full">Đang mở video trong tab mới...</p>
                             </div>
                         ) : (
                             <div className="w-64 h-64 flex flex-col items-center justify-center gap-4 rounded-xl bg-[#1D1616] border border-[#2E2020]">
