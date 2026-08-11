@@ -2227,7 +2227,8 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
                 <MediaSelectorModal 
                     projectSlug={project?.slug} 
                     onClose={() => setShowMediaSelector(false)} 
-                    onSelect={handleSelectMediaVideo} 
+                    onSelect={handleSelectMediaVideo}
+                    excludeUrls={(project?.video_url || project?.videoUrl || "").split(",").filter(Boolean)}
                 />
             )}
         </div>
@@ -2320,6 +2321,7 @@ function VideoViewMode({ project, uploadedVideo, setProject }: { project: any; u
                     onClose={() => setShowMediaSelector(false)} 
                     onSelect={handleSelectMultiMediaVideo} 
                     multiSelect={true}
+                    excludeUrls={urls}
                 />
             )}
         </div>
@@ -2433,14 +2435,17 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
     );
 }
 
-function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "video", multiSelect = false }: { projectSlug: string; onClose: () => void; onSelect: (url: any) => void; acceptKind?: string; multiSelect?: boolean }) {
+function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "video", multiSelect = false, excludeUrls = [] }: { projectSlug: string; onClose: () => void; onSelect: (url: any) => void; acceptKind?: string; multiSelect?: boolean; excludeUrls?: string[] }) {
     const [mediaList, setMediaList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
 
     useEffect(() => {
         fetchApi(`/media?project_slug=${projectSlug}`).then(data => {
-            setMediaList(data.filter((m: any) => m.kind === acceptKind || (m.type && m.type.startsWith(acceptKind))));
+            setMediaList(data.filter((m: any) => 
+                (m.kind === acceptKind || (m.type && m.type.startsWith(acceptKind))) && 
+                !excludeUrls.includes(m.url)
+            ));
             setLoading(false);
         }).catch(err => {
             console.error(err);
@@ -3706,6 +3711,7 @@ export function ProjectDetailPage() {
                     projectSlug={project?.slug} 
                     onClose={() => setShowMediaSelector(false)} 
                     onSelect={handleSelectMediaVideo} 
+                    excludeUrls={(project?.video_url || project?.videoUrl || "").split(",").filter(Boolean)}
                 />
             )}
         </div>);
