@@ -132,8 +132,14 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
         fetchApi<ProjectData>(`/projects/${id}`)
             .then(async (projData) => {
                 setProject(projData);
-                let currentVideo = isGuest ? guestVideoUrl : (videoUrlParam || projData.video_url);
+                // Always use guestVideoUrl if provided, then fallback to param or project video
+                let currentVideo = guestVideoUrl || videoUrlParam || projData.video_url;
                 
+                // If it looks like a comma-separated list, just take the first one
+                if (currentVideo && currentVideo.includes(",")) {
+                    currentVideo = currentVideo.split(",")[0].trim();
+                }
+
                 // If it looks like a slug (no http/https), resolve it
                 if (currentVideo && !currentVideo.startsWith('http') && !currentVideo.startsWith('/')) {
                     try {
