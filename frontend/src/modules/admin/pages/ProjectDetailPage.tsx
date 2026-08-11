@@ -2235,6 +2235,9 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
 }
 
 function VideoViewMode({ project, uploadedVideo, setProject }: { project: any; uploadedVideo: any; setProject?: any }) {
+    const [showMediaSelector, setShowMediaSelector] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+
     if (uploadedVideo) {
         return (
             <div className="flex items-center gap-3 mt-3 px-4 py-3 rounded-xl" style={{ background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.25)" }}>
@@ -2261,11 +2264,64 @@ function VideoViewMode({ project, uploadedVideo, setProject }: { project: any; u
     const urls = rawUrl.split(",").filter(Boolean);
     const gridCols = urls.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1";
     
+    const handleSelectMultiMediaVideo = async (selectedUrls: string[]) => {
+        if (!selectedUrls || selectedUrls.length === 0) return;
+        setIsProcessing(true);
+        setShowMediaSelector(false);
+        try {
+            let currentUrls = (project?.video_url || project?.videoUrl || "").split(",").filter(Boolean);
+            
+            // Add any newly selected URLs that aren't already in the list
+            for (const newUrl of selectedUrls) {
+                if (!currentUrls.includes(newUrl)) {
+                    currentUrls.push(newUrl);
+                }
+            }
+            
+            const newUrlsStr = currentUrls.join(",");
+            const updatedProject = await fetchApi(`/projects/${project.slug}`, {
+                method: "PUT",
+                body: JSON.stringify({ ...project, video_url: newUrlsStr })
+            });
+            if (setProject) setProject(updatedProject);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     return (
-        <div className={`mt-3 grid ${gridCols} gap-3`}>
-            {urls.map((u: string, idx: number) => (
-                <VideoItem key={idx} url={u} project={project} setProject={setProject} />
-            ))}
+        <div className="mt-3 relative">
+            <div className={`grid ${gridCols} gap-3`}>
+                {urls.map((u: string, idx: number) => (
+                    <VideoItem key={idx} url={u} project={project} setProject={setProject} />
+                ))}
+            </div>
+            
+            <button 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMediaSelector(true); }}
+                className="mt-3 flex items-center justify-center w-full gap-2 py-3 rounded-xl border border-dashed border-[#3A2A2A] text-[#888] hover:text-[#D84040] hover:border-[#D84040] transition-colors text-xs font-medium"
+                style={{ background: "rgba(29,22,22,0.4)" }}
+            >
+                <MonitorPlay size={14} /> Thêm Video Có Sẵn Từ Media
+            </button>
+            
+            {isProcessing && (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white z-30 rounded-xl">
+                    <Loader2 size={24} className="animate-spin mb-2 text-[#D84040]" />
+                    <span className="text-sm font-medium">Đang thêm...</span>
+                </div>
+            )}
+            
+            {showMediaSelector && (
+                <MediaSelectorModal 
+                    projectSlug={project?.slug} 
+                    onClose={() => setShowMediaSelector(false)} 
+                    onSelect={handleSelectMultiMediaVideo} 
+                    multiSelect={true}
+                />
+            )}
         </div>
     );
 }
@@ -2377,9 +2433,10 @@ function AssignCrewRow({ dbCrew, dbCategories, assignedCrew, setAssignedCrew, in
     );
 }
 
-function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "video" }: { projectSlug: string; onClose: () => void; onSelect: (url: string) => void; acceptKind?: string }) {
+function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "video", multiSelect = false }: { projectSlug: string; onClose: () => void; onSelect: (url: any) => void; acceptKind?: string; multiSelect?: boolean }) {
     const [mediaList, setMediaList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
 
     useEffect(() => {
         fetchApi(`/media?project_slug=${projectSlug}`).then(data => {
@@ -2390,6 +2447,16 @@ function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "vide
             setLoading(false);
         });
     }, [projectSlug]);
+
+    const handleSelect = (url: string) => {
+        if (!multiSelect) {
+            onSelect(url);
+        } else {
+            setSelectedUrls(prev => 
+                prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+            );
+        }
+    };
 
     return createPortal(
         <div className="fixed inset-0 bg-black/90 flex flex-col z-[99999] p-6">
@@ -2402,18 +2469,44 @@ function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "vide
             ) : mediaList.length === 0 ? (
                 <div className="flex-1 flex justify-center items-center text-[#888] text-sm">Không tìm thấy video nào trong media dự án này. Hãy tải lên ở thư viện Media.</div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pb-10">
-                    {mediaList.map((m: any) => (
-                        <div key={m.id} onClick={() => onSelect(m.url)} className="relative group cursor-pointer rounded-lg overflow-hidden border border-[#3A2A2A] hover:border-[#D84040]">
-                            <video src={m.url} className="w-full aspect-video object-cover" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                                <span className="bg-[#D84040] text-white px-3 py-1 rounded text-sm font-bold">Chọn Video</span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                                <p className="text-white text-xs truncate">{m.name || m.file_name || "Video"}</p>
-                            </div>
+                <div className="flex-1 flex flex-col min-h-0">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 overflow-y-auto pb-4 flex-1">
+                        {mediaList.map((m: any) => {
+                            const isSelected = selectedUrls.includes(m.url);
+                            return (
+                                <div key={m.id} onClick={() => handleSelect(m.url)} className={`relative group cursor-pointer rounded-lg overflow-hidden border ${isSelected ? 'border-[#D84040]' : 'border-[#3A2A2A] hover:border-gray-500'}`}>
+                                    <video src={m.url} className="w-full aspect-video object-cover" />
+                                    {isSelected && (
+                                        <div className="absolute top-2 right-2 bg-[#D84040] text-white rounded-full p-1 shadow-lg">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                        </div>
+                                    )}
+                                    {!multiSelect && !isSelected && (
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                                            <span className="bg-[#D84040] text-white px-3 py-1 rounded text-sm font-bold">Chọn Video</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                                        <p className="text-white text-xs truncate">{m.name || m.file_name || "Video"}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {multiSelect && (
+                        <div className="pt-4 border-t border-[#3A2A2A] flex justify-end gap-3 shrink-0">
+                            <button onClick={onClose} className="px-5 py-2 rounded-lg text-sm font-medium bg-[#2A1F1F] text-white hover:bg-[#3A2A2A] transition-colors">
+                                Hủy
+                            </button>
+                            <button 
+                                onClick={() => onSelect(selectedUrls)} 
+                                disabled={selectedUrls.length === 0}
+                                className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${selectedUrls.length > 0 ? 'bg-[#D84040] text-white hover:bg-red-600' : 'bg-[#D84040]/50 text-white/50 cursor-not-allowed'}`}
+                            >
+                                Xác nhận chọn ({selectedUrls.length})
+                            </button>
                         </div>
-                    ))}
+                    )}
                 </div>
             )}
         </div>,
