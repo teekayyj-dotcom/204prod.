@@ -116,12 +116,17 @@ const CanvasGlitchTitle = ({ text, isHovering }: { text: string, isHovering: boo
 };
 
 export function LandingPage() {
+  
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [scrollDirection, setScrollDirection] = useState<"down" | "up">("down");
   const [isHovering, setIsHovering] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [viewMode, setViewMode] = useState<"hero" | "projects">("hero");
   const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const heroVideoRef = useRef<any>(null);
+
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -152,23 +157,88 @@ export function LandingPage() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  
+  useEffect(() => {
+    if (viewMode === "hero") {
+      gsap.to(wrapperRef.current, { y: "0vh", duration: 1, ease: "power3.inOut" });
+      gsap.to(heroVideoRef.current, { y: "0vh", duration: 1, ease: "power3.inOut" });
+    } else {
+      gsap.to(wrapperRef.current, { y: "-100vh", duration: 1, ease: "power3.inOut" });
+      gsap.to(heroVideoRef.current, { y: "30vh", duration: 1, ease: "power3.inOut" }); // Parallax effect
+    }
+  }, [viewMode]);
+
   const lastScrollTime = useRef(0);
 
+  
   const handleWheel = (e: React.WheelEvent) => {
-    if (projects.length === 0) return;
+    // Ignore horizontal scrolling
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    if (Math.abs(e.deltaY) < 1) return;
 
     const now = Date.now();
-    // Thêm cooldown 1 giây giữa các lần cuộn để tránh nhảy liên tục
-    if (now - lastScrollTime.current < 1000) return;
+    if (now - lastScrollTime.current < 700) return;
 
-    if (e.deltaY > 30) {
-      setScrollDirection("down");
-      setCurrentIndex((prev) => (prev + 1) % projects.length);
-      lastScrollTime.current = now;
-    } else if (e.deltaY < -30) {
-      setScrollDirection("up");
-      setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
-      lastScrollTime.current = now;
+    if (e.deltaY > 0) {
+      // Scroll DOWN
+      if (viewMode === "hero") {
+        setViewMode("projects");
+        lastScrollTime.current = now;
+      } else {
+        if (projects.length === 0) return;
+        setScrollDirection("down");
+        setCurrentIndex((prev) => (prev + 1) % projects.length);
+        lastScrollTime.current = now;
+      }
+    } else {
+      // Scroll UP
+      if (viewMode === "projects") {
+        if (projects.length === 0 || currentIndex === 0) {
+          setViewMode("hero");
+          lastScrollTime.current = now;
+        } else {
+          setScrollDirection("up");
+          setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+          lastScrollTime.current = now;
+        }
+      }
+    }
+  };
+
+  // Touch support
+  const touchStartY = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaY = touchStartY.current - touchEndY; // positive means swipe up (scroll down)
+    const now = Date.now();
+    if (now - lastScrollTime.current < 1000) return;
+    
+    if (Math.abs(deltaY) > 50) { // threshold
+      if (viewMode === "hero") {
+        if (deltaY > 0) {
+          setViewMode("projects");
+          lastScrollTime.current = now;
+        }
+      } else {
+        if (projects.length === 0) return;
+        if (deltaY > 0) {
+          setScrollDirection("down");
+          setCurrentIndex((prev) => (prev + 1) % projects.length);
+          lastScrollTime.current = now;
+        } else {
+          if (currentIndex === 0) {
+            setViewMode("hero");
+            lastScrollTime.current = now;
+          } else {
+            setScrollDirection("up");
+            setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+            lastScrollTime.current = now;
+          }
+        }
+      }
     }
   };
 
@@ -198,13 +268,36 @@ export function LandingPage() {
 
   const coverMedia = currentProject?.cover_media || (currentProject?.cover_image ? { url: currentProject.cover_image, kind: "image" } : null);
 
+  
   return (
     <main
       className="h-screen w-full bg-black relative overflow-hidden"
       onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       ref={containerRef}
     >
-      {/* Background Media */}
+      <div 
+        ref={wrapperRef}
+        className="w-full h-[200vh] flex flex-col absolute top-0 left-0"
+      >
+        {/* Hero Section */}
+        <section className="w-full h-screen relative overflow-hidden flex items-center justify-center bg-black shrink-0">
+          <iframe
+            ref={heroVideoRef}
+            src="https://iframe.mediadelivery.net/embed/694348/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e?autoplay=true&loop=true&muted=true&preload=true&controls=false"
+            className="absolute inset-0 w-full h-[130vh] -top-[15vh] opacity-80 pointer-events-none"
+            style={{ border: "none", transform: "scale(1.15)", transformOrigin: "center" }}
+            allow="autoplay; fullscreen; picture-in-picture"
+            title="Hero Video"
+          />
+          <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+        </section>
+
+        {/* Projects Section */}
+        <section className="w-full h-screen relative shrink-0">
+
+          {/* Background Media */}
       {isEmbedVideo ? (
         <iframe
           key={embedUrl}
@@ -351,6 +444,8 @@ export function LandingPage() {
           )}
         </div>
       )}
+        </section>
+      </div>
     </main>
   );
 }

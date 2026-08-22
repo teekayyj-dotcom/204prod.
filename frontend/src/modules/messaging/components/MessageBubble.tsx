@@ -4,6 +4,7 @@ import { FileText, Download, Check, CheckCheck, Calendar, Clock, BarChart2, More
 import { format } from "date-fns";
 import { wsService } from "../services/websocket";
 import { ensureUTC } from "../utils/time";
+import { VideoGallery } from "../../../shared/components/VideoGallery";
 
 export function MessageBubble({ 
   message, 
@@ -265,29 +266,40 @@ export function MessageBubble({
         )}
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-1">
-            {message.attachments.map(att => (
-              <div key={att.id} className="relative group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                {att.file_type.startsWith("image/") ? (
-                  <a href={att.file_url} target="_blank" rel="noreferrer">
-                    <img src={att.file_url} alt={att.file_name} className="max-w-xs max-h-60 object-contain" />
-                  </a>
-                ) : (
-                  <div className="flex items-center gap-3 p-3 max-w-xs">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-md">
-                      <FileText className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{att.file_name}</p>
-                      <p className="text-xs text-slate-500">{(att.size / 1024).toFixed(1)} KB</p>
-                    </div>
-                    <a href={att.file_url} download className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
-                      <Download className="w-5 h-5" />
+          <div className="flex flex-col gap-2 mb-1 w-full max-w-full">
+            {/* Render Videos using VideoGallery */}
+            {message.attachments.filter(att => att.file_type.startsWith("video/")).length > 0 && (
+              <VideoGallery
+                items={message.attachments.filter(att => att.file_type.startsWith("video/"))}
+                getUrl={(att) => att.file_url}
+              />
+            )}
+
+            {/* Render other attachments */}
+            <div className="flex flex-wrap gap-2">
+              {message.attachments.filter(att => !att.file_type.startsWith("video/")).map(att => (
+                <div key={att.id} className="relative group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                  {att.file_type.startsWith("image/") ? (
+                    <a href={att.file_url} target="_blank" rel="noreferrer">
+                      <img src={att.file_url} alt={att.file_name} className="max-w-xs max-h-60 object-contain" />
                     </a>
-                  </div>
-                )}
-              </div>
-            ))}
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 max-w-xs">
+                      <div className="p-2 bg-blue-50 text-blue-600 rounded-md">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 truncate">{att.file_name}</p>
+                        <p className="text-xs text-slate-500">{(att.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <a href={att.file_url} download className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
+                        <Download className="w-5 h-5" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

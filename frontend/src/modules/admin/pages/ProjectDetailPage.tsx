@@ -18,6 +18,8 @@ import { AddClientModal } from "../components/AddClientModal";
 import { fetchApi } from "../utils/apiClient";
 import { uploadMediaPipeline } from "../../../utils/imagePipeline";
 import { polyfill } from "mobile-drag-drop";
+import { VideoPlayer } from "../../../shared/components/VideoPlayer";
+
 import "mobile-drag-drop/default.css";
 
 polyfill({
@@ -2168,7 +2170,7 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
             {embedUrl ? (
                 <iframe src={embedUrl} className="w-full h-full" style={{ border: "none", display: "block" }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Project video" />
             ) : isDirectVideo ? (
-                <video src={url} controls className="w-full h-full object-contain" />
+                <VideoPlayer src={url} controls className="w-full h-full" />
             ) : (
                 <a href={url} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center w-full h-full text-[#EEEEEE] hover:text-[#D84040] transition-colors p-4">
                     <Video size={32} className="mb-2 opacity-50" />
@@ -2263,7 +2265,6 @@ function VideoViewMode({ project, uploadedVideo, setProject }: { project: any; u
     }
 
     const urls = rawUrl.split(",").filter(Boolean);
-    const gridCols = urls.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1";
     
     const handleSelectMultiMediaVideo = async (selectedUrls: string[]) => {
         if (!selectedUrls || selectedUrls.length === 0) return;
@@ -2294,11 +2295,21 @@ function VideoViewMode({ project, uploadedVideo, setProject }: { project: any; u
 
     return (
         <div className="mt-3 relative">
-            <div className={`grid ${gridCols} gap-3`}>
-                {urls.map((u: string, idx: number) => (
-                    <VideoItem key={idx} url={u} project={project} setProject={setProject} />
-                ))}
-            </div>
+            {urls.length > 1 ? (
+                <div className="flex flex-row overflow-x-auto gap-4 snap-x py-2 w-full">
+                    {urls.map((u: string, idx: number) => (
+                        <div key={idx} className="flex-shrink-0 w-[280px] sm:w-[400px] snap-center flex flex-col h-full">
+                            <VideoItem url={u} project={project} setProject={setProject} />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="w-full">
+                    {urls.map((u: string, idx: number) => (
+                        <VideoItem key={idx} url={u} project={project} setProject={setProject} />
+                    ))}
+                </div>
+            )}
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMediaSelector(true); }}
