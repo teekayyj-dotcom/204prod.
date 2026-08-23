@@ -76,7 +76,7 @@ export function ContactPage() {
 
 
   return (
-    <div className="h-screen w-full bg-black text-white relative overflow-hidden flex flex-col justify-center py-6">
+    <div className="min-h-screen w-full bg-black text-white relative overflow-x-hidden overflow-y-auto flex flex-col justify-center py-20 md:py-6">
 
       {/* Top Half-Circle Gradient Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120vw] md:w-[80vw] h-[60vw] md:h-[40vw] bg-[#bc0a0a]/50 rounded-full blur-[100px] md:blur-[150px] -translate-y-1/2 mix-blend-screen pointer-events-none z-0"></div>
@@ -97,7 +97,7 @@ export function ContactPage() {
       </div>
 
       {/* Foreground Content */}
-      <div className="container mx-auto px-6 md:px-12 relative z-10 grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 lg:gap-5 mt-24 md:mt-32">
+      <div className="container mx-auto px-6 md:px-12 relative z-10 grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-4 lg:gap-5 mt-24 md:mt-32 mb-12">
 
         {/* Left Col: Info */}
         <motion.div
