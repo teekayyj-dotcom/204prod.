@@ -232,7 +232,7 @@ function PLSnapshot({ data }: { data: any[] }) {
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height={200}>
         <BarChart data={data} barGap={3} barSize={16}>
           <CartesianGrid vertical={false} stroke="#1A1010" />
           <XAxis dataKey="month" tick={{ fill: "#444", fontSize: 11 }} axisLine={false} tickLine={false} />

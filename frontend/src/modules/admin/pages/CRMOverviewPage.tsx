@@ -393,7 +393,7 @@ function Segmentation({ clients, projects }: { clients: any[]; projects: any[] }
         <div className="flex flex-col sm:flex-row items-center gap-5">
           {/* Donut */}
           <div style={{ width: 140, height: 140, flexShrink: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={activeData}

@@ -591,7 +591,7 @@ function ResourceAllocation({ team, openRoles }: ResourceAllocationProps) {
       <div className="px-6 py-5 flex items-center gap-6">
         {/* Donut */}
         <div style={{ width: 150, height: 150, flexShrink: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height="100%">
             <PieChart>
               <Pie
                 data={deptCounts}

@@ -97,7 +97,7 @@ function RevenueBreakdown({ period, breakdowns, monthlyStacked }: RevenueBreakdo
           </p>
           <div className="flex items-center gap-6">
             <div style={{ width: 180, height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={enriched}
@@ -137,7 +137,7 @@ function RevenueBreakdown({ period, breakdowns, monthlyStacked }: RevenueBreakdo
           <p style={{ color: "#666", fontSize: "12px", fontWeight: 600 }} className="mb-4">
             Doanh thu theo tháng · Triệu ₫
           </p>
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height={180}>
             <BarChart data={monthlyStacked} barSize={18}>
               <CartesianGrid vertical={false} stroke="#2A1F1F" />
               <XAxis dataKey="month" tick={{ fill: "#555", fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -462,7 +462,7 @@ function RevenueForecast({ pipeline, forecastMonths }: RevenueForecastProps) {
               ))}
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height={180}>
             <BarChart data={forecastMonths} barGap={4} barSize={22}>
               <CartesianGrid vertical={false} stroke="#2A1F1F" />
               <XAxis dataKey="month" tick={{ fill: "#555", fontSize: 11 }} axisLine={false} tickLine={false} />

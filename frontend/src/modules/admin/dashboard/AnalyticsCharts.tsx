@@ -46,7 +46,7 @@ export function AnalyticsCharts() {
           <span style={{ color: "#888", fontSize: "12px" }}>Các tháng gần đây</span>
         </div>
         <div style={{ height: "350px" }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height="100%">
             <BarChart data={cashflowData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
               <XAxis dataKey="name" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />

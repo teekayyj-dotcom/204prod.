@@ -659,7 +659,7 @@ function OverviewTab({ expenses, monthlyTrend }: OverviewTabProps) {
           <p style={{ color: "#666", fontSize: "12px", fontWeight: 600 }} className="mb-4">Cơ cấu chi phí tháng 6</p>
           <div className="flex items-center gap-4">
             <div style={{ width: 160, height: 160 }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height="100%">
                 <PieChart>
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={44} outerRadius={72} paddingAngle={3} dataKey="value">
                     {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
@@ -704,7 +704,7 @@ function OverviewTab({ expenses, monthlyTrend }: OverviewTabProps) {
         {/* Monthly trend */}
         <div className="rounded-xl p-5" style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
           <p style={{ color: "#666", fontSize: "12px", fontWeight: 600 }} className="mb-4">Xu hướng chi phí · Triệu ₫</p>
-          <ResponsiveContainer width="100%" height={160}>
+          <ResponsiveContainer minWidth={1} minHeight={1} width="100%" height={160}>
             <BarChart data={monthlyTrend} barSize={14}>
               <CartesianGrid vertical={false} stroke="#2A1F1F" />
               <XAxis dataKey="month" tick={{ fill: "#555", fontSize: 11 }} axisLine={false} tickLine={false} />
