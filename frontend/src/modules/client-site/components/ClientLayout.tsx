@@ -202,27 +202,7 @@ export function ClientLayout() {
         </div>
 
         {/* Footer */}
-        {isContactPage || isProjectDetailPage ? null : isLandingPage ? (
-          <footer className="absolute bottom-0 left-0 right-0 z-50 bg-transparent py-8 w-full px-12 md:px-24">
-            <div className="flex flex-col md:flex-row justify-between items-center text-[13px] font-light text-white/50 w-full">
-              <p>
-                © {new Date().getFullYear()} 204prod All rights reserved.
-              </p>
-
-              <div className="flex items-center gap-12 mt-4 md:mt-0">
-                <div className="flex items-center gap-6">
-                  <a href="https://www.instagram.com/204prod.vn/" className="hover:text-white transition-colors">Instagram</a>
-                  <a href="https://www.facebook.com/204prod.vn" className="hover:text-white transition-colors">Facebook</a>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                  <a href="#" className="hover:text-white transition-colors">Terms of Services</a>
-                </div>
-              </div>
-            </div>
-          </footer>
-        ) : (
+        {isContactPage || isProjectDetailPage || isLandingPage ? null : (
           <footer className="w-full shrink-0 relative flex flex-col justify-between px-12 md:px-24 py-16 md:py-20 text-white overflow-hidden select-none" style={{
             height: "100vh",
             minHeight: "100vh",
