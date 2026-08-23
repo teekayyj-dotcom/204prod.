@@ -160,11 +160,11 @@ export function LandingPage() {
   
   useEffect(() => {
     if (viewMode === "hero") {
-      gsap.to(wrapperRef.current, { y: "0vh", duration: 1, ease: "power3.inOut" });
-      gsap.to(heroVideoRef.current, { y: "0vh", duration: 1, ease: "power3.inOut" });
+      gsap.to(wrapperRef.current, { y: "0%", duration: 1, ease: "power3.inOut" });
+      gsap.to(heroVideoRef.current, { y: "0%", duration: 1, ease: "power3.inOut" });
     } else {
-      gsap.to(wrapperRef.current, { y: "-100vh", duration: 1, ease: "power3.inOut" });
-      gsap.to(heroVideoRef.current, { y: "30vh", duration: 1, ease: "power3.inOut" }); // Parallax effect
+      gsap.to(wrapperRef.current, { y: "-50%", duration: 1, ease: "power3.inOut" });
+      gsap.to(heroVideoRef.current, { y: "15%", duration: 1, ease: "power3.inOut" }); // Parallax effect
     }
   }, [viewMode]);
 
@@ -271,7 +271,7 @@ export function LandingPage() {
   
   return (
     <main
-      className="h-screen w-full bg-black relative overflow-hidden"
+      className="h-full w-full bg-black relative overflow-hidden"
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -279,10 +279,10 @@ export function LandingPage() {
     >
       <div 
         ref={wrapperRef}
-        className="w-full h-[200vh] flex flex-col absolute top-0 left-0"
+        className="w-full h-[200%] flex flex-col absolute top-0 left-0"
       >
         {/* Hero Section */}
-        <section className="w-full h-screen relative overflow-hidden flex items-center justify-center bg-black shrink-0">
+        <section className="w-full h-[50%] relative overflow-hidden flex items-center justify-center bg-black shrink-0">
           <iframe
             ref={heroVideoRef}
             src="https://iframe.mediadelivery.net/embed/694348/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e?autoplay=true&loop=true&muted=true&preload=true&controls=false"
@@ -295,15 +295,15 @@ export function LandingPage() {
         </section>
 
         {/* Projects Section */}
-        <section className="w-full h-screen relative shrink-0">
+        <section className="w-full h-[50%] relative shrink-0">
 
           {/* Background Media */}
       {isEmbedVideo ? (
         <iframe
           key={embedUrl}
           src={embedUrl}
-          className="absolute inset-0 w-full h-screen opacity-60 pointer-events-none"
-          style={{ border: "none", width: "100%", height: "100vh", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
+          className="absolute inset-0 w-full h-full opacity-60 pointer-events-none"
+          style={{ border: "none", width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
           allow="autoplay; fullscreen; picture-in-picture"
           title={currentProject.title}
         />
@@ -315,8 +315,8 @@ export function LandingPage() {
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-screen object-cover opacity-60 pointer-events-none"
-          style={{ width: "100%", height: "100vh", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
+          className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+          style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
         />
       ) : coverMedia?.url ? (
         coverMedia.kind === "video" ? (
@@ -327,16 +327,16 @@ export function LandingPage() {
             loop
             muted
             playsInline
-            className="absolute inset-0 w-full h-screen object-cover opacity-60 pointer-events-none"
-            style={{ width: "100%", height: "100vh", objectFit: "cover" }}
+            className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
           <img
             key={coverMedia.url}
             src={coverMedia.url}
             alt={currentProject.title}
-            className="absolute inset-0 w-full h-screen object-cover opacity-60 pointer-events-none"
-            style={{ width: "100%", height: "100vh", objectFit: "cover" }}
+            className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         )
       ) : (

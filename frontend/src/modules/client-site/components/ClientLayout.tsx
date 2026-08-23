@@ -182,9 +182,9 @@ export function ClientLayout() {
         </div>
       </header>
 
-      <div className="w-full flex flex-col min-h-screen">
+      <div className={`w-full flex flex-col ${isLandingPage ? "h-full" : "min-h-screen"}`}>
         {/* Main Content */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative h-full">
           <AnimatePresence mode="popLayout">
             <motion.div
               key={location.pathname}
