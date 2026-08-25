@@ -96,9 +96,9 @@ def list_projects(
         elif sort_by == "format":
             stmt = stmt.order_by(Project.format_slug.asc())
         else:
-            stmt = stmt.order_by(Project.due_date.is_(None), Project.due_date.asc(), Project.created_at.desc())
+            stmt = stmt.order_by(Project.due_date.is_(None), Project.due_date.desc(), Project.created_at.desc())
     else:
-        stmt = stmt.order_by(Project.due_date.is_(None), Project.due_date.asc(), Project.created_at.desc())
+        stmt = stmt.order_by(Project.due_date.is_(None), Project.due_date.desc(), Project.created_at.desc())
 
     return paginate(db, stmt, transformer=lambda items: [_map_to_detail(p) for p in items])
 

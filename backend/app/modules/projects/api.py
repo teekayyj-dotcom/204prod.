@@ -58,7 +58,7 @@ def list_all_projects_route(db: Session = Depends(get_db_session)):
         joinedload(Project.cover_media),
         joinedload(Project.credits),
         joinedload(Project.gallery_images).joinedload(ProjectGalleryImage.media_asset)
-    ).order_by(Project.due_date.is_(None), Project.due_date.asc(), Project.created_at.desc())
+    ).order_by(Project.due_date.is_(None), Project.due_date.desc(), Project.created_at.desc())
     
     projects = db.scalars(stmt).unique().all()
     return [_map_to_detail(p) for p in projects]
