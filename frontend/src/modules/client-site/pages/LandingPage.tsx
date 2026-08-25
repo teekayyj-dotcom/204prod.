@@ -301,7 +301,7 @@ export function LandingPage() {
 
         {/* Projects Section */}
         <section 
-          className="w-full relative shrink-0"
+          className="w-full relative shrink-0 overflow-hidden"
           style={{ height: "100vh" }}
         >
 
