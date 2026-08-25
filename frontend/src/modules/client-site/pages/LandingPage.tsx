@@ -290,7 +290,7 @@ export function LandingPage() {
         >
           <iframe
             ref={heroVideoRef}
-            src="https://iframe.mediadelivery.net/embed/694348/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e?autoplay=true&loop=true&muted=true&preload=true&controls=false"
+            src="https://iframe.mediadelivery.net/embed/694348/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e?autoplay=true&loop=true&muted=true&preload=true&controls=false&background=true"
             className="absolute inset-0 w-full h-[130vh] -top-[15vh] opacity-80 pointer-events-none"
             style={{ border: "none", transform: "scale(1.15)", transformOrigin: "center" }}
             allow="autoplay; fullscreen; picture-in-picture"
