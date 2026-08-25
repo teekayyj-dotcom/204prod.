@@ -271,7 +271,7 @@ export function LandingPage() {
   
   return (
     <main
-      className="h-full w-full bg-black relative overflow-hidden"
+      className="h-[100dvh] w-full bg-black relative overflow-hidden"
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -279,10 +279,10 @@ export function LandingPage() {
     >
       <div 
         ref={wrapperRef}
-        className="w-full h-[200%] flex flex-col absolute top-0 left-0"
+        className="w-full h-[200dvh] flex flex-col absolute top-0 left-0"
       >
         {/* Hero Section */}
-        <section className="w-full h-[50%] relative overflow-hidden flex items-center justify-center bg-black shrink-0">
+        <section className="w-full h-[100dvh] relative overflow-hidden flex items-center justify-center bg-black shrink-0">
           <iframe
             ref={heroVideoRef}
             src="https://iframe.mediadelivery.net/embed/694348/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e?autoplay=true&loop=true&muted=true&preload=true&controls=false"
@@ -295,7 +295,7 @@ export function LandingPage() {
         </section>
 
         {/* Projects Section */}
-        <section className="w-full h-[50%] relative shrink-0">
+        <section className="w-full h-[100dvh] relative shrink-0">
 
           {/* Background Media */}
       {isEmbedVideo ? (
