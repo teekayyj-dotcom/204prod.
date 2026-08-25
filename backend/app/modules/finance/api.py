@@ -26,6 +26,44 @@ def list_expenses(db: Session = Depends(get_db_session)):
 def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db_session)):
     return create_new_expense(db, payload)
 
+@router.put("/expenses/{exp_id}", response_model=ExpenseResponse)
+def update_expense(exp_id: str, payload: ExpenseCreate, db: Session = Depends(get_db_session)):
+    from app.modules.finance.models import Expense
+    exp = db.query(Expense).filter(Expense.id == exp_id).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    
+    exp.date = payload.date
+    exp.description = payload.description
+    exp.category = payload.category
+    exp.group = payload.group
+    exp.amount = payload.amount
+    if payload.budget is not None:
+        exp.budget = payload.budget
+    if payload.project:
+        exp.project = payload.project
+    exp.submitter = payload.submitter
+    if payload.avatar:
+        exp.avatar = payload.avatar
+    if payload.status:
+        exp.status = payload.status
+    if payload.note is not None:
+        exp.note = payload.note
+    db.commit()
+    db.refresh(exp)
+    return exp
+
+@router.delete("/expenses/{exp_id}")
+def delete_expense(exp_id: str, db: Session = Depends(get_db_session)):
+    from app.modules.finance.models import Expense
+    exp = db.query(Expense).filter(Expense.id == exp_id).first()
+    if not exp:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    db.delete(exp)
+    db.commit()
+    return {"status": "ok", "deleted_id": exp_id}
+
+
 # Payouts
 @router.get("/payables", response_model=list[PayoutResponse])
 def list_payables(db: Session = Depends(get_db_session)):

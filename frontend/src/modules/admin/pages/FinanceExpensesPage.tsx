@@ -7,9 +7,16 @@ import {
   TrendingDown, Users, Building2, Cpu, Plane, UtensilsCrossed,
   UserCheck, Camera, Shirt, Coffee, Megaphone, Plus, X,
   AlertTriangle, ChevronDown, Search, Filter, CheckCircle2,
-  Briefcase, DollarSign, BarChart2, Loader2,
+  Briefcase, DollarSign, BarChart2, Loader2, Edit, Trash2,
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "../ui/context-menu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,15 +134,39 @@ interface AddExpensePanelProps {
   talents: any[];
   projects: any[];
   crew: any[];
+  expense?: Expense | null;
 }
 
-function AddExpensePanel({ open, onClose, onRefresh, talents, projects, crew }: AddExpensePanelProps) {
+function AddExpensePanel({ open, onClose, onRefresh, talents, projects, crew, expense }: AddExpensePanelProps) {
   const [group, setGroup] = useState<ExpenseGroup>("cogs");
   const [form, setForm] = useState({
     description: "", category: "", grossAmount: "", project: "", date: "", submitter: "", note: "", payeeId: "",
     payee: "", bankName: "", bankAccount: "",
   });
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (expense) {
+      setGroup(expense.group);
+      setForm({
+        description: expense.description,
+        category: expense.category,
+        grossAmount: expense.amount.toString(),
+        project: expense.project || "",
+        date: expense.date,
+        submitter: expense.submitter,
+        note: expense.note || "",
+        payeeId: expense.category === "Thuê ngoài & Talent" ? expense.submitter : "",
+        payee: "", bankName: "", bankAccount: "",
+      });
+    } else if (open) {
+      setForm({
+        description: "", category: "", grossAmount: "", project: "", date: "", submitter: "", note: "", payeeId: "",
+        payee: "", bankName: "", bankAccount: "",
+      });
+    }
+  }, [expense, open]);
+
 
   const opexCategories = ["Nhân sự nội bộ", "Văn phòng & Hành chính", "Phần mềm & Bản quyền"];
   const cogsCategories = ["Logistics & Đi lại", "Lưu trú & Ăn uống", "Thuê ngoài & Talent", "Thiết bị & Trường quay", "Đạo cụ & Bối cảnh"];
@@ -168,7 +199,7 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects, crew }: 
   async function handleSave() {
     setSubmitting(true);
     try {
-      const payload = {
+            const payload = {
         date: form.date,
         description: isOutsource ? `Cát-xê ${form.payeeId} — ${form.category}` : form.description,
         category: form.category,
@@ -182,15 +213,19 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects, crew }: 
           : (selectedCrew?.avatar || form.submitter.split(" ").map((n: string) => n[0]).join("").toUpperCase()),
         status: "ok",
         note: form.note || null,
-        payee: isOutsource ? undefined : form.payee || undefined,
-        bank_name: isOutsource ? undefined : form.bankName || undefined,
-        bank_account: isOutsource ? undefined : form.bankAccount || undefined,
       };
 
-      await fetchApi("/finance/expenses", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
+      if (expense) {
+        await fetchApi(`/finance/expenses/${expense.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await fetchApi("/finance/expenses", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+      }
       onRefresh();
       onClose();
     } catch (err) {
@@ -488,10 +523,12 @@ function AddExpensePanel({ open, onClose, onRefresh, talents, projects, crew }: 
 // ─── Category summary row ─────────────────────────────────────────────────────
 
 function CategorySummaryCard({
-  category, expenses,
+  category, expenses, onEdit, onDelete
 }: {
   category: string;
   expenses: Expense[];
+  onEdit: (e: Expense) => void;
+  onDelete: (id: string) => void;
 }) {
   const Icon = CATEGORY_ICONS[category] ?? DollarSign;
   const total = expenses.reduce((s, e) => s + e.amount, 0);
@@ -554,7 +591,7 @@ function CategorySummaryCard({
       {open && (
         <div style={{ borderTop: "1px solid #2A1F1F" }}>
           {expenses.map((exp, i) => (
-            <ExpenseRow key={exp.id} exp={exp} last={i === expenses.length - 1} />
+            <ExpenseRow key={exp.id} exp={exp} last={i === expenses.length - 1} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </div>
       )}
@@ -564,51 +601,66 @@ function CategorySummaryCard({
 
 // ─── Expense row ──────────────────────────────────────────────────────────────
 
-function ExpenseRow({ exp, last }: { exp: Expense; last: boolean }) {
+function ExpenseRow({ exp, last, onEdit, onDelete }: { exp: Expense; last: boolean; onEdit: (e: Expense) => void; onDelete: (id: string) => void; }) {
   const s = statusStyle(exp.status);
   return (
-    <div
-      className="flex items-center gap-3 px-5 py-3"
-      style={{ borderBottom: last ? "none" : "1px solid #2A1F1F" }}
-    >
-      <div
-        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold overflow-hidden"
-        style={{ background: "#8E1616", color: "#EEEEEE" }}
-      >
-        {exp.avatar && (exp.avatar.startsWith("http") || exp.avatar.startsWith("/")) ? (
-          <img src={exp.avatar} alt="Payee" className="w-full h-full object-cover" />
-        ) : (
-          exp.avatar
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{exp.description}</span>
-          {exp.project && (
-            <span
-              className="px-1.5 py-0.5 rounded-full text-xs"
-              style={{ background: "#D8404022", color: "#D84040" }}
-            >
-              {exp.project.split("—")[0].trim()}
-            </span>
-          )}
-        </div>
-        {exp.note && <p style={{ color: "#555", fontSize: "10px" }}>{exp.note}</p>}
-        <p style={{ color: "#444", fontSize: "10px" }}>{formatDate(exp.date)} · {exp.submitter}</p>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <p style={{ color: s.color, fontSize: "13px", fontWeight: 700 }}>{fmtM(exp.amount)}</p>
-        {exp.budget && exp.status !== "ok" && (
-          <p style={{ color: "#444", fontSize: "10px" }}>Ngân sách: {fmtM(exp.budget)}</p>
-        )}
-        <span
-          className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
-          style={{ background: s.bg, color: s.color }}
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <div
+          className="flex items-center gap-3 px-5 py-3"
+          style={{ borderBottom: last ? "none" : "1px solid #2A1F1F" }}
         >
-          {s.label}
-        </span>
-      </div>
-    </div>
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold overflow-hidden"
+            style={{ background: "#8E1616", color: "#EEEEEE" }}
+          >
+            {exp.avatar && (exp.avatar.startsWith("http") || exp.avatar.startsWith("/")) ? (
+              <img src={exp.avatar} alt="Payee" className="w-full h-full object-cover" />
+            ) : (
+              exp.avatar
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span style={{ color: "#EEEEEE", fontSize: "12px", fontWeight: 500 }}>{exp.description}</span>
+              {exp.project && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-xs"
+                  style={{ background: "#D8404022", color: "#D84040" }}
+                >
+                  {exp.project.split("—")[0].trim()}
+                </span>
+              )}
+            </div>
+            {exp.note && <p style={{ color: "#555", fontSize: "10px" }}>{exp.note}</p>}
+            <p style={{ color: "#444", fontSize: "10px" }}>{formatDate(exp.date)} · {exp.submitter}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p style={{ color: s.color, fontSize: "13px", fontWeight: 700 }}>{fmtM(exp.amount)}</p>
+            {exp.budget && exp.status !== "ok" && (
+              <p style={{ color: "#444", fontSize: "10px" }}>Ngân sách: {fmtM(exp.budget)}</p>
+            )}
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ background: s.bg, color: s.color }}
+            >
+              {s.label}
+            </span>
+          </div>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => onEdit(exp)}>
+          <Edit className="w-4 h-4 mr-2" />
+          Sửa chi phí
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => onDelete(exp.id)} className="text-red-500 focus:text-red-500">
+          <Trash2 className="w-4 h-4 mr-2" />
+          Xóa
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -736,7 +788,7 @@ function OverviewTab({ expenses, monthlyTrend }: OverviewTabProps) {
             </span>
           </div>
           {expenses.filter((e) => e.status === "over").map((e, i, arr) => (
-            <ExpenseRow key={e.id} exp={e} last={i === arr.length - 1} />
+            <ExpenseRow key={e.id} exp={e} last={i === arr.length - 1} onEdit={handleEditExpense} onDelete={handleDeleteExpense} />
           ))}
         </div>
       )}
@@ -750,7 +802,7 @@ interface ExpenseGroupTabProps {
   projects: any[];
 }
 
-function ExpenseGroupTab({ group, expenses, projects }: ExpenseGroupTabProps) {
+function ExpenseGroupTab({ group, expenses, projects, onEdit, onDelete }: ExpenseGroupTabProps & { onEdit: (e: Expense) => void; onDelete: (id: string) => void; }) {
   const searchParams = new URLSearchParams(window.location.search);
   const initialSearch = searchParams.get("search") || "";
   const [search, setSearch] = useState(initialSearch);
@@ -817,6 +869,8 @@ function ExpenseGroupTab({ group, expenses, projects }: ExpenseGroupTabProps) {
           <CategorySummaryCard
             key={cat}
             category={cat}
+            onEdit={onEdit}
+            onDelete={onDelete}
             expenses={filtered.filter((e) => e.category === cat)}
           />
         ))}
@@ -853,6 +907,23 @@ export function FinanceExpensesPage() {
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  async function handleDeleteExpense(id: string) {
+    if (!confirm("Bạn có chắc chắn muốn xóa khoản chi này?")) return;
+    try {
+      await fetchApi(`/finance/expenses/${id}`, { method: "DELETE" });
+      loadData();
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi xóa khoản chi");
+    }
+  }
+
+  function handleEditExpense(exp: Expense) {
+    setEditingExpense(exp);
+    setPanelOpen(true);
+  }
 
   async function loadData() {
     setLoading(true);
@@ -952,18 +1023,19 @@ export function FinanceExpensesPage() {
 
         {/* Content */}
         {tab === "overview" && <OverviewTab expenses={expenses} monthlyTrend={monthlyTrend} />}
-        {tab === "opex"     && <ExpenseGroupTab group="opex" expenses={expenses} projects={projects} />}
-        {tab === "cogs"     && <ExpenseGroupTab group="cogs" expenses={expenses} projects={projects} />}
-        {tab === "misc"     && <ExpenseGroupTab group="misc" expenses={expenses} projects={projects} />}
+        {tab === "opex"     && <ExpenseGroupTab group="opex" expenses={expenses} projects={projects} onEdit={handleEditExpense} onDelete={handleDeleteExpense} />}
+        {tab === "cogs"     && <ExpenseGroupTab group="cogs" expenses={expenses} projects={projects} onEdit={handleEditExpense} onDelete={handleDeleteExpense} />}
+        {tab === "misc"     && <ExpenseGroupTab group="misc" expenses={expenses} projects={projects} onEdit={handleEditExpense} onDelete={handleDeleteExpense} />}
       </div>
 
       <AddExpensePanel
         open={panelOpen}
-        onClose={() => setPanelOpen(false)}
+        onClose={() => { setPanelOpen(false); setEditingExpense(null); }}
         onRefresh={loadData}
         talents={talents}
         projects={projects}
         crew={crew}
+        expense={editingExpense}
       />
     </>
   );
