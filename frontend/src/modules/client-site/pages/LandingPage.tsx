@@ -163,7 +163,7 @@ export function LandingPage() {
       gsap.to(wrapperRef.current, { y: "0%", duration: 1, ease: "power3.inOut" });
       gsap.to(heroVideoRef.current, { y: "0%", duration: 1, ease: "power3.inOut" });
     } else {
-      gsap.to(wrapperRef.current, { y: "-50%", duration: 1, ease: "power3.inOut" });
+      gsap.to(wrapperRef.current, { y: "-100vh", duration: 1, ease: "power3.inOut" });
       gsap.to(heroVideoRef.current, { y: "15%", duration: 1, ease: "power3.inOut" }); // Parallax effect
     }
   }, [viewMode]);
@@ -271,7 +271,8 @@ export function LandingPage() {
   
   return (
     <main
-      className="h-[100dvh] w-full bg-black relative overflow-hidden"
+      className="w-full bg-black relative overflow-hidden"
+      style={{ height: "100vh", maxHeight: "-webkit-fill-available" }}
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
@@ -279,10 +280,14 @@ export function LandingPage() {
     >
       <div 
         ref={wrapperRef}
-        className="w-full h-[200dvh] flex flex-col absolute top-0 left-0"
+        className="w-full flex flex-col absolute top-0 left-0"
+        style={{ height: "200vh" }}
       >
         {/* Hero Section */}
-        <section className="w-full h-[100dvh] relative overflow-hidden flex items-center justify-center bg-black shrink-0">
+        <section 
+          className="w-full relative overflow-hidden flex items-center justify-center bg-black shrink-0"
+          style={{ height: "100vh" }}
+        >
           <iframe
             ref={heroVideoRef}
             src="https://iframe.mediadelivery.net/embed/694348/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e?autoplay=true&loop=true&muted=true&preload=true&controls=false"
@@ -295,7 +300,10 @@ export function LandingPage() {
         </section>
 
         {/* Projects Section */}
-        <section className="w-full h-[100dvh] relative shrink-0">
+        <section 
+          className="w-full relative shrink-0"
+          style={{ height: "100vh" }}
+        >
 
           {/* Background Media */}
       {isEmbedVideo ? (
