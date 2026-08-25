@@ -206,7 +206,7 @@ export function ClientLayout() {
           <footer className="w-full shrink-0 relative flex flex-col justify-between px-12 md:px-24 py-16 md:py-20 text-white overflow-hidden select-none" style={{
             height: "100vh",
             minHeight: "100vh",
-            backgroundImage: "url('/background/Footer-background.png')",
+            backgroundImage: "url('/background/Footer-background.jpg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat"
