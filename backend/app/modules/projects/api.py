@@ -49,7 +49,7 @@ def list_projects_route(
 def list_all_projects_route(db: Session = Depends(get_db_session)):
     from app.modules.projects.models import Project, Client, ProjectGalleryImage
     from app.modules.projects.repository import _map_to_detail
-    from sqlalchemy import select
+    from sqlalchemy import select, nullslast
     from sqlalchemy.orm import joinedload
 
     stmt = select(Project).options(
@@ -58,7 +58,7 @@ def list_all_projects_route(db: Session = Depends(get_db_session)):
         joinedload(Project.cover_media),
         joinedload(Project.credits),
         joinedload(Project.gallery_images).joinedload(ProjectGalleryImage.media_asset)
-    ).order_by(Project.created_at.desc())
+    ).order_by(nullslast(Project.due_date.asc()), Project.created_at.desc())
     
     projects = db.scalars(stmt).unique().all()
     return [_map_to_detail(p) for p in projects]
