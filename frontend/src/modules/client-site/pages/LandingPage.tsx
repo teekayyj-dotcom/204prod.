@@ -177,7 +177,7 @@ export function LandingPage() {
     if (Math.abs(e.deltaY) < 1) return;
 
     const now = Date.now();
-    if (now - lastScrollTime.current < 700) return;
+    if (now - lastScrollTime.current < 1500) return;
 
     if (e.deltaY > 0) {
       // Scroll DOWN
@@ -187,7 +187,7 @@ export function LandingPage() {
       } else {
         if (projects.length === 0) return;
         setScrollDirection("down");
-        setCurrentIndex((prev) => (prev + 1) % projects.length);
+        setCurrentIndex((currentIndex + 1) % projects.length);
         lastScrollTime.current = now;
       }
     } else {
@@ -198,7 +198,7 @@ export function LandingPage() {
           lastScrollTime.current = now;
         } else {
           setScrollDirection("up");
-          setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+          setCurrentIndex((currentIndex - 1 + projects.length) % projects.length);
           lastScrollTime.current = now;
         }
       }
@@ -214,7 +214,7 @@ export function LandingPage() {
     const touchEndY = e.changedTouches[0].clientY;
     const deltaY = touchStartY.current - touchEndY; // positive means swipe up (scroll down)
     const now = Date.now();
-    if (now - lastScrollTime.current < 1000) return;
+    if (now - lastScrollTime.current < 1500) return;
     
     if (Math.abs(deltaY) > 50) { // threshold
       if (viewMode === "hero") {
@@ -226,7 +226,7 @@ export function LandingPage() {
         if (projects.length === 0) return;
         if (deltaY > 0) {
           setScrollDirection("down");
-          setCurrentIndex((prev) => (prev + 1) % projects.length);
+          setCurrentIndex((currentIndex + 1) % projects.length);
           lastScrollTime.current = now;
         } else {
           if (currentIndex === 0) {
@@ -234,7 +234,7 @@ export function LandingPage() {
             lastScrollTime.current = now;
           } else {
             setScrollDirection("up");
-            setCurrentIndex((prev) => (prev - 1 + projects.length) % projects.length);
+            setCurrentIndex((currentIndex - 1 + projects.length) % projects.length);
             lastScrollTime.current = now;
           }
         }
