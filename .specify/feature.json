@@ -1,1 +1,3 @@
-{"feature_directory":"specs/010-mention-messages"}
+{
+  "feature_directory": "specs/011-sort-projects-by-duedate"
+}

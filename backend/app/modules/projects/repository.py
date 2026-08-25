@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, nullslast
 from sqlalchemy.orm import Session, joinedload
 from app.modules.projects.models import Client, Project, ProjectGalleryImage
 from app.modules.projects.schemas import ProjectDetail
@@ -96,9 +96,9 @@ def list_projects(
         elif sort_by == "format":
             stmt = stmt.order_by(Project.format_slug.asc())
         else:
-            stmt = stmt.order_by(Project.created_at.desc())
+            stmt = stmt.order_by(nullslast(Project.due_date.asc()), Project.created_at.desc())
     else:
-        stmt = stmt.order_by(Project.created_at.desc())
+        stmt = stmt.order_by(nullslast(Project.due_date.asc()), Project.created_at.desc())
 
     return paginate(db, stmt, transformer=lambda items: [_map_to_detail(p) for p in items])
 
