@@ -82,16 +82,16 @@ export function ContactPage() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120vw] md:w-[80vw] h-[60vw] md:h-[40vw] bg-[#bc0a0a]/50 rounded-full blur-[100px] md:blur-[150px] -translate-y-1/2 mix-blend-screen pointer-events-none z-0"></div>
 
       {/* Giant Background Typography */}
-      <div className="absolute top-0 left-0 right-0 flex justify-center items-start overflow-hidden pointer-events-none select-none z-0 opacity-15 pt-[5vh] md:pt-[2vh]">
+      <div className="absolute top-0 left-0 right-0 flex justify-center items-start overflow-hidden pointer-events-none select-none z-0 opacity-15 pt-[2vh] md:-mt-6">
         <motion.div style={{ y: yText }} className="w-full text-center">
           <h1
-            className="text-[24vw] md:text-[18vw] font-[Space_Grotesk] font-black uppercase leading-none tracking-tighter text-white"
+            className="text-[25vw] md:text-[20vw] font-[Space_Grotesk] font-black uppercase leading-none tracking-tighter text-white"
             style={{
-              WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 100%)',
-              maskImage: 'linear-gradient(to bottom, black 20%, transparent 100%)'
+              WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+              maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
             }}
           >
-            204PROD.
+            CONTACT
           </h1>
         </motion.div>
       </div>
