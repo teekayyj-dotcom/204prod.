@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { ArrowDown, ArrowRight } from "lucide-react";
+import { useWorksTransition } from "../components/WorksTransitionContext";
 
 interface Project {
   slug: string;
@@ -116,6 +117,7 @@ const CanvasGlitchTitle = ({ text, isHovering }: { text: string, isHovering: boo
 };
 
 export function LandingPage() {
+  const { navigateToWorks } = useWorksTransition();
   
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -296,7 +298,40 @@ export function LandingPage() {
             allow="autoplay; fullscreen; picture-in-picture"
             title="Hero Video"
           />
-          <div className="absolute inset-0 bg-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+          {/* Hero Content Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 md:px-16 lg:px-24 z-10 pointer-events-auto">
+            <span className="text-white/60 tracking-[0.2em] text-xs md:text-sm uppercase mb-2">
+              Visual Storytelling Studio
+            </span>
+            
+            <h1 
+              className="text-[#f4f4f4] font-black italic uppercase tracking-tighter leading-none mb-6" 
+              style={{ fontSize: 'clamp(4rem, 18vw, 18rem)', transform: 'scaleY(1.1)' }}
+            >
+              204PROD.
+            </h1>
+            
+            <p className="text-white/80 text-base md:text-xl max-w-2xl font-light mb-10 leading-relaxed">
+              Cinematic campaigns, cultural visuals, and high-intent brand storytelling<br className="hidden md:block" /> built to move audiences and brands 4ward.
+            </p>
+            
+            <div className="flex flex-wrap justify-center items-center gap-4">
+              <button 
+                onClick={navigateToWorks}
+                className="px-8 py-3.5 bg-[#f4f4f4] text-black rounded-[2rem] font-medium tracking-wider text-xs md:text-sm hover:bg-white transition-colors"
+              >
+                EXPLORE WORK
+              </button>
+              <Link
+                to="/contact" 
+                className="px-8 py-3.5 bg-black/40 text-white border border-white/30 rounded-[2rem] font-medium tracking-wider text-xs md:text-sm hover:bg-black/60 transition-colors backdrop-blur-md"
+              >
+                START A CONVERSATION
+              </Link>
+            </div>
+          </div>
         </section>
 
         {/* Projects Section */}
