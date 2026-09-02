@@ -294,6 +294,8 @@ export function ProjectDetail() {
                   loop 
                   muted 
                   playsInline
+                  lazyLoad={false}
+                  preload="auto"
                   className="w-full h-full object-cover opacity-60" 
                   poster={project.image}
                 />

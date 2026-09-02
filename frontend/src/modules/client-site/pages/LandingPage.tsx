@@ -359,6 +359,9 @@ export function LandingPage() {
           loop
           muted
           playsInline
+          lazyLoad={false}
+          preload="auto"
+          poster={coverMedia?.kind === "image" ? coverMedia.url : undefined}
           className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
           style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scale(1.35)", transformOrigin: "center" }}
         />
@@ -371,6 +374,9 @@ export function LandingPage() {
             loop
             muted
             playsInline
+            lazyLoad={false}
+            preload="auto"
+            poster={currentProject?.cover_image}
             className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />

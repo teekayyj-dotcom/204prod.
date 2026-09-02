@@ -994,6 +994,7 @@ export function WorksPage() {
                                       loop
                                       muted
                                       playsInline
+                                      poster={project.cover_image}
                                       className="w-full h-full object-cover"
                                     />
                                   );
