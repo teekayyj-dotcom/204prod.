@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { ArrowDown, ArrowRight } from "lucide-react";
 import { useWorksTransition } from "../components/WorksTransitionContext";
+import { HlsVideo } from "../../../shared/components/HlsVideo";
 
 interface Project {
   slug: string;
@@ -351,7 +352,7 @@ export function LandingPage() {
           title={currentProject.title}
         />
       ) : isDirectVideo ? (
-        <video
+        <HlsVideo
           key={nativeVideoUrl}
           src={nativeVideoUrl}
           autoPlay
@@ -363,7 +364,7 @@ export function LandingPage() {
         />
       ) : coverMedia?.url ? (
         coverMedia.kind === "video" ? (
-          <video
+          <HlsVideo
             key={coverMedia.url}
             src={coverMedia.url}
             autoPlay

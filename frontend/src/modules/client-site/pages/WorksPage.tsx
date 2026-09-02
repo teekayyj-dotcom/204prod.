@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { Square, List, LayoutGrid, Search, ChevronDown } from "lucide-react";
 import gsap from 'gsap';
+import { HlsVideo } from "../../../shared/components/HlsVideo";
 
 function FluidHero({ title, children }) {
     const containerRef = useRef(null);
@@ -987,7 +988,7 @@ export function WorksPage() {
                                   );
                                 } else {
                                   return (
-                                    <video
+                                    <HlsVideo
                                       src={nativeVideoUrl}
                                       autoPlay
                                       loop

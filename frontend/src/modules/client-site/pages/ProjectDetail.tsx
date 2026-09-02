@@ -11,6 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 gsap.config({ trialWarn: false });
 
 import { useWorksTransition } from '../components/WorksTransitionContext';
+import { HlsVideo } from '../../../shared/components/HlsVideo';
 
 const shot = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=80`;
 
@@ -287,7 +288,7 @@ export function ProjectDetail() {
               );
             } else {
               return (
-                <video 
+                <HlsVideo 
                   src={nativeVideoUrl}
                   autoPlay 
                   loop 
