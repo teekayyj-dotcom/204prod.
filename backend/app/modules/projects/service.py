@@ -38,9 +38,13 @@ def get_project_by_slug_orm(db: Session, slug: str) -> Project | None:
 
 def create_project(db: Session, project: ProjectCreate) -> Project:
     import re
+    import unicodedata
     slug = project.slug
     if not slug:
-        slug = re.sub(r'[^a-z0-9]+', '-', project.title.lower()).strip('-')
+        s = project.title.lower()
+        s = re.sub(r'[đĐ]', 'd', s)
+        s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('utf-8')
+        slug = re.sub(r'[^a-z0-9]+', '-', s).strip('-')
 
     video_url = project.video_url
     if video_url is not None and not video_url.strip():
@@ -113,6 +117,8 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
     
     if project.title is not None:
         existing_project.title = project.title
+    if project.slug is not None and project.slug != existing_project.slug:
+        existing_project.slug = project.slug
     if project.client_slug is not None:
         existing_project.client_slug = project.client_slug
     if project.year is not None:

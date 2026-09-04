@@ -217,11 +217,31 @@ export function AddProjectPage() {
                                 </div>)}
                         </div>
 
-                        {/* Title */}
-                        <div>
-                            <FieldLabel icon={FolderOpen} text="Project Title *"/>
-                            <input {...register("title", { required: "Title is required" })} placeholder="e.g. Nexus Brand Refresh" className="px-3 py-2.5 rounded-lg outline-none transition-all" style={{ ...inputStyle, borderColor: errors.title ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.title ? "#D84040" : "#3A2A2A")}/>
-                            {errors.title && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.title.message}</p>}
+                        {/* Title and Slug */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <FieldLabel icon={FolderOpen} text="Project Title *"/>
+                                <input {...register("title", { 
+                                    required: "Title is required",
+                                    onChange: (e) => {
+                                        const val = e.target.value;
+                                        const slugVal = val
+                                            .toLowerCase()
+                                            .normalize('NFD')
+                                            .replace(/[\u0300-\u036f]/g, '')
+                                            .replace(/[đĐ]/g, 'd')
+                                            .replace(/[^a-z0-9]+/g, '-')
+                                            .replace(/^-+|-+$/g, '');
+                                        setValue("slug", slugVal, { shouldValidate: true, shouldDirty: true });
+                                    }
+                                })} placeholder="e.g. Nexus Brand Refresh" className="px-3 py-2.5 rounded-lg outline-none transition-all w-full" style={{ ...inputStyle, borderColor: errors.title ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.title ? "#D84040" : "#3A2A2A")}/>
+                                {errors.title && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.title.message as string}</p>}
+                            </div>
+                            <div>
+                                <FieldLabel icon={Link2} text="Slug *"/>
+                                <input {...register("slug", { required: "Slug is required" })} placeholder="e.g. nexus-brand-refresh" className="px-3 py-2.5 rounded-lg outline-none transition-all w-full" style={{ ...inputStyle, borderColor: errors.slug ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.slug ? "#D84040" : "#3A2A2A")}/>
+                                {errors.slug && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.slug.message as string}</p>}
+                            </div>
                         </div>
 
                         {/* Client + Category */}

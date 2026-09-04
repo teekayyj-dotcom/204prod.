@@ -2615,6 +2615,7 @@ export function ProjectDetailPage() {
 
             reset({
                 title: projData.title,
+                slug: projData.slug,
                 client: projData.client_slug || projData.client,
                 category: projData.format_slug || projData.format,
                 status: projData.status,
@@ -2754,6 +2755,7 @@ export function ProjectDetailPage() {
 
             const payload = {
                 title: data.title,
+                slug: data.slug,
                 client_slug: data.client,
                 year: parseInt(new Date(data.dueDate || Date.now()).getFullYear()),
                 format_slug: data.category,
@@ -2783,6 +2785,9 @@ export function ProjectDetailPage() {
                 setSaved(false); setIsEditing(false);
                 setThumbnailFile(null); setUploadedVideo(null);
                 setThumbnailPreview(null);
+                if (data.slug && data.slug !== id) {
+                    navigate(`/admin/projects/${data.slug}`, { replace: true });
+                }
             }, 1400);
         } catch (err) {
             console.error("Failed to update project:", err);
@@ -3105,12 +3110,33 @@ export function ProjectDetailPage() {
                         </div>
 
                         <div className="px-5 py-5 space-y-4">
-                            {/* Title */}
-                            <div>
-                                <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                                    Project Title
-                                </label>
-                                {isEditing ? (<input {...register("title", { required: true })} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>{project.title}</p>)}
+                            {/* Title and Slug */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                                        Project Title
+                                    </label>
+                                    {isEditing ? (<input {...register("title", { 
+                                        required: true,
+                                        onChange: (e) => {
+                                            const val = e.target.value;
+                                            const slugVal = val
+                                                .toLowerCase()
+                                                .normalize('NFD')
+                                                .replace(/[\u0300-\u036f]/g, '')
+                                                .replace(/[đĐ]/g, 'd')
+                                                .replace(/[^a-z0-9]+/g, '-')
+                                                .replace(/^-+|-+$/g, '');
+                                            setValue("slug", slugVal, { shouldValidate: true, shouldDirty: true });
+                                        }
+                                    })} className="px-3 py-2 rounded-lg outline-none w-full" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>{project.title}</p>)}
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                                        Slug
+                                    </label>
+                                    {isEditing ? (<input {...register("slug", { required: true })} className="px-3 py-2 rounded-lg outline-none w-full" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>) : (<p style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>{project.slug}</p>)}
+                                </div>
                             </div>
 
                             {/* Client + Category */}
