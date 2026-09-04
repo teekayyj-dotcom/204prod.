@@ -1,15 +1,13 @@
 import { useDrag, useDrop } from 'react-dnd';
 import { KanbanTask } from '../../services/kanbanService';
-import { Clock, GripVertical } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { Clock, GripVertical, User } from 'lucide-react';
 import { useRef } from 'react';
 
 interface KanbanTaskCardProps {
   task: KanbanTask;
   index: number;
   moveTask: (dragIndex: number, hoverIndex: number, newStatus: string) => void;
-  onDropTask: (taskId: string, specId: string, originalLine: number, newStatus: string) => void;
+  onDropTask: (taskId: string, newStatus: string) => void;
 }
 
 export function KanbanTaskCard({ task, index, moveTask, onDropTask }: KanbanTaskCardProps) {
@@ -24,7 +22,7 @@ export function KanbanTaskCard({ task, index, moveTask, onDropTask }: KanbanTask
     end: (item, monitor) => {
       const dropResult = monitor.getDropResult<{ status: string }>();
       if (item && dropResult) {
-        onDropTask(item.task.id, item.task.specId, item.task.originalLine, dropResult.status);
+        onDropTask(item.task.id, dropResult.status);
       }
     },
   });
@@ -58,8 +56,6 @@ export function KanbanTaskCard({ task, index, moveTask, onDropTask }: KanbanTask
 
   drag(drop(ref));
 
-  const parsedId = task.id.split('::')[1];
-
   return (
     <div
       ref={ref}
@@ -71,10 +67,14 @@ export function KanbanTaskCard({ task, index, moveTask, onDropTask }: KanbanTask
       
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center space-x-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-neutral-900 text-neutral-300 border border-neutral-700">
-            {task.specId}
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-neutral-900 text-neutral-300 border border-neutral-700 max-w-[120px] truncate" title={task.project_title || task.project_slug}>
+            {task.project_title || task.project_slug}
           </span>
-          <span className="text-xs font-medium text-neutral-500">{parsedId}</span>
+          {task.tag && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-700/50 text-neutral-400">
+              {task.tag}
+            </span>
+          )}
         </div>
         <div ref={preview} className="text-neutral-500 hover:text-neutral-300 transition-colors opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing">
           <GripVertical size={16} />
@@ -82,12 +82,26 @@ export function KanbanTaskCard({ task, index, moveTask, onDropTask }: KanbanTask
       </div>
       
       <p className="text-sm text-neutral-200 font-medium leading-relaxed mb-4">
-        {task.description}
+        {task.title}
       </p>
       
-      <div className="flex items-center text-xs text-neutral-500 mt-auto">
-        <Clock size={12} className="mr-1.5" />
-        {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true, locale: vi })}
+      <div className="flex items-center justify-between text-xs text-neutral-500 mt-auto pt-2 border-t border-neutral-700/50">
+        <div className="flex items-center">
+          {task.deadline ? (
+            <>
+              <Clock size={12} className="mr-1.5" />
+              {task.deadline}
+            </>
+          ) : (
+            <span className="text-neutral-600 italic">No deadline</span>
+          )}
+        </div>
+        <div className="flex items-center bg-neutral-900 px-2 py-1 rounded-md" title={task.assignee_name || 'Unassigned'}>
+          <User size={12} className="mr-1.5" />
+          <span className="truncate max-w-[80px]">
+            {task.assignee_initials || task.assignee_name || 'Unassigned'}
+          </span>
+        </div>
       </div>
     </div>
   );

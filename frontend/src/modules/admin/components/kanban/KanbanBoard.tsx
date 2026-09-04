@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { KanbanTask, TaskStatus, kanbanService } from '../../services/kanbanService';
 import { KanbanColumn } from './KanbanColumn';
-import { Circle, CircleDot, CheckCircle2 } from 'lucide-react';
+import { Circle, CircleDot, CheckCircle2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface KanbanBoardProps {
@@ -13,18 +13,23 @@ interface KanbanBoardProps {
 export function KanbanBoard({ initialTasks }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<KanbanTask[]>(initialTasks);
 
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
   const columns: { id: TaskStatus; title: string; icon: React.ReactNode }[] = [
     { id: 'todo', title: 'To Do', icon: <Circle size={16} className="text-neutral-500" /> },
-    { id: 'in-progress', title: 'In Progress', icon: <CircleDot size={16} className="text-blue-500" /> },
+    { id: 'inprogress', title: 'In Progress', icon: <CircleDot size={16} className="text-blue-500" /> },
+    { id: 'intreview', title: 'Int Review', icon: <RefreshCw size={16} className="text-yellow-500" /> },
+    { id: 'clientreview', title: 'Client Review', icon: <RefreshCw size={16} className="text-purple-500" /> },
     { id: 'done', title: 'Done', icon: <CheckCircle2 size={16} className="text-green-500" /> },
   ];
 
   const moveTask = useCallback((dragIndex: number, hoverIndex: number, newStatus: string) => {
-    // For sorting within the same column or across columns visually during drag
-    // Not strictly needed if we just rely on drop, but good for visual feedback
+    // For visual sorting if needed
   }, []);
 
-  const handleDropTask = useCallback(async (taskId: string, specId: string, originalLine: number, newStatus: string) => {
+  const handleDropTask = useCallback(async (taskId: string, newStatus: string) => {
     setTasks(prevTasks => {
       const taskIndex = prevTasks.findIndex(t => t.id === taskId);
       if (taskIndex === -1) return prevTasks;
@@ -35,13 +40,12 @@ export function KanbanBoard({ initialTasks }: KanbanBoardProps) {
       const newTasks = [...prevTasks];
       newTasks[taskIndex].status = newStatus as TaskStatus;
 
-      // Make API call to backend
-      kanbanService.updateTaskStatus(specId, taskId, originalLine, newStatus as TaskStatus)
+      // API call to backend
+      kanbanService.updateTaskStatus(taskId, newStatus as TaskStatus)
         .then(() => toast.success('Task updated'))
         .catch(err => {
           console.error(err);
           toast.error('Failed to update task');
-          // Revert on failure
           setTasks(current => {
             const revertTasks = [...current];
             const revertIndex = revertTasks.findIndex(t => t.id === taskId);

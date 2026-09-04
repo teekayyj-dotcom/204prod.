@@ -19,18 +19,9 @@ export function KanbanPage() {
   }, []);
 
   const filteredTasks = useMemo(() => {
-    if (timeFilter === 'all') return tasks;
-    
-    const now = new Date();
-    let cutoffDate: Date | null = null;
-    
-    if (timeFilter === '1m') cutoffDate = subMonths(now, 1);
-    else if (timeFilter === '3m') cutoffDate = subMonths(now, 3);
-    else if (timeFilter === '1q') cutoffDate = subMonths(now, 3);
-
-    if (cutoffDate) {
-      return tasks.filter(task => isAfter(new Date(task.createdAt), cutoffDate!));
-    }
+    // Currently, project tasks don't expose a createdAt field in the API schema.
+    // So for now, we just return all tasks. 
+    // To filter by time properly, the backend schema for ProjectTask needs to expose createdAt.
     return tasks;
   }, [tasks, timeFilter]);
 

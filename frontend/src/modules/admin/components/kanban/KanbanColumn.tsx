@@ -8,7 +8,7 @@ interface KanbanColumnProps {
   tasks: KanbanTask[];
   icon?: React.ReactNode;
   moveTask: (dragIndex: number, hoverIndex: number, newStatus: string) => void;
-  onDropTask: (taskId: string, specId: string, originalLine: number, newStatus: string) => void;
+  onDropTask: (taskId: string, newStatus: string) => void;
 }
 
 export function KanbanColumn({ id, title, tasks, icon, moveTask, onDropTask }: KanbanColumnProps) {
