@@ -228,7 +228,9 @@ def reply_feedback_route(feedback_id: int, reply_content: str = Body(..., embed=
     return updated
 
 
-@router.get("/tasks/all")
+from app.modules.projects.schemas import ProjectTaskDetail
+
+@router.get("/tasks/all", response_model=list[ProjectTaskDetail])
 def get_all_tasks_route(db: Session = Depends(get_db_session)):
     from app.modules.projects.service import get_all_tasks
     return get_all_tasks(db)

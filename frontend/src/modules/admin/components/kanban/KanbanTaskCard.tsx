@@ -2,6 +2,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { KanbanTask } from '../../services/kanbanService';
 import { Clock, GripVertical, User } from 'lucide-react';
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 interface KanbanTaskCardProps {
   task: KanbanTask;
@@ -67,9 +68,9 @@ export function KanbanTaskCard({ task, index, moveTask, onDropTask }: KanbanTask
       
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center space-x-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-neutral-900 text-neutral-300 border border-neutral-700 max-w-[120px] truncate" title={task.project_title || task.project_slug}>
+          <Link to={`/admin/projects/${task.project_slug}`} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-neutral-900 text-neutral-300 border border-neutral-700 max-w-[120px] truncate hover:bg-neutral-800 hover:text-white transition-colors" title={task.project_title || task.project_slug} onClick={(e) => e.stopPropagation()}>
             {task.project_title || task.project_slug}
-          </span>
+          </Link>
           {task.tag && (
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-700/50 text-neutral-400">
               {task.tag}
