@@ -43,7 +43,7 @@ export function KanbanPage() {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="px-4 md:px-8 py-7 w-full h-full flex flex-col space-y-6 overflow-hidden" style={{ background: "#110D0D", minHeight: "100vh" }}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white">Project Tasks Kanban</h2>

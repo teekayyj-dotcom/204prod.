@@ -21,11 +21,13 @@ import {
   Network,
   Download,
   MessageCircle,
+  Kanban,
 } from "lucide-react";
 import { NotificationBell } from "../../../shared/components/NotificationBell";
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { label: "Projects", icon: Briefcase, path: "/admin/projects" },
+  { label: "Kanban", icon: Kanban, path: "/admin/kanban" },
 ];
 
 const bottomNavItems = [
