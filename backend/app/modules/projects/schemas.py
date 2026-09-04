@@ -96,7 +96,6 @@ class ProjectUpdate(BaseModel):
     due_date: str | None = None
     dueDate: str | None = None
     credits: list[str] | None = None
-    structured_credits: list[ProjectCreditDetail] | None = None
     gallery_media_ids: list[str] | None = None
     budget: str | None = None
 
