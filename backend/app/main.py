@@ -19,6 +19,7 @@ from app.modules.hr.api import router as hr_router
 from app.modules.finance.api import router as finance_router
 from app.modules.notifications.api import router as notifications_router
 from app.modules.messaging.api import router as messaging_router
+from app.modules.kanban.api import router as kanban_router
 
 from app.db.init_db import init_db
 from app.db.session import SessionLocal
@@ -115,6 +116,7 @@ app.include_router(hr_router, prefix=settings.api_v1_prefix)
 app.include_router(finance_router, prefix=settings.api_v1_prefix)
 app.include_router(notifications_router, prefix=f"{settings.api_v1_prefix}/notifications")
 app.include_router(messaging_router, prefix=settings.api_v1_prefix)
+app.include_router(kanban_router, prefix=f"{settings.api_v1_prefix}/kanban")
 
 from fastapi.staticfiles import StaticFiles
 import os
