@@ -97,12 +97,14 @@ export const NotificationBell = ({ userId, placement = 'bottom-right' }: { userI
             }
         };
 
-        if (Notification.permission === 'granted') {
-            registerPush();
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') registerPush();
-            });
+        if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+                registerPush();
+            } else if (Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') registerPush();
+                });
+            }
         }
 
         const connectWebSocket = () => {
