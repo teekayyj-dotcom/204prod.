@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db_session
 from app.modules.finance.schemas import (
-    ExpenseCreate, ExpenseResponse, PayoutResponse,
+    ExpenseCreate, ExpenseResponse, PayoutCreate, PayoutResponse,
     ClientInvoiceCreate, ClientInvoiceResponse
 )
 from app.modules.finance.service import (
