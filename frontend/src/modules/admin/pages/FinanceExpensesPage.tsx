@@ -1007,20 +1007,21 @@ export function FinanceExpensesPage() {
 
         {/* Tab bar */}
         <div
-          className="flex gap-1 p-1 rounded-xl w-fit"
-          style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+          className="flex gap-1 p-1 rounded-xl w-full md:w-fit overflow-x-auto"
+          style={{ background: "rgba(29, 22, 22, 0.4)", border: "1px solid rgba(46, 32, 32, 0.5)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", scrollbarWidth: "none" }}
         >
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all flex-shrink-0"
               style={{
                 background: tab === t.key ? t.color + "22" : "transparent",
                 color: tab === t.key ? t.color : "#666",
                 border: tab === t.key ? `1px solid ${t.color}44` : "1px solid transparent",
                 fontSize: "13px",
                 fontWeight: 600,
+                whiteSpace: "nowrap"
               }}
             >
               <t.icon size={13} />
