@@ -647,6 +647,14 @@ function ExpenseRow({ exp, last, onEdit, onDelete }: { exp: Expense; last: boole
               {s.label}
             </span>
           </div>
+          <div className="flex items-center gap-1.5 ml-2 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity">
+            <button onClick={(e) => { e.stopPropagation(); onEdit(exp); }} className="p-1.5 hover:bg-[#2A1F1F] rounded-lg transition-colors text-[#888] hover:text-[#EEEEEE]">
+              <Edit size={14} />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(exp.id); }} className="p-1.5 hover:bg-[#2A1F1F] rounded-lg transition-colors text-[#888] hover:text-red-500">
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
