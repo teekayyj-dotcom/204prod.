@@ -18,11 +18,25 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     const location = useLocation();
 
     useEffect(() => {
-        // 1. Firebase Auth Check
+        // 1. Firebase Auth Check (with timeout fallback for Safari)
+        let isResolved = false;
         const unsubscribe = onAuthStateChanged(auth, (user) => {
+            isResolved = true;
             setHasFirebaseUser(!!user);
             setIsFirebaseChecking(false);
+        }, (error) => {
+            isResolved = true;
+            console.error("Firebase auth error:", error);
+            setIsFirebaseChecking(false);
         });
+        
+        // Safari fallback: if Firebase hangs, force proceed after 3 seconds
+        const fallbackTimer = setTimeout(() => {
+            if (!isResolved) {
+                console.warn("Firebase auth check timed out, proceeding anyway.");
+                setIsFirebaseChecking(false);
+            }
+        }, 3000);
         
         // 2. Backend Verify Check (ensures user still exists and role is up to date)
         if (token) {
@@ -43,7 +57,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
             });
         }
         
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            clearTimeout(fallbackTimer);
+        };
     }, [token, role]);
 
     if (isFirebaseChecking) {
