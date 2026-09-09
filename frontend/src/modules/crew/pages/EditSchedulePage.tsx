@@ -28,8 +28,18 @@ export function EditSchedulePage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   
+  const getDefaultWeekStart = () => {
+    const now = new Date();
+    const day = now.getDay();
+    const hours = now.getHours();
+    if (day === 0 || (day === 6 && hours >= 12)) {
+      return addWeeks(startOfWeek(now, { weekStartsOn: 1 }), 1);
+    }
+    return startOfWeek(now, { weekStartsOn: 1 });
+  };
+
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(
-    state?.weekStart ? new Date(state.weekStart) : startOfWeek(new Date(), { weekStartsOn: 1 })
+    state?.weekStart ? new Date(state.weekStart) : getDefaultWeekStart()
   );
   
   const [scheduleData, setScheduleData] = useState<Record<string, string[]>>(
