@@ -580,7 +580,7 @@ export function MediaLibraryPage({ isComponent = false, projectSlug = "", client
                             onContextMenu={(e) => handleItemContextMenu(e, folder, true)}
                             className={`rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all border ${dragTarget === folder.id ? 'border-[#D84040] bg-[#D84040]/20 scale-[1.02]' : 'border-[#2E2020] bg-[#1D1616]/40 hover:border-[#D84040]/70'} group`}
                         >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#D84040]/10 text-[#D84040]">
                                     <Folder size={20} fill="rgba(216,64,64,0.2)" />
                                 </div>
