@@ -50,6 +50,7 @@ interface TeamMember {
   type: "inhouse" | "freelancer";
   status: "office" | "onsite" | "wfh" | "absent";
   checkin?: string | null;
+  work_mode?: string;
 }
 
 const reqTypeCfg: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -189,6 +190,9 @@ function TodayStatus({ team }: TodayStatusProps) {
   const [search, setSearch] = useState(initialSearch);
 
   const filteredTeam = team.filter((m) => {
+    // Only show onsite personnel in this section
+    if (m.work_mode !== "onsite") return false;
+    
     if (!search) return true;
     return (
       m.name.toLowerCase().includes(search.toLowerCase()) ||

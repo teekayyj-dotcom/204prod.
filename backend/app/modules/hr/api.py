@@ -260,7 +260,8 @@ def get_hr_overview(db: Session = Depends(get_db_session)):
             "dept": dept,
             "type": "freelancer" if "freelance" in role_lower else "inhouse",
             "status": status,
-            "checkin": checkin_time
+            "checkin": checkin_time,
+            "work_mode": getattr(member, 'work_mode', 'onsite')
         })
         
     # Get requests and open roles
