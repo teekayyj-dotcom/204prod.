@@ -194,6 +194,7 @@ function AddGoalModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: ()
   const [target, setTarget] = useState("");
   const [unit, setUnit] = useState("M");
   const [lowerIsBetter, setLowerIsBetter] = useState(false);
+  const [period, setPeriod] = useState(`${currentYear}-h1`);
 
   if (!isOpen) return null;
 
