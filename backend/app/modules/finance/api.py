@@ -28,10 +28,19 @@ def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db_session)
 
 @router.put("/expenses/{exp_id}", response_model=ExpenseResponse)
 def update_expense(exp_id: str, payload: ExpenseCreate, db: Session = Depends(get_db_session)):
-    from app.modules.finance.models import Expense
+    from app.modules.finance.models import Expense, Payout
     exp = db.query(Expense).filter(Expense.id == exp_id).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Expense not found")
+        
+    # Find matching auto-created payout using old values before we update exp
+    payout = db.query(Payout).filter(
+        Payout.auto_created == True,
+        Payout.gross == exp.amount,
+        Payout.due_date == exp.date,
+        Payout.expense_group == exp.group,
+        Payout.category == exp.category
+    ).first()
     
     exp.date = payload.date
     exp.description = payload.description
@@ -49,16 +58,39 @@ def update_expense(exp_id: str, payload: ExpenseCreate, db: Session = Depends(ge
         exp.status = payload.status
     if payload.note is not None:
         exp.note = payload.note
+        
+    # Update payout if found
+    if payout:
+        payout.gross = payload.amount
+        payout.due_date = payload.date
+        payout.expense_group = payload.group
+        payout.category = payload.category
+        if payload.project:
+            payout.project = payload.project
+        
     db.commit()
     db.refresh(exp)
     return exp
 
 @router.delete("/expenses/{exp_id}")
 def delete_expense(exp_id: str, db: Session = Depends(get_db_session)):
-    from app.modules.finance.models import Expense
+    from app.modules.finance.models import Expense, Payout
     exp = db.query(Expense).filter(Expense.id == exp_id).first()
     if not exp:
         raise HTTPException(status_code=404, detail="Expense not found")
+        
+    # Find matching auto-created payout
+    payout = db.query(Payout).filter(
+        Payout.auto_created == True,
+        Payout.gross == exp.amount,
+        Payout.due_date == exp.date,
+        Payout.expense_group == exp.group,
+        Payout.category == exp.category
+    ).first()
+    
+    if payout:
+        db.delete(payout)
+        
     db.delete(exp)
     db.commit()
     return {"status": "ok", "deleted_id": exp_id}
@@ -97,6 +129,24 @@ def update_payable(pay_id: str, payload: PayoutCreate, db: Session = Depends(get
     db.commit()
     db.refresh(payout)
     return payout
+
+@router.get("/payables/cleanup")
+def cleanup_orphaned_payables(db: Session = Depends(get_db_session)):
+    from app.modules.finance.models import Expense, Payout
+    payouts = db.query(Payout).filter(Payout.auto_created == True).all()
+    orphaned = 0
+    for p in payouts:
+        exp = db.query(Expense).filter(
+            Expense.amount == p.gross,
+            Expense.date == p.due_date,
+            Expense.group == p.expense_group,
+            Expense.category == p.category
+        ).first()
+        if not exp:
+            db.delete(p)
+            orphaned += 1
+    db.commit()
+    return {"status": "ok", "deleted": orphaned}
 
 @router.delete("/payables/{pay_id}")
 def delete_payable(pay_id: str, db: Session = Depends(get_db_session)):
