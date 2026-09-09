@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, Edit3, Save, X, Trash2, CheckCircle2, Loader2, Mail, Briefcase, User, AlertTriangle, Tag, Plus, Activity, Calendar, Star, Check, Camera, MapPin } from "lucide-react";
+import { ArrowLeft, Edit3, Save, X, Trash2, CheckCircle2, Loader2, Mail, Briefcase, User, AlertTriangle, Tag, Plus, Activity, Calendar, Star, Check, Camera, MapPin, Eye, EyeOff } from "lucide-react";
 import { allProjects } from "../data/mockData";
 import { fetchApi } from "../utils/apiClient";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
@@ -182,6 +182,30 @@ export function CrewProfilePage() {
             setSaving(false);
         }
     };
+    const toggleVisibility = async () => {
+        const updatedHiddenState = !member.is_hidden;
+        try {
+            await fetchApi(`/crew/${id}`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    name: member.name,
+                    role: member.role,
+                    email: member.email,
+                    phone: member.phone,
+                    status: member.status,
+                    work_mode: member.work_mode,
+                    bio: member.bio,
+                    skills_expertise: member.skills_expertise,
+                    is_hidden: updatedHiddenState
+                })
+            });
+            setMember(prev => ({ ...prev, is_hidden: updatedHiddenState }));
+        } catch (error) {
+            console.error("Error updating visibility:", error);
+            alert(error instanceof Error ? error.message : "Failed to update visibility.");
+        }
+    };
+
     const handleDelete = async () => {
         setDeleting(true);
         try {
@@ -572,6 +596,10 @@ export function CrewProfilePage() {
                         <button onClick={() => setIsEditing(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#EEEEEE", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                             <Edit3 size={14} color="#D84040"/>
                             Edit Profile
+                        </button>
+                        <button onClick={toggleVisibility} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: member.is_hidden ? "#4CAF50" : "#E8A838", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = member.is_hidden ? "#4CAF50" : "#E8A838"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A1F1F"; }}>
+                            {member.is_hidden ? <Eye size={14} color="#4CAF50"/> : <EyeOff size={14} color="#E8A838"/>}
+                            {member.is_hidden ? "Show on Website" : "Hide from Website"}
                         </button>
                         <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full transition-all" style={{ background: "rgba(29, 22, 22, 0.4)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", color: "#888", border: "1px solid #2A1F1F", fontSize: "13px" }} onMouseEnter={(e) => { e.currentTarget.style.color = "#D84040"; e.currentTarget.style.borderColor = "#D84040"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A1F1F"; }}>
                             <Trash2 size={14}/>

@@ -15,7 +15,8 @@ export function CrewPage() {
     fetch("/api/v1/crew")
       .then(res => res.json())
       .then(data => {
-        const mappedData = data.map((c: any) => {
+        const visibleCrew = data.filter((c: any) => !c.is_hidden);
+        const mappedData = visibleCrew.map((c: any) => {
           let avatarUrl = c.avatar;
           if (avatarUrl && avatarUrl.includes("ik.imagekit.io")) {
             // Ensure high quality for sharper images

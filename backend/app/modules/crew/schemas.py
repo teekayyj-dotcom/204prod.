@@ -13,6 +13,7 @@ class CrewMember(BaseModel):
     assigned_projects: int = 0
     status: str | None = "Active"
     work_mode: str | None = "onsite"
+    is_hidden: bool | None = False
     created_at: datetime
     updated_at: datetime
 
@@ -32,4 +33,5 @@ class CrewMemberInput(BaseModel):
     assigned_projects: int = 0
     status: str | None = "Active"
     work_mode: str | None = "onsite"
+    is_hidden: bool | None = False
     created_at: datetime | None = None

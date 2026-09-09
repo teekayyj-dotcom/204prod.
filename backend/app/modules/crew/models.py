@@ -18,6 +18,7 @@ class CrewMember(Base):
     assigned_projects = Column(Integer, default=0)
     status = Column(String(50), default="available")   # available, busy, on_leave, etc.
     work_mode = Column(String(50), default="onsite")   # onsite, remote, business
+    is_hidden = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
