@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MonitorPlay, Check, X, Play, ShieldAlert, Loader2, ExternalLink } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { transformBunnyUrl } from "../../../shared/utils/bunny";
 
 interface DemoItem {
     id: string;
@@ -68,7 +69,7 @@ export function ClientDemosPage() {
                                     title: g.name || "Bản dựng nháp (Demo)",
                                     type: g.type === "video" ? "video" : g.type === "document" ? "document" : g.type === "image" ? "image" : "storyboard",
                                     url: g.url,
-                                    coverUrl: g.type === "image" ? g.url : (g.type === "video" && g.bunny_video_id ? `https://vz-f1a07f87-b02.b-cdn.net/${g.bunny_video_id}/thumbnail.jpg` : (g.thumbnail_url && !g.thumbnail_url.includes("iframe") ? g.thumbnail_url : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80")),
+                                    coverUrl: g.type === "image" ? g.url : (g.type === "video" && g.bunny_video_id ? transformBunnyUrl(`https://vz-f1a07f87-b02.b-cdn.net/${g.bunny_video_id}/thumbnail.jpg`) : (g.thumbnail_url && !g.thumbnail_url.includes("iframe") ? g.thumbnail_url : "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80")),
                                     status: "Pending Review",
                                     uploadedAt: g.uploaded || "Gần đây"
                                 });
