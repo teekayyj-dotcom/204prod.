@@ -440,7 +440,7 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
         renderer.domElement.remove();
       }
     };
-  }, [introState]);
+  }, []);
 
   // Transitioning Phase
   useEffect(() => {
