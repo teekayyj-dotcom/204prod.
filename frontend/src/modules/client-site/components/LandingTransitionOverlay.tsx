@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
 import gsap from 'gsap';
 
 type Project = {
@@ -9,215 +10,527 @@ type Project = {
 };
 
 interface LandingTransitionOverlayProps {
-  onNavigate: () => void;
   onComplete: () => void;
 }
 
-const NUM_IMAGES = 10;
+const SCREEN_BAND_HEIGHT = 242;
+const SCREEN_IMAGE_HEIGHT = 220;
+const SCREEN_IMAGE_GAP = 20;
+const CLONE_COUNT = 1;
+const MAX_SCREEN_IMAGE_WIDTH = 400;
+const IMAGES_PER_BAND = [5, 14, 13, 20, 14, 15, 12];
+const TEXTURE_SCALE = 2;
 
-export function LandingTransitionOverlay({ onNavigate, onComplete }: LandingTransitionOverlayProps) {
+const bandConfigs = [
+  { offsetY: -720, speed: 1.0, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+  { offsetY: -480, speed: 1.2, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+  { offsetY: -240, speed: -0.9, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+  { offsetY: 0, speed: 1.0, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+  { offsetY: 240, speed: -1.3, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+  { offsetY: 480, speed: 1.1, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+  { offsetY: 720, speed: -1.0, rotation: -6 * Math.PI / 180, curveAmount: 0.0, curveDirection: 1 },
+];
+
+enum IntroState {
+  LOADING,
+  TRANSITIONING
+}
+
+export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const loadingContainerRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [introState, setIntroState] = useState<IntroState>(IntroState.LOADING);
   
-  const [sequenceImages, setSequenceImages] = useState<string[]>([]);
-  const [isReady, setIsReady] = useState(false);
-
-  const onNavigateRef = useRef(onNavigate);
+  // This ref stores the loaded materials and timeline so we can trigger them in TRANSITIONING state
+  const transitionDataRef = useRef<{ materials: THREE.ShaderMaterial[], tl: gsap.core.Timeline } | null>(null);
   const onCompleteRef = useRef(onComplete);
 
   useEffect(() => {
-    onNavigateRef.current = onNavigate;
     onCompleteRef.current = onComplete;
-  }, [onNavigate, onComplete]);
+  }, [onComplete]);
 
-  // Load images
+  // Loading Phase
   useEffect(() => {
-    const fetchImages = async () => {
-      let imageUrls: string[] = [];
+    if (introState !== IntroState.LOADING) return;
+
+    let isDestroyed = false;
+    let requestAnimFrameId: number;
+    let scene: THREE.Scene;
+    let camera: THREE.OrthographicCamera;
+    let renderer: THREE.WebGLRenderer;
+    let materials: THREE.ShaderMaterial[] = [];
+    let meshes: THREE.Mesh[] = [];
+    
+    let tl = gsap.timeline({ paused: true });
+
+    const initThreeJS = () => {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        scene = new THREE.Scene();
+        camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
-        const res = await fetch("/api/v1/projects/all", { signal: controller.signal });
-        clearTimeout(timeoutId);
+        if (!containerRef.current) return;
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        containerRef.current.appendChild(renderer.domElement);
+        camera.position.z = 1;
 
-        let allProjects = [];
-        if (res.ok) {
-          const rawData = await res.json();
-          allProjects = Array.isArray(rawData) ? rawData : (rawData.items || []);
-        }
+        const calculateImageDimensions = (baseHeight: number, _originalAspectRatio: number) => {
+          const FIXED_RATIO = 1.5;
+          let w = baseHeight * FIXED_RATIO;
+          if (w > MAX_SCREEN_IMAGE_WIDTH) w = MAX_SCREEN_IMAGE_WIDTH;
+          return { screenWidth: w, screenHeight: baseHeight };
+        };
 
-        const publishedProjects = allProjects.filter((p: Project) => p.published && p.featured);
-        imageUrls = publishedProjects.map((p: Project) => {
-          return p.cover_media?.url || p.cover_image || p.cover_media?.thumbnail_url;
-        }).filter(Boolean) as string[];
-      } catch (e) {
-        console.warn("API fetch failed, using fallback images", e);
-      }
+        const createHorizontalTextureForBand = (images: any[]) => {
+          let sequenceWidthScreen = 0;
+          for (const img of images) {
+            if (img && img.loaded) sequenceWidthScreen += img.screenWidth + SCREEN_IMAGE_GAP;
+          }
+          const totalWidthScreen = sequenceWidthScreen * CLONE_COUNT;
 
-      if (imageUrls.length === 0) {
-        imageUrls = [
-          "https://images.unsplash.com/photo-1649730837819-e68ff76c1816?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1604871000636-074fa5117945?q=80&w=2000&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?q=80&w=2000&auto=format&fit=crop"
-        ];
-      }
+          const canvas = document.createElement('canvas');
+          canvas.width = totalWidthScreen * TEXTURE_SCALE;
+          canvas.height = SCREEN_BAND_HEIGHT * TEXTURE_SCALE;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
 
-      const heroImage = imageUrls[0];
-      const seq: string[] = [];
-      
-      const bag = [...imageUrls];
-      
-      if (bag.length <= 1) {
-        // Fallback if only 1 image exists
-        for (let i = 0; i < NUM_IMAGES - 1; i++) seq.push(bag[0]);
-        seq.push(heroImage);
-      } else {
-        // Fill sequence with random images, avoiding consecutive duplicates
-        for (let i = 0; i < NUM_IMAGES - 1; i++) {
-          let idx = Math.floor(Math.random() * bag.length);
-          if (i > 0) {
-            while (bag[idx] === seq[i - 1]) {
-              idx = Math.floor(Math.random() * bag.length);
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          let currentX = 0;
+          for (let clone = 0; clone < CLONE_COUNT; clone++) {
+            for (const imgInfo of images) {
+              if (imgInfo && imgInfo.loaded && imgInfo.img) {
+                const drawWidth = imgInfo.screenWidth * TEXTURE_SCALE;
+                const drawHeight = imgInfo.screenHeight * TEXTURE_SCALE;
+                const centeredY = (canvas.height - drawHeight) / 2;
+                ctx.save();
+                ctx.globalAlpha = 0.95;
+
+                const imgW = imgInfo.img.naturalWidth || imgInfo.img.width;
+                const imgH = imgInfo.img.naturalHeight || imgInfo.img.height;
+
+                if (imgW && imgH) {
+                  const targetRatio = drawWidth / drawHeight;
+                  const imgRatio = imgW / imgH;
+                  let sx = 0, sy = 0, sWidth = imgW, sHeight = imgH;
+
+                  if (imgRatio > targetRatio) {
+                    sWidth = sHeight * targetRatio;
+                    sx = (imgW - sWidth) / 2;
+                  } else {
+                    sHeight = sWidth / targetRatio;
+                    sy = (imgH - sHeight) / 2;
+                  }
+                  ctx.drawImage(imgInfo.img, sx, sy, sWidth, sHeight, currentX, centeredY, drawWidth, drawHeight);
+                } else {
+                  ctx.drawImage(imgInfo.img, currentX, centeredY, drawWidth, drawHeight);
+                }
+
+                ctx.restore();
+                currentX += drawWidth + (SCREEN_IMAGE_GAP * TEXTURE_SCALE);
+              }
             }
           }
-          seq.push(bag[idx]);
-        }
-        
-        // Ensure the last random image isn't the same as the hero image (which comes right after)
-        if (seq[seq.length - 1] === heroImage) {
-          let altIdx = Math.floor(Math.random() * bag.length);
-          // If we have at least 3 images, we can avoid matching both the hero AND the previous image
-          if (bag.length >= 3) {
-            while (bag[altIdx] === heroImage || bag[altIdx] === seq[seq.length - 2]) {
-              altIdx = Math.floor(Math.random() * bag.length);
-            }
-          } else {
-            while (bag[altIdx] === heroImage) {
-              altIdx = Math.floor(Math.random() * bag.length);
-            }
-          }
-          seq[seq.length - 1] = bag[altIdx];
-        }
+          return { canvas, totalWidth: totalWidthScreen, sequenceWidth: sequenceWidthScreen };
+        };
 
-        // The Hero Image must be at the BOTTOM (Index 9)
-        seq.push(heroImage);
-      }
+        const dims = calculateImageDimensions(SCREEN_IMAGE_HEIGHT, 1.5);
+        const staticImageWidth = dims.screenWidth;
 
-      setSequenceImages(seq);
-      setTimeout(() => setIsReady(true), 100);
-    };
-    fetchImages();
-  }, []);
+        const dummyCanvas = document.createElement('canvas');
+        dummyCanvas.width = 1; dummyCanvas.height = 1;
+        const ctxDummy = dummyCanvas.getContext('2d');
+        if (ctxDummy) { ctxDummy.fillStyle = '#000000'; ctxDummy.fillRect(0, 0, 1, 1); }
+        const dummyTexture = new THREE.Texture(dummyCanvas);
+        dummyTexture.needsUpdate = true;
 
-  // Animation
-  useEffect(() => {
-    if (!isReady || !containerRef.current) return;
+        bandConfigs.forEach((config, index) => {
+          const count = IMAGES_PER_BAND[index];
+          const seqWidth = count * (staticImageWidth + SCREEN_IMAGE_GAP);
 
-    const tl = gsap.timeline();
-    const parallaxImages = containerRef.current.querySelectorAll('.image-parallax');
+          const material = new THREE.ShaderMaterial({
+            uniforms: {
+              uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+              uTexture: { value: dummyTexture },
+              uSequenceWidth: { value: seqWidth },
+              uBandHeight: { value: SCREEN_BAND_HEIGHT },
+              uOffsetY: { value: config.offsetY },
+              uDirection: { value: config.speed > 0 ? 1.0 : -1.0 },
+              uBaseOffset: { value: 0.0 },
+              uFlyInOffset: { value: 0.0 },
+              uRotation: { value: config.rotation },
+              uBandIndex: { value: index },
+              uCurveAmount: { value: config.curveAmount },
+              uCurveDirection: { value: config.curveDirection },
+            },
+            vertexShader: `
+              varying vec2 vUv;
+              void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+              }
+            `,
+            fragmentShader: `
+              precision highp float;
+              uniform vec2 uResolution;
+              uniform sampler2D uTexture;
+              uniform float uSequenceWidth;
+              uniform float uBandHeight;
+              uniform float uOffsetY;
+              uniform float uDirection;
+              uniform float uBaseOffset;
+              uniform float uFlyInOffset;
+              uniform float uRotation;
+              uniform float uBandIndex;
+              uniform float uCurveAmount;
+              uniform float uCurveDirection;
 
-    // Initial states
-    gsap.set(containerRef.current, { opacity: 1 });
-    
-    // Setup panels
-    const panels = containerRef.current.querySelectorAll('.slide-panel');
-    const images = containerRef.current.querySelectorAll('.image-parallax');
-    
-    // Set initial positions
-    for (let i = 0; i < panels.length; i++) {
-      if (i === 0) {
-        // Frame 0 fades in at y: 0 to prevent the black gap of the underlying page
-        gsap.set(panels[0], { y: '0vh', opacity: 0, clipPath: 'none' });
-        gsap.set(images[0], { yPercent: -50 }); // Center parallax for fading frame
-      } else {
-        const isDown = i % 2 === 0;
-        gsap.set(panels[i], { 
-          y: isDown ? '-100vh' : '100vh',
-          clipPath: 'none',
-          opacity: 1
+              varying vec2 vUv;
+
+              mat2 rotate2d(float angle) {
+                return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+              }
+
+              void main() {
+                vec2 centeredUv = vUv - vec2(0.5);
+                float r2 = dot(centeredUv, centeredUv);
+                float distortionStrength = 0.30;
+                vec2 distortedUv = vUv + centeredUv * (distortionStrength * r2);
+                
+                vec2 pixelCoord = distortedUv * uResolution;
+                float bandTopBase = (uResolution.y - uBandHeight) * 0.5 + uOffsetY;
+                float bandCenterY = bandTopBase + (uBandHeight * 0.5);
+                vec2 rotationCenter = vec2(uResolution.x * 0.5, bandCenterY);
+
+                vec2 rotatedPixelCoord = pixelCoord - rotationCenter;
+                rotatedPixelCoord = rotate2d(-uRotation) * rotatedPixelCoord;
+                rotatedPixelCoord += rotationCenter;
+
+                float normalizedX = rotatedPixelCoord.x / uResolution.x;
+                float curveFactor = 4.0 * (normalizedX - 0.5) * (normalizedX - 0.5);
+                float curveOffset = (0.5 - curveFactor) * uCurveAmount * uCurveDirection;
+
+                float unrotatedBandTop = bandTopBase + curveOffset;
+                float unrotatedBandBottom = unrotatedBandTop + uBandHeight;
+
+                float margin = 2.0;
+                if (rotatedPixelCoord.y < unrotatedBandTop - margin || rotatedPixelCoord.y > unrotatedBandBottom + margin) {
+                  discard;
+                }
+
+                float offset = uBaseOffset + uFlyInOffset;
+
+                float rawX = 0.0;
+                if (uDirection > 0.0) {
+                  if (rotatedPixelCoord.x < offset) { discard; }
+                  rawX = rotatedPixelCoord.x - offset;
+                } else {
+                  if (rotatedPixelCoord.x > offset) { discard; }
+                  rawX = rotatedPixelCoord.x - (offset - uSequenceWidth);
+                }
+
+                if (rawX < 0.0 || rawX > uSequenceWidth) {
+                  discard;
+                }
+
+                float textureX = rawX / uSequenceWidth;
+                
+                float texY = (rotatedPixelCoord.y - unrotatedBandTop) / uBandHeight;
+                if (textureX < 0.0 || textureX > 1.0 || texY < 0.0 || texY > 1.0) {
+                  discard;
+                }
+
+                vec4 imageColor = texture2D(uTexture, vec2(textureX, texY));
+                
+                vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+                
+                color.rgb = mix(color.rgb, imageColor.rgb, imageColor.a);
+
+                float edge = min(rotatedPixelCoord.y - unrotatedBandTop, unrotatedBandBottom - rotatedPixelCoord.y);
+                if (edge < margin) {
+                  color.a *= smoothstep(0.0, margin, edge);
+                }
+                if (color.a < 0.01) { discard; }
+
+                float hueShift = uBandIndex * 0.1;
+                color.r *= (1.0 + sin(hueShift)         * 0.02);
+                color.g *= (1.0 + sin(hueShift + 2.094) * 0.02);
+                color.b *= (1.0 + sin(hueShift + 4.188) * 0.02);
+                
+                gl_FragColor = color;
+              }
+            `,
+            transparent: true,
+            depthTest: false,
+            depthWrite: false,
+            alphaTest: 0.1
+          });
+
+          materials.push(material);
+
+          const geometry = new THREE.PlaneGeometry(2, 2);
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.z = index * -0.1;
+          scene.add(mesh);
+          meshes.push(mesh);
         });
-        gsap.set(images[i], { yPercent: isDown ? -60 : -40 });
+
+        if (isDestroyed) return;
+
+        const animate = () => {
+          requestAnimFrameId = requestAnimationFrame(animate);
+          renderer.render(scene, camera);
+        };
+        animate();
+        
+        transitionDataRef.current = { materials, tl };
+
+        // Preload Image Logic
+        (async () => {
+          try {
+            const res = await fetch("/api/v1/projects/all");
+            let allProjects = [];
+            if (res.ok) {
+              const rawData = await res.json();
+              allProjects = Array.isArray(rawData) ? rawData : (rawData.items || []);
+            }
+
+            const publishedProjects = allProjects.filter((p: Project) => p.published);
+            const imageUrls = publishedProjects.map((p: Project) => {
+              return p.cover_media?.url || p.cover_image || p.cover_media?.thumbnail_url;
+            }).filter(Boolean) as string[];
+
+            if (imageUrls.length === 0) {
+              imageUrls.push("https://images.unsplash.com/photo-1649730837819-e68ff76c1816?h=400");
+            }
+
+            let globalBag: string[] = [];
+
+            const loadImagesForBand = async (imagesCount: number) => {
+              const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
+              const bandUrls: string[] = [];
+
+              for (let i = 0; i < imagesCount; i++) {
+                if (globalBag.length === 0) {
+                  globalBag = [...imageUrls];
+                  for (let k = globalBag.length - 1; k > 0; k--) {
+                    const j = Math.floor(Math.random() * (k + 1));
+                    [globalBag[k], globalBag[j]] = [globalBag[j], globalBag[k]];
+                  }
+                }
+
+                let selectedIdx = globalBag.length - 1;
+                if (imageUrls.length > 1) {
+                  for (let j = globalBag.length - 1; j >= 0; j--) {
+                    const candidate = globalBag[j];
+                    const matchesPrev = bandUrls.length > 0 && candidate === bandUrls[bandUrls.length - 1];
+                    const matchesFirst = (i === imagesCount - 1) && candidate === bandUrls[0];
+                    if (!matchesPrev && !matchesFirst) {
+                      selectedIdx = j;
+                      break;
+                    }
+                  }
+                }
+                bandUrls.push(globalBag.splice(selectedIdx, 1)[0]);
+              }
+
+              const promises = bandUrls.map((url) => new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+
+                img.onload = () => {
+                  const ratio = img.naturalWidth / img.naturalHeight;
+                  const dims = calculateImageDimensions(SCREEN_IMAGE_HEIGHT, ratio);
+                  resolve({ loaded: true, img, ...dims });
+                };
+
+                img.onerror = () => {
+                  const dims = calculateImageDimensions(SCREEN_IMAGE_HEIGHT, 1.5);
+                  const c = document.createElement('canvas');
+                  c.width = dims.screenWidth * TEXTURE_SCALE; c.height = dims.screenHeight * TEXTURE_SCALE;
+                  const cx = c.getContext('2d');
+                  if (cx) { cx.fillStyle = '#1a1a1a'; cx.fillRect(0, 0, c.width, c.height); }
+                  resolve({ loaded: true, img: c, ...dims });
+                };
+
+                img.src = `${apiUrl}/media/cors-proxy?url=${encodeURIComponent(url)}`;
+              }));
+
+              return Promise.all(promises);
+            };
+
+            let totalLoaded = 0;
+            const totalToLoad = IMAGES_PER_BAND.reduce((a, b) => a + b, 0);
+
+            await Promise.all(
+              bandConfigs.map(async (config, index) => {
+                const imgs = await loadImagesForBand(IMAGES_PER_BAND[index]);
+                totalLoaded += IMAGES_PER_BAND[index];
+                setProgress(Math.round((totalLoaded / totalToLoad) * 100));
+
+                const textureData = createHorizontalTextureForBand(imgs);
+                if (!textureData) return;
+                const texture = new THREE.Texture(textureData.canvas);
+                texture.needsUpdate = true;
+
+                if (materials[index] && !isDestroyed) {
+                  materials[index].uniforms.uTexture.value = texture;
+                }
+              })
+            );
+            
+            // Allow progress bar to finish before transitioning
+            setTimeout(() => {
+              if (loadingContainerRef.current) {
+                gsap.to(loadingContainerRef.current, {
+                  opacity: 0,
+                  duration: 0.5,
+                  onComplete: () => {
+                    setIntroState(IntroState.TRANSITIONING);
+                  }
+                });
+              } else {
+                setIntroState(IntroState.TRANSITIONING);
+              }
+            }, 500);
+
+          } catch (e) {
+            console.error("Async loading failed", e);
+            setIntroState(IntroState.TRANSITIONING);
+          }
+        })();
+
+      } catch (e) {
+        console.error("Transition init failed", e);
+        onCompleteRef.current();
       }
-    }
+    };
 
-    // To prevent black gaps between alternating opposite slides, we CANNOT overlap them.
-    // STAGGER must exactly equal SLIDE_DURATION. We use 'none' ease to prevent jerkiness.
-    const SLIDE_DURATION = 0.8;
-    const STAGGER = 0.8;
+    initThreeJS();
 
-    for (let i = 0; i < panels.length; i++) {
-      const isLast = i === panels.length - 1;
-      const startTime = i * STAGGER;
-      const isDown = i % 2 === 0;
-
-      if (i === 0) {
-        // First panel fades in to cover the screen instantly without gaps
-        tl.to(panels[0], {
-          opacity: 1,
-          duration: SLIDE_DURATION,
-          ease: 'none'
-        }, startTime);
-      } else {
-        // Subsequent panels physically slide into view
-        tl.to(panels[i], {
-          y: '0vh',
-          duration: SLIDE_DURATION,
-          ease: 'none'
-        }, startTime);
-
-        // Parallax effect
-        tl.to(images[i], {
-          yPercent: isLast ? -50 : (isDown ? -40 : -60),
-          duration: SLIDE_DURATION,
-          ease: 'none'
-        }, startTime);
+    const handleResize = () => {
+      if (renderer) {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        materials.forEach(mat => {
+          mat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+        });
       }
-    }
-
-    const TOTAL_ANIM_TIME = (panels.length - 1) * STAGGER + SLIDE_DURATION;
-
-    // 3. Swap DOM (navigate) right before fade out
-    tl.call(() => {
-      try { onNavigateRef.current(); } catch(e){}
-    }, [], TOTAL_ANIM_TIME - 0.2);
-
-    // 4. Fade out overlay smoothly to reveal landing page
-    tl.to(containerRef.current, {
-      opacity: 0,
-      duration: 0.6,
-      ease: 'power2.inOut'
-    }, TOTAL_ANIM_TIME + 0.2);
-
-    // Complete
-    tl.call(() => {
-      try { onCompleteRef.current(); } catch(e){}
-    }, [], TOTAL_ANIM_TIME + 1.0);
+    };
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      tl.kill();
+      isDestroyed = true;
+      window.removeEventListener("resize", handleResize);
+      if (requestAnimFrameId) cancelAnimationFrame(requestAnimFrameId);
+      if (tl) tl.kill();
+
+      meshes.forEach(mesh => {
+        scene?.remove(mesh);
+        mesh.geometry?.dispose();
+        (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach((m: any) => m?.dispose());
+      });
+      materials.forEach(mat => {
+        mat.uniforms.uTexture?.value?.dispose();
+        mat.dispose();
+      });
+      if (renderer) {
+        renderer.forceContextLoss();
+        renderer.dispose();
+        renderer.domElement.remove();
+      }
     };
-  }, [isReady]);
+  }, [introState]);
+
+  // Transitioning Phase
+  useEffect(() => {
+    if (introState === IntroState.TRANSITIONING && transitionDataRef.current) {
+      const { materials, tl } = transitionDataRef.current;
+      
+      const TOTAL_DURATION = 4.4; 
+      const PHASE1_DURATION = 2.0;
+      const PHASE2_DURATION = 1.2;
+      const PHASE3_DURATION = 1.2;
+
+      materials.forEach((mat, i) => {
+        const config = bandConfigs[i];
+        const isMovingLeft = config.speed > 0;
+        
+        const driftSpeed = (isMovingLeft ? -50 : 50) * Math.abs(config.speed);
+        const anchorX = isMovingLeft ? -200 : window.innerWidth + 200;
+        mat.uniforms.uBaseOffset.value = anchorX;
+
+        const endDriftTarget = anchorX + driftSpeed * TOTAL_DURATION;
+
+        tl.to(mat.uniforms.uBaseOffset, {
+          value: endDriftTarget,
+          duration: TOTAL_DURATION,
+          ease: "none"
+        }, 0);
+
+        const startPhysicalX = isMovingLeft ? window.innerWidth + 200 : -200;
+        mat.uniforms.uFlyInOffset.value = startPhysicalX - anchorX;
+
+        tl.to(mat.uniforms.uFlyInOffset, {
+          value: 0,
+          duration: PHASE1_DURATION,
+          ease: "power4.inOut"
+        }, 0); 
+
+        const sequenceWidth = mat.uniforms.uSequenceWidth.value;
+        const targetExitX = isMovingLeft ? -200 - sequenceWidth : window.innerWidth + 200 + sequenceWidth;
+        const flyOutTarget = targetExitX - endDriftTarget;
+
+        tl.to(mat.uniforms.uFlyInOffset, {
+          value: flyOutTarget,
+          duration: PHASE3_DURATION,
+          ease: "power3.in"
+        }, PHASE1_DURATION + PHASE2_DURATION); 
+      });
+
+      if (containerRef.current) {
+        gsap.to(containerRef.current, { opacity: 1, duration: 0.3, ease: "none" });
+      }
+
+      tl.call(() => {
+        try {
+          console.log("[Intro] Completed!");
+          onCompleteRef.current();
+        } catch (e) {
+          console.error("[Intro] Completion callback failed", e);
+        }
+      }, [], TOTAL_DURATION);
+      
+      tl.play(); 
+    }
+  }, [introState]);
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 z-[9999] pointer-events-none"
-      style={{ opacity: 0, overflow: 'hidden' }}
-    >
-      {sequenceImages.map((src, i) => (
-        <div 
-          key={i} 
-          className="slide-panel absolute top-0 left-0 w-full h-[100vh] overflow-hidden rounded-none bg-black shadow-none"
-          style={{ zIndex: i }}
-        >
-          <img
-            src={src}
-            className="image-parallax absolute top-1/2 left-0 w-full h-[130%] object-cover rounded-none -translate-y-1/2"
-            alt=""
-          />
+    <div className="fixed inset-0 z-[9999] pointer-events-none">
+      {/* ThreeJS Container */}
+      <div 
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{ opacity: 0 }}
+      />
+
+      {/* Loading Screen */}
+      {introState === IntroState.LOADING && (
+        <div ref={loadingContainerRef} className="absolute inset-0 bg-black flex flex-col items-center justify-center pointer-events-auto">
+          {/* Blinking Logo */}
+          <div className="animate-pulse mb-8">
+            <img src="/favicon/204-logo.png" alt="204 Logo" className="w-24 h-24 object-contain opacity-90" />
+          </div>
+
+          {/* Loading Bar */}
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-[#1A1A1A]">
+            <div 
+              className="h-full bg-[#D84040] transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }

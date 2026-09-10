@@ -1,35 +1,40 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { LandingTransitionOverlay } from './LandingTransitionOverlay';
 
 interface LandingTransitionContextType {
-  navigateToLanding: () => void;
 }
 
-const LandingTransitionContext = createContext<LandingTransitionContextType | undefined>(undefined);
+const LandingTransitionContext = createContext<LandingTransitionContextType>({});
 
 export function useLandingTransition() {
-  const context = useContext(LandingTransitionContext);
-  if (!context) {
-    throw new Error('useLandingTransition must be used within a LandingTransitionProvider');
-  }
-  return context;
+  return useContext(LandingTransitionContext);
 }
 
 export function LandingTransitionProvider({ children }: { children: ReactNode }) {
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const navigate = useNavigate();
+  const location = useLocation();
 
-  const navigateToLanding = useCallback(() => {
-    navigate('/');
-  }, [navigate]);
+  useEffect(() => {
+    if (location.pathname === '/') {
+      setIsTransitioning(true);
+    } else {
+      setIsTransitioning(false);
+    }
+  }, [location.pathname]);
 
-
+  const handleComplete = useCallback(() => {
+    setIsTransitioning(false);
+  }, []);
 
   return (
-    <LandingTransitionContext.Provider value={{ navigateToLanding }}>
+    <LandingTransitionContext.Provider value={{}}>
       {children}
+      {isTransitioning && (
+        <LandingTransitionOverlay 
+          onComplete={handleComplete} 
+        />
+      )}
     </LandingTransitionContext.Provider>
   );
 }
