@@ -1,11 +1,11 @@
-import sys, os
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+import traceback
 from app.db.session import SessionLocal
-from app.modules.crew.models import CrewMember
+from app.modules.projects.service import update_project
+from app.modules.projects.schemas import ProjectUpdate
+
+db = SessionLocal()
 try:
-    db = SessionLocal()
-    members = db.query(CrewMember).all()
-    print("Success:", len(members))
+    update_project(db, 'chum-tr-tvc', ProjectUpdate(slug='chum-tra-tvc'))
+    print("Success")
 except Exception as e:
-    import traceback
-    traceback.print_exc()
+    print(traceback.format_exc())
