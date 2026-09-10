@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LandingTransitionOverlay } from './LandingTransitionOverlay';
 
 interface LandingTransitionContextType {
+  navigateToLanding: () => void;
 }
 
-const LandingTransitionContext = createContext<LandingTransitionContextType>({});
+const LandingTransitionContext = createContext<LandingTransitionContextType>({
+  navigateToLanding: () => {},
+});
 
 export function useLandingTransition() {
   return useContext(LandingTransitionContext);
@@ -14,6 +17,7 @@ export function useLandingTransition() {
 export function LandingTransitionProvider({ children }: { children: ReactNode }) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (location.pathname === '/') {
@@ -27,8 +31,18 @@ export function LandingTransitionProvider({ children }: { children: ReactNode })
     setIsTransitioning(false);
   }, []);
 
+  const navigateToLanding = useCallback(() => {
+    if (location.pathname === '/') {
+      // Force re-trigger transition if already on landing page
+      setIsTransitioning(false);
+      setTimeout(() => setIsTransitioning(true), 10);
+    } else {
+      navigate('/');
+    }
+  }, [location.pathname, navigate]);
+
   return (
-    <LandingTransitionContext.Provider value={{}}>
+    <LandingTransitionContext.Provider value={{ navigateToLanding }}>
       {children}
       {isTransitioning && (
         <LandingTransitionOverlay 
