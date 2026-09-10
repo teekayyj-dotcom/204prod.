@@ -2072,10 +2072,6 @@ function VideoItem({ url, project, setProject }: { url: string; project: any; se
     const [showMediaSelector, setShowMediaSelector] = useState(false);
 
     let displayUrl = url;
-    const bunnyDirectMatch = url.match(/https:\/\/[^\/]+\/([a-zA-Z0-9-]+)\/play_1080p\.mp4/);
-    if (bunnyDirectMatch) {
-        displayUrl = transformBunnyUrl(`https://iframe.mediadelivery.net/embed/694348/${bunnyDirectMatch[1]}?autoplay=false&loop=false&muted=false&preload=true&responsive=true`);
-    }
     const ytMatch = url ? url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/) : null;
     const vmMatch = url ? url.match(/vimeo\.com\/(\d+)/) : null;
     const embedUrl = ytMatch
