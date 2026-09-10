@@ -37,6 +37,7 @@ enum IntroState {
 }
 
 export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverlayProps) {
+  const mainWrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadingContainerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -492,6 +493,14 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
         gsap.to(containerRef.current, { opacity: 1, duration: 0.3, ease: "none" });
       }
 
+      if (mainWrapperRef.current) {
+        tl.to(mainWrapperRef.current, {
+          opacity: 0,
+          duration: PHASE3_DURATION,
+          ease: "power3.in"
+        }, PHASE1_DURATION + PHASE2_DURATION);
+      }
+
       tl.call(() => {
         try {
           console.log("[Intro] Completed!");
@@ -507,6 +516,9 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none">
+      {/* Background that fades out to reveal landing page */}
+      <div ref={mainWrapperRef} className="absolute inset-0 bg-black" />
+
       {/* ThreeJS Container */}
       <div 
         ref={containerRef}
