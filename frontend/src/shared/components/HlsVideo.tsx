@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import { transformBunnyUrl } from "../utils/bunny";
 
 interface HlsVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   src?: string; // Expecting the original mp4 url like .../play_1080p.mp4 or a direct m3u8 url
@@ -13,15 +14,17 @@ export const HlsVideo: React.FC<HlsVideoProps> = ({ src, lazyLoad = true, ...pro
   // Transform mp4 URL to Bunny Stream HLS URL if applicable
   const getHlsUrl = (url: string) => {
     if (!url) return "";
+    let processedUrl = transformBunnyUrl(url);
+    
     // If it's already an m3u8, just return it
-    if (url.includes(".m3u8")) return url;
+    if (processedUrl.includes(".m3u8")) return processedUrl;
     
     // Bunny Stream URLs usually end with /play_1080p.mp4, /play_720p.mp4, etc.
-    const match = url.match(/^(.*)\/play_[0-9]+p\.mp4(.*)$/);
+    const match = processedUrl.match(/^(.*)\/play_[0-9]+p\.mp4(.*)$/);
     if (match) {
       return `${match[1]}/playlist.m3u8${match[2]}`;
     }
-    return url;
+    return processedUrl;
   };
 
   const hlsUrl = src ? getHlsUrl(src) : "";

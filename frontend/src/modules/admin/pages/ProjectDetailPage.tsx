@@ -12,6 +12,7 @@ import {
     FileCheck, Receipt, FilePlus, Banknote, TrendingDown, Target, Shield,
     Lock, Unlock, PlayCircle, ImageIcon, Upload, Eye, ArrowRight, Zap, Globe, Film, Coins, MoreVertical, ChevronDown, List
 } from "lucide-react";
+import { transformBunnyUrl } from "../../../shared/utils/bunny";
 import { crewMembers } from "../data/mockData";
 import { DeleteConfirmModal } from "../components/DeleteConfirmModal";
 import { AddClientModal } from "../components/AddClientModal";
@@ -2491,7 +2492,7 @@ function MediaSelectorModal({ projectSlug, onClose, onSelect, acceptKind = "vide
                             const isSelected = selectedUrls.includes(m.url);
                             return (
                                 <div key={m.id} onClick={() => handleSelect(m.url)} className={`relative group cursor-pointer rounded-lg overflow-hidden border ${isSelected ? 'border-[#D84040]' : 'border-[#3A2A2A] hover:border-gray-500'}`}>
-                                    <video src={m.url} className="w-full aspect-video object-cover" />
+                                    <video src={transformBunnyUrl(m.url)} className="w-full aspect-video object-cover" />
                                     {isSelected && (
                                         <div className="absolute top-2 right-2 bg-[#D84040] text-white rounded-full p-1 shadow-lg">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>

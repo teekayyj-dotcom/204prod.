@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { fetchApi, API_BASE_URL } from "../utils/apiClient";
 import { Loader2, FileText, ImageIcon, Video, Archive, Figma, Download, X } from "lucide-react";
 import { ClientPlaybackPage } from "./ClientPlaybackPage";
+import { transformBunnyUrl } from "../../../shared/utils/bunny";
 
 const typeIcons = { document: FileText, image: ImageIcon, video: Video, archive: Archive, design: Figma };
 
@@ -151,7 +152,7 @@ export function PublicMediaFolderPage() {
                                 <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-full object-contain" />
                             )}
                             {previewAsset.type === 'video' && (
-                                <video src={previewAsset.image} controls autoPlay className="max-w-full max-h-full outline-none" />
+                                <video src={transformBunnyUrl(previewAsset.image)} controls autoPlay className="max-w-full max-h-full outline-none" />
                             )}
                             {previewAsset.type !== 'image' && previewAsset.type !== 'video' && (
                                 <div className="flex flex-col items-center">
@@ -241,7 +242,7 @@ export function PublicMediaFolderPage() {
                             <img src={previewAsset.image} alt={previewAsset.name} className="max-w-full max-h-full object-contain" />
                         )}
                         {previewAsset.type === 'video' && (
-                            <video src={previewAsset.image} controls autoPlay className="max-w-full max-h-full outline-none" />
+                            <video src={transformBunnyUrl(previewAsset.image)} controls autoPlay className="max-w-full max-h-full outline-none" />
                         )}
                         {previewAsset.type !== 'image' && previewAsset.type !== 'video' && (
                             <div className="flex flex-col items-center">

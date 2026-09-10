@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { transformBunnyUrl } from '../utils/bunny';
 
 interface VideoPlayerProps {
     src: string;
@@ -19,6 +20,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     muted = false,
     children 
 }) => {
+    const processedSrc = transformBunnyUrl(src);
     const [isVertical, setIsVertical] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const bgVideoRef = useRef<HTMLVideoElement>(null);
@@ -59,7 +61,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             {isVertical && (
                 <video 
                     ref={bgVideoRef}
-                    src={src} 
+                    src={processedSrc} 
                     className="absolute inset-0 w-full h-full object-cover blur-[40px] opacity-60 scale-125 z-0" 
                     muted 
                     playsInline
@@ -68,7 +70,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             )}
             <video 
                 ref={videoRef}
-                src={src} 
+                src={processedSrc} 
                 controls={controls}
                 autoPlay={autoPlay}
                 loop={loop}

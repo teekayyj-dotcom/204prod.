@@ -18,6 +18,7 @@ import {
     MousePointer
 } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
+import { transformBunnyUrl } from "../../../shared/utils/bunny";
 
 interface FeedbackItem {
     id: number;
@@ -629,7 +630,7 @@ export function ClientPlaybackPage({ guestProjectSlug, guestVideoUrl, guestName,
     };
 
     // Direct playable video (.mp4/.mov/.webm) — Bunny CDN or self-hosted
-    const nativeVideoToPlay = videoToPlay?.replace("/play_1080p.mp4", "/play_720p.mp4");
+    const nativeVideoToPlay = transformBunnyUrl(videoToPlay?.replace("/play_1080p.mp4", "/play_720p.mp4"));
     const isDirectVideo = !isEmbedVideo && !!videoToPlay;
     const finalVideoSource = isDirectVideo ? videoToPlay : defaultSampleVideo;
 
