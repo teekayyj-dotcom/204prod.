@@ -37,7 +37,6 @@ enum IntroState {
 }
 
 export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverlayProps) {
-  const mainWrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const loadingContainerRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -383,17 +382,7 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
             
             // Allow progress bar to finish before transitioning
             setTimeout(() => {
-              if (loadingContainerRef.current) {
-                gsap.to(loadingContainerRef.current, {
-                  opacity: 0,
-                  duration: 0.5,
-                  onComplete: () => {
-                    setIntroState(IntroState.TRANSITIONING);
-                  }
-                });
-              } else {
-                setIntroState(IntroState.TRANSITIONING);
-              }
+              setIntroState(IntroState.TRANSITIONING);
             }, 500);
 
           } catch (e) {
@@ -493,8 +482,8 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
         gsap.to(containerRef.current, { opacity: 1, duration: 0.3, ease: "none" });
       }
 
-      if (mainWrapperRef.current) {
-        tl.to(mainWrapperRef.current, {
+      if (loadingContainerRef.current) {
+        tl.to(loadingContainerRef.current, {
           opacity: 0,
           duration: PHASE3_DURATION,
           ease: "power3.in"
@@ -516,8 +505,21 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none">
-      {/* Background that fades out to reveal landing page */}
-      <div ref={mainWrapperRef} className="absolute inset-0 bg-black" />
+      {/* Loading Screen (Background + Logo + Bar) */}
+      <div ref={loadingContainerRef} className="absolute inset-0 bg-black flex flex-col items-center justify-center pointer-events-auto">
+        {/* Blinking Logo */}
+        <div className="animate-pulse mb-8">
+          <img src="/favicon/204-logo.png" alt="204 Logo" className="w-24 h-24 object-contain opacity-90" />
+        </div>
+
+        {/* Loading Bar */}
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-[#1A1A1A]">
+          <div 
+            className="h-full bg-[#D84040] transition-all duration-300 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
 
       {/* ThreeJS Container */}
       <div 
@@ -525,24 +527,6 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
         className="absolute inset-0"
         style={{ opacity: 0 }}
       />
-
-      {/* Loading Screen */}
-      {introState === IntroState.LOADING && (
-        <div ref={loadingContainerRef} className="absolute inset-0 bg-black flex flex-col items-center justify-center pointer-events-auto">
-          {/* Blinking Logo */}
-          <div className="animate-pulse mb-8">
-            <img src="/favicon/204-logo.png" alt="204 Logo" className="w-24 h-24 object-contain opacity-90" />
-          </div>
-
-          {/* Loading Bar */}
-          <div className="absolute bottom-0 left-0 w-full h-1 bg-[#1A1A1A]">
-            <div 
-              className="h-full bg-[#D84040] transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
