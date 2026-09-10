@@ -62,6 +62,14 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
     let materials: THREE.ShaderMaterial[] = [];
     let meshes: THREE.Mesh[] = [];
     
+    // Global failsafe timeout: if loading takes more than 8 seconds, force transition
+    const failsafeTimeout = setTimeout(() => {
+      if (!isDestroyed) {
+        console.warn("[Intro] Loading timed out. Forcing transition.");
+        setIntroState(IntroState.TRANSITIONING);
+      }
+    }, 8000);
+    
     let tl = gsap.timeline({ paused: true });
 
     const initThreeJS = () => {
@@ -366,6 +374,7 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
             await Promise.all(
               bandConfigs.map(async (config, index) => {
                 const imgs = await loadImagesForBand(IMAGES_PER_BAND[index]);
+                if (isDestroyed) return;
                 totalLoaded += IMAGES_PER_BAND[index];
                 setProgress(Math.round((totalLoaded / totalToLoad) * 100));
 
@@ -380,20 +389,28 @@ export function LandingTransitionOverlay({ onComplete }: LandingTransitionOverla
               })
             );
             
+            if (isDestroyed) return;
+            clearTimeout(failsafeTimeout);
+            
             // Allow progress bar to finish before transitioning
             setTimeout(() => {
-              setIntroState(IntroState.TRANSITIONING);
+              if (!isDestroyed) setIntroState(IntroState.TRANSITIONING);
             }, 500);
 
           } catch (e) {
             console.error("Async loading failed", e);
+            if (isDestroyed) return;
+            clearTimeout(failsafeTimeout);
             setIntroState(IntroState.TRANSITIONING);
           }
         })();
 
       } catch (e) {
         console.error("Transition init failed", e);
-        onCompleteRef.current();
+        if (!isDestroyed) {
+          clearTimeout(failsafeTimeout);
+          onCompleteRef.current();
+        }
       }
     };
 
