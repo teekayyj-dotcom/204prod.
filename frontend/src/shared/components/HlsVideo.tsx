@@ -7,8 +7,9 @@ interface HlsVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
   lazyLoad?: boolean; // Defaults to true
 }
 
-export const HlsVideo: React.FC<HlsVideoProps> = ({ src, lazyLoad = true, ...props }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+export const HlsVideo = React.forwardRef<HTMLVideoElement, HlsVideoProps>(({ src, lazyLoad = true, ...props }, ref) => {
+  const internalRef = useRef<HTMLVideoElement>(null);
+  const videoRef = (ref as React.MutableRefObject<HTMLVideoElement>) || internalRef;
   const [shouldLoad, setShouldLoad] = useState(!lazyLoad);
   
   // Transform mp4 URL to Bunny Stream HLS URL if applicable
@@ -98,4 +99,6 @@ export const HlsVideo: React.FC<HlsVideoProps> = ({ src, lazyLoad = true, ...pro
       {...props}
     />
   );
-};
+});
+
+HlsVideo.displayName = "HlsVideo";

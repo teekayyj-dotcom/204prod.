@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Play } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -27,6 +27,10 @@ export function ProjectDetail() {
 
   const nextSectionRef = useRef<HTMLElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const [isCinemaMode, setIsCinemaMode] = useState(false);
 
   const scrollY = useMotionValue(0);
   const bgY = useTransform(scrollY, [0, 1000], [0, -200]);
@@ -55,6 +59,29 @@ export function ProjectDetail() {
       target.removeEventListener('scroll', handleScroll);
     };
   }, [scrollY]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsCinemaMode(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const handlePlayCinema = () => {
+    setIsCinemaMode(true);
+    if (heroRef.current?.requestFullscreen) {
+      heroRef.current.requestFullscreen();
+    }
+    // For native video, resetting time and unmuting
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.muted = false;
+      videoRef.current.play().catch(e => console.error("Play failed:", e));
+    }
+  };
 
   useLayoutEffect(() => {
     const scrollRoot = document.querySelector('[data-client-scroll-root="true"]');
@@ -234,16 +261,18 @@ export function ProjectDetail() {
   return (
     <div id="project-detail-container" className="min-h-screen bg-black relative">
       {/* Back Button Overlay */}
-      <button 
-        onClick={() => navigate('/works')} 
-        className="fixed top-24 left-6 md:left-12 z-50 w-12 h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black transition-all group outline-none"
-        aria-label="Back to Works"
-      >
-        <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-      </button>
+      {!isCinemaMode && (
+        <button 
+          onClick={() => navigate('/works')} 
+          className="fixed top-24 left-6 md:left-12 z-50 w-12 h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black transition-all group outline-none"
+          aria-label="Back to Works"
+        >
+          <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+        </button>
+      )}
 
       {/* Full Height Video / Hero Section */}
-      <section className="sticky top-0 w-full h-[100svh] bg-black overflow-hidden z-0">
+      <section ref={heroRef} className="sticky top-0 w-full h-[100svh] bg-black overflow-hidden z-0">
         <motion.div 
           className="absolute inset-0"
           style={{ y: bgY, opacity: heroOpacity }}
@@ -265,13 +294,17 @@ export function ProjectDetail() {
 
             let embedUrl = null;
             if (ytMatch) {
-              embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
+              embedUrl = isCinemaMode 
+                ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0&playsinline=1`
+                : `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
             } else if (vmMatch) {
-              embedUrl = `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
+              embedUrl = isCinemaMode 
+                ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=0&controls=1`
+                : `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
             } else if (bunnyLegacyMatch) {
-              embedUrl = videoUrl.includes("?")
-                ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true`
-                : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`;
+              embedUrl = isCinemaMode
+                ? (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&muted=false` : `${videoUrl}?autoplay=true&muted=false`)
+                : (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true` : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`);
             }
             
             const nativeVideoUrl = videoUrl?.replace("/play_1080p.mp4", "/play_720p.mp4");
@@ -280,8 +313,8 @@ export function ProjectDetail() {
               return (
                 <iframe
                   src={embedUrl}
-                  className="w-full h-full object-cover pointer-events-none opacity-60"
-                  style={{ border: "none", transform: "scale(1.35)", transformOrigin: "center" }}
+                  className={`w-full h-full object-cover ${isCinemaMode ? 'opacity-100 pointer-events-auto' : 'pointer-events-none opacity-60'}`}
+                  style={{ border: "none", transform: isCinemaMode ? "scale(1)" : "scale(1.35)", transformOrigin: "center" }}
                   allow="autoplay; fullscreen; picture-in-picture"
                   title={project.title}
                 />
@@ -289,14 +322,16 @@ export function ProjectDetail() {
             } else {
               return (
                 <HlsVideo 
+                  ref={videoRef}
                   src={nativeVideoUrl}
-                  autoPlay 
-                  loop 
-                  muted 
+                  autoPlay={!isCinemaMode}
+                  loop={!isCinemaMode} 
+                  muted={!isCinemaMode} 
+                  controls={isCinemaMode}
                   playsInline
                   lazyLoad={false}
                   preload="auto"
-                  className="w-full h-full object-cover opacity-60" 
+                  className={`w-full h-full object-cover transition-opacity duration-500 ${isCinemaMode ? 'opacity-100 pointer-events-auto' : 'opacity-60 pointer-events-none'}`} 
                   poster={project.image}
                 />
               );
@@ -306,8 +341,8 @@ export function ProjectDetail() {
         
         {/* Title Overlay */}
         <motion.div 
-          className="absolute inset-0 flex flex-col justify-end p-6 md:px-12 pb-8 md:pb-12 max-w-7xl mx-auto w-full z-10"
-          style={{ y: titleY, opacity: textOpacity }}
+          className={`absolute inset-0 flex flex-col justify-end p-6 md:px-12 pb-8 md:pb-12 max-w-7xl mx-auto w-full z-10 transition-opacity duration-500 ${isCinemaMode ? 'opacity-0 pointer-events-none' : ''}`}
+          style={{ y: titleY, opacity: isCinemaMode ? 0 : textOpacity }}
         >
           <motion.div 
             className="flex flex-col gap-2"
@@ -323,6 +358,19 @@ export function ProjectDetail() {
             </h1>
           </motion.div>
         </motion.div>
+
+        {/* Play Button */}
+        {!isCinemaMode && project.video && (
+          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+            <button 
+              onClick={handlePlayCinema}
+              className="w-20 h-20 md:w-24 md:h-24 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black hover:scale-105 transition-all duration-300 pointer-events-auto group outline-none"
+              aria-label="Play Video Fullscreen"
+            >
+              <Play className="w-8 h-8 md:w-10 md:h-10 ml-2 group-hover:scale-110 transition-transform" fill="currentColor" />
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Project Info Section */}
