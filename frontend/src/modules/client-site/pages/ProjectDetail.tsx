@@ -738,14 +738,6 @@ export function ProjectDetail() {
                       >
                         {renderVideoEmbed(vid.url, false, vid.thumbnail, `set1-${idx}`)}
                         <div className="absolute inset-0 bg-black/25 group-hover:bg-black/5 transition-colors pointer-events-none" />
-                        
-                        {/* Video Index Badge */}
-                        <div className="absolute top-24 left-6 z-20 pointer-events-none">
-                          <span className="text-[11px] font-mono tracking-widest text-white/80 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 uppercase font-semibold flex items-center gap-1.5 shadow-lg">
-                            <Play size={10} className="text-[#EB5B00]" fill="currentColor" />
-                            0{originalIdx + 1} / 0{project.videos.length}
-                          </span>
-                        </div>
 
                         {/* Hover Play Button Overlay */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -772,14 +764,6 @@ export function ProjectDetail() {
                       >
                         {renderVideoEmbed(vid.url, false, vid.thumbnail, `set2-${idx}`)}
                         <div className="absolute inset-0 bg-black/25 group-hover:bg-black/5 transition-colors pointer-events-none" />
-                        
-                        {/* Video Index Badge */}
-                        <div className="absolute top-24 left-6 z-20 pointer-events-none">
-                          <span className="text-[11px] font-mono tracking-widest text-white/80 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 uppercase font-semibold flex items-center gap-1.5 shadow-lg">
-                            <Play size={10} className="text-[#EB5B00]" fill="currentColor" />
-                            0{originalIdx + 1} / 0{project.videos.length}
-                          </span>
-                        </div>
 
                         {/* Hover Play Button Overlay */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
