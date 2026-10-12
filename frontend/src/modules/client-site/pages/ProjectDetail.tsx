@@ -361,13 +361,13 @@ export function ProjectDetail() {
 
         {/* Play Button */}
         {!isCinemaMode && project.video && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="absolute bottom-6 right-6 md:bottom-12 md:right-12 z-20 pointer-events-none">
             <button 
               onClick={handlePlayCinema}
-              className="w-20 h-20 md:w-24 md:h-24 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black hover:scale-105 transition-all duration-300 pointer-events-auto group outline-none"
+              className="w-16 h-16 md:w-20 md:h-20 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black hover:scale-105 transition-all duration-300 pointer-events-auto group outline-none shadow-lg"
               aria-label="Play Video Fullscreen"
             >
-              <Play className="w-8 h-8 md:w-10 md:h-10 ml-2 group-hover:scale-110 transition-transform" fill="currentColor" />
+              <Play className="w-6 h-6 md:w-8 md:h-8 ml-1.5 group-hover:scale-110 transition-transform" fill="currentColor" />
             </button>
           </div>
         )}
