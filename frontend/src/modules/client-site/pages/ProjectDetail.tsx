@@ -495,15 +495,10 @@ export function ProjectDetail() {
     project?.category?.toLowerCase().includes("dọc")
   );
 
-  const marqueeItems = useMemo(() => {
-    if (!project?.videos || project.videos.length === 0) return [];
-    const base = project.videos.map((v: any, i: number) => ({ ...v, originalIndex: i }));
-    // For vertical videos, each card is narrower (aspect 9/16), so we repeat to ensure wide multi-screen span
-    // For horizontal videos, each card is aspect-video (16/9), so 4 items per set ensures seamless span
-    const minItems = isVertical ? 6 : 4;
-    const repeatCount = Math.max(1, Math.ceil(minItems / base.length));
-    return Array.from({ length: repeatCount }, () => base).flat();
-  }, [project?.videos, isVertical]);
+  const baseVideos = (project?.videos || []).map((v: any, i: number) => ({ ...v, originalIndex: i }));
+  const minItems = isVertical ? 6 : 4;
+  const repeatCount = baseVideos.length > 0 ? Math.max(1, Math.ceil(minItems / baseVideos.length)) : 1;
+  const marqueeItems = Array.from({ length: repeatCount }, () => baseVideos).flat();
 
   const currentCinemaVideo = (project?.videos && project.videos[selectedVideoIndex]) || (project?.videos && project.videos[0]) || { url: project?.video, title: project?.title };
 
