@@ -56,3 +56,29 @@ html.back-transition::view-transition-new(root) {
   animation: none;
   z-index: 1; /* New page stays underneath statically */
 }
+
+/* Infinite Running Carousel */
+@keyframes marquee-carousel {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-carousel {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  width: max-content !important;
+  min-width: 200% !important;
+  animation: marquee-carousel 45s linear infinite !important;
+  will-change: transform;
+}
+
+.animate-marquee-carousel:hover {
+  animation-play-state: paused;
+}
+

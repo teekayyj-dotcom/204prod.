@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle, Play, X, RotateCcw, ListVideo, Film } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
@@ -234,13 +234,25 @@ export function ProjectDetail() {
 
           const videoList = allUrls.map((url, idx) => {
             const matchInGallery = (data.gallery || []).find((g: any) => g.url === url);
+            const bunnyMatch = url.match(/(?:b-cdn\.net|mediadelivery\.net\/[^\/]+)\/([a-zA-Z0-9-]+)/);
+            const bunnyId = matchInGallery?.bunny_video_id || (bunnyMatch ? bunnyMatch[1] : null);
+            const bunnyThumbnail = bunnyId ? `https://vz-f1a07f87-b02.b-cdn.net/${bunnyId}/thumbnail.jpg` : null;
+
             return {
               id: matchInGallery?.id || `vid-${idx}`,
               url,
               title: matchInGallery?.name || (allUrls.length > 1 ? `Video Cut ${String(idx + 1).padStart(2, '0')}` : data.title),
-              thumbnail: matchInGallery?.thumbnail_url || (matchInGallery?.bunny_video_id ? `https://vz-f1a07f87-b02.b-cdn.net/${matchInGallery.bunny_video_id}/thumbnail.jpg` : null) || data.cover_media?.thumbnail_url || data.cover_media?.url || data.cover_image,
+              thumbnail: matchInGallery?.thumbnail_url || bunnyThumbnail || data.cover_media?.thumbnail_url || data.cover_media?.url || data.cover_image,
             };
           });
+
+          const isVertical = Boolean(
+            (data.format || "").toLowerCase().includes("short") ||
+            (data.format || "").toLowerCase().includes("reels") ||
+            (data.format || "").toLowerCase().includes("tiktok") ||
+            (data.format || "").toLowerCase().includes("dọc") ||
+            (data.format_slug || "").includes("short")
+          );
 
           setProject({
             id: data.slug,
@@ -253,6 +265,7 @@ export function ProjectDetail() {
             image: data.cover_media?.url || data.cover_image || shot("photo-1516321318423-f06f85e504b3"),
             video: videoList[0]?.url || null,
             videos: videoList,
+            isVertical,
             behindTheScenes: data.gallery || [],
             credits: data.structured_credits || []
           });
@@ -448,8 +461,8 @@ export function ProjectDetail() {
         <iframe
           key={`iframe-${url}-${keySuffix || ''}`}
           src={embedUrl}
-          className={`w-full h-full ${isCinema ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover pointer-events-none opacity-60'}`}
-          style={{ border: "none", transform: isCinema ? "scale(1)" : "scale(1.35)", transformOrigin: "center" }}
+          className={`w-full h-full ${isCinema ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover pointer-events-none opacity-85'}`}
+          style={{ border: "none", transform: isCinema ? "scale(1)" : "scale(1.05)", transformOrigin: "center" }}
           allow="autoplay; fullscreen; picture-in-picture"
           title={project?.title || "Video"}
         />
@@ -467,12 +480,30 @@ export function ProjectDetail() {
           playsInline
           lazyLoad={false}
           preload="auto"
-          className={`w-full h-full transition-opacity duration-500 ${isCinema ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover opacity-60 pointer-events-none'}`} 
+          className={`w-full h-full transition-opacity duration-500 ${isCinema ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover opacity-85 pointer-events-none'}`} 
           poster={posterImage || project?.image}
         />
       );
     }
   };
+
+  const isVertical = Boolean(
+    project?.isVertical ||
+    project?.category?.toLowerCase().includes("short") ||
+    project?.category?.toLowerCase().includes("reels") ||
+    project?.category?.toLowerCase().includes("tiktok") ||
+    project?.category?.toLowerCase().includes("dọc")
+  );
+
+  const marqueeItems = useMemo(() => {
+    if (!project?.videos || project.videos.length === 0) return [];
+    const base = project.videos.map((v: any, i: number) => ({ ...v, originalIndex: i }));
+    // For vertical videos, each card is narrower (aspect 9/16), so we repeat to ensure wide multi-screen span
+    // For horizontal videos, each card is aspect-video (16/9), so 4 items per set ensures seamless span
+    const minItems = isVertical ? 6 : 4;
+    const repeatCount = Math.max(1, Math.ceil(minItems / base.length));
+    return Array.from({ length: repeatCount }, () => base).flat();
+  }, [project?.videos, isVertical]);
 
   const currentCinemaVideo = (project?.videos && project.videos[selectedVideoIndex]) || (project?.videos && project.videos[0]) || { url: project?.video, title: project?.title };
 
@@ -566,8 +597,15 @@ export function ProjectDetail() {
             {isCinemaMode ? (
               /* Cinema Mode: Main Video Player with Video Selector beside it */
               <div className="w-full h-full flex flex-row relative bg-black overflow-hidden">
+                {/* Full-bleed ambient backdrop for vertical videos in cinema mode */}
+                {isVertical && currentCinemaVideo?.thumbnail && (
+                  <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none opacity-20 blur-3xl scale-125 z-0">
+                    <img src={currentCinemaVideo.thumbnail} alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
+
                 {/* Video Player */}
-                <div className="flex-1 h-full relative flex items-center justify-center bg-black overflow-hidden">
+                <div className="flex-1 h-full relative flex items-center justify-center bg-black/90 overflow-hidden z-10">
                   {renderVideoEmbed(currentCinemaVideo?.url, true, currentCinemaVideo?.thumbnail, `cinema-${selectedVideoIndex}`)}
                 </div>
 
@@ -675,41 +713,88 @@ export function ProjectDetail() {
                 )}
               </div>
             ) : project?.videos && project.videos.length > 1 ? (
-              /* Preview Mode with Multiple Videos: Infinite Running Carousel */
-              <div className="absolute inset-0 overflow-hidden flex items-center">
-                <div className="animate-marquee-carousel gap-4 md:gap-6 py-2">
+              /* Preview Mode with Multiple Videos: Full-screen Infinite Running Carousel */
+              <div className="absolute inset-0 w-full h-full overflow-hidden flex items-center justify-start bg-black">
+                {/* Full screen ambient blurred background glow */}
+                <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                  {renderVideoEmbed(project.videos[0]?.url, false, project.videos[0]?.thumbnail, 'ambient-bg')}
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-3xl" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/70" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/50" />
+                </div>
+
+                {/* Marquee Track: Seamless Infinite Running Carousel */}
+                <div 
+                  className="flex flex-row flex-nowrap items-center h-full animate-marquee-carousel relative z-10 select-none py-0"
+                  style={{ width: "max-content", willChange: "transform" }}
+                >
                   {/* Set 1 */}
-                  {project.videos.map((vid: any, idx: number) => (
-                    <div 
-                      key={`set1-${idx}`}
-                      onClick={() => handlePlayCinema(idx)}
-                      className="w-[85vw] sm:w-[65vw] md:w-[50vw] lg:w-[42vw] h-[100svh] flex-shrink-0 relative overflow-hidden group cursor-pointer border-x border-white/5"
-                    >
-                      {renderVideoEmbed(vid.url, false, vid.thumbnail, `set1-${idx}`)}
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors pointer-events-none" />
-                      <div className="absolute top-28 left-6 md:left-8 z-20 pointer-events-none">
-                        <span className="text-[11px] font-mono tracking-widest text-white/70 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 uppercase font-semibold">
-                          0{idx + 1} / 0{project.videos.length}
-                        </span>
+                  {marqueeItems.map((vid: any, idx: number) => {
+                    const originalIdx = vid.originalIndex ?? (idx % project.videos.length);
+                    return (
+                      <div 
+                        key={`set1-${idx}`}
+                        onClick={() => handlePlayCinema(originalIdx)}
+                        className={`h-full ${
+                          isVertical 
+                            ? "aspect-[9/16] max-h-[100svh]" 
+                            : "aspect-video max-h-[100svh]"
+                        } flex-shrink-0 relative overflow-hidden group cursor-pointer border-x border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-neutral-950`}
+                      >
+                        {renderVideoEmbed(vid.url, false, vid.thumbnail, `set1-${idx}`)}
+                        <div className="absolute inset-0 bg-black/25 group-hover:bg-black/5 transition-colors pointer-events-none" />
+                        
+                        {/* Video Index Badge */}
+                        <div className="absolute top-24 left-6 z-20 pointer-events-none">
+                          <span className="text-[11px] font-mono tracking-widest text-white/80 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 uppercase font-semibold flex items-center gap-1.5 shadow-lg">
+                            <Play size={10} className="text-[#EB5B00]" fill="currentColor" />
+                            0{originalIdx + 1} / 0{project.videos.length}
+                          </span>
+                        </div>
+
+                        {/* Hover Play Button Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                          <div className="w-14 h-14 rounded-full bg-[#EB5B00] backdrop-blur-md flex items-center justify-center text-black shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+                            <Play size={22} className="ml-0.5" fill="currentColor" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {/* Set 2 (exact duplicate for seamless continuous loop) */}
-                  {project.videos.map((vid: any, idx: number) => (
-                    <div 
-                      key={`set2-${idx}`}
-                      onClick={() => handlePlayCinema(idx)}
-                      className="w-[85vw] sm:w-[65vw] md:w-[50vw] lg:w-[42vw] h-[100svh] flex-shrink-0 relative overflow-hidden group cursor-pointer border-x border-white/5"
-                    >
-                      {renderVideoEmbed(vid.url, false, vid.thumbnail, `set2-${idx}`)}
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors pointer-events-none" />
-                      <div className="absolute top-28 left-6 md:left-8 z-20 pointer-events-none">
-                        <span className="text-[11px] font-mono tracking-widest text-white/70 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 uppercase font-semibold">
-                          0{idx + 1} / 0{project.videos.length}
-                        </span>
+                    );
+                  })}
+
+                  {/* Set 2 (Exact duplicate for seamless infinite loop) */}
+                  {marqueeItems.map((vid: any, idx: number) => {
+                    const originalIdx = vid.originalIndex ?? (idx % project.videos.length);
+                    return (
+                      <div 
+                        key={`set2-${idx}`}
+                        onClick={() => handlePlayCinema(originalIdx)}
+                        className={`h-full ${
+                          isVertical 
+                            ? "aspect-[9/16] max-h-[100svh]" 
+                            : "aspect-video max-h-[100svh]"
+                        } flex-shrink-0 relative overflow-hidden group cursor-pointer border-x border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-neutral-950`}
+                      >
+                        {renderVideoEmbed(vid.url, false, vid.thumbnail, `set2-${idx}`)}
+                        <div className="absolute inset-0 bg-black/25 group-hover:bg-black/5 transition-colors pointer-events-none" />
+                        
+                        {/* Video Index Badge */}
+                        <div className="absolute top-24 left-6 z-20 pointer-events-none">
+                          <span className="text-[11px] font-mono tracking-widest text-white/80 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 uppercase font-semibold flex items-center gap-1.5 shadow-lg">
+                            <Play size={10} className="text-[#EB5B00]" fill="currentColor" />
+                            0{originalIdx + 1} / 0{project.videos.length}
+                          </span>
+                        </div>
+
+                        {/* Hover Play Button Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                          <div className="w-14 h-14 rounded-full bg-[#EB5B00] backdrop-blur-md flex items-center justify-center text-black shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+                            <Play size={22} className="ml-0.5" fill="currentColor" />
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
