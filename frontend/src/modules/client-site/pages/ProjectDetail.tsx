@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, Play, X, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Play, X, RotateCcw, ListVideo, Film } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -31,6 +31,8 @@ export function ProjectDetail() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [isCinemaMode, setIsCinemaMode] = useState(false);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
+  const [isPlaylistOpen, setIsPlaylistOpen] = useState(true);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [manualOrientation, setManualOrientation] = useState<'auto' | 'landscape' | 'portrait'>('auto');
@@ -114,9 +116,13 @@ export function ProjectDetail() {
     };
   }, [isCinemaMode]);
 
-  const handlePlayCinema = async () => {
+  const handlePlayCinema = async (videoIndex?: number) => {
+    if (typeof videoIndex === 'number') {
+      setSelectedVideoIndex(videoIndex);
+    }
     setIsCinemaMode(true);
     setManualOrientation('auto');
+    setIsPlaylistOpen(true);
 
     // 1. Try native fullscreen on hero section (Android Chrome, Desktop, etc.)
     const el = heroRef.current;
@@ -143,11 +149,13 @@ export function ProjectDetail() {
     }
 
     // 3. Unmute and play native video if present
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.muted = false;
-      videoRef.current.play().catch(e => console.error("Play failed:", e));
-    }
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.muted = false;
+        videoRef.current.play().catch(e => console.error("Play failed:", e));
+      }
+    }, 50);
   };
 
   const handleExitCinema = async () => {
@@ -210,6 +218,30 @@ export function ProjectDetail() {
         const response = await fetch(`/api/v1/projects/${id}`);
         if (response.ok) {
           const data = await response.json();
+
+          // Extract all videos from project (supports comma-separated video_url and gallery video items)
+          const rawVideoUrls = (data.video_url || data.videoUrl || "")
+            .split(",")
+            .map((u: string) => u.trim())
+            .filter(Boolean);
+
+          const galleryVideos = (data.gallery || [])
+            .filter((g: any) => g.type === 'video' || g.folder === 'final video' || (g.url && (g.url.includes('.mp4') || g.bunny_video_id)))
+            .map((g: any) => g.url)
+            .filter(Boolean);
+
+          const allUrls = Array.from(new Set([...rawVideoUrls, ...galleryVideos]));
+
+          const videoList = allUrls.map((url, idx) => {
+            const matchInGallery = (data.gallery || []).find((g: any) => g.url === url);
+            return {
+              id: matchInGallery?.id || `vid-${idx}`,
+              url,
+              title: matchInGallery?.name || (allUrls.length > 1 ? `Video Cut ${String(idx + 1).padStart(2, '0')}` : data.title),
+              thumbnail: matchInGallery?.thumbnail_url || (matchInGallery?.bunny_video_id ? `https://vz-f1a07f87-b02.b-cdn.net/${matchInGallery.bunny_video_id}/thumbnail.jpg` : null) || data.cover_media?.thumbnail_url || data.cover_media?.url || data.cover_image,
+            };
+          });
+
           setProject({
             id: data.slug,
             title: data.title,
@@ -219,14 +251,25 @@ export function ProjectDetail() {
             role: data.format || "Creative Production",
             description: data.summary || "A creative production showcase.",
             image: data.cover_media?.url || data.cover_image || shot("photo-1516321318423-f06f85e504b3"),
-            video: data.video_url || data.videoUrl || null,
+            video: videoList[0]?.url || null,
+            videos: videoList,
             behindTheScenes: data.gallery || [],
             credits: data.structured_credits || []
           });
         } else {
           // Fallback to local mock data
           const local = fallbackProjects.find(p => p.id === id);
-          setProject(local ? { ...local, behindTheScenes: [] } : null);
+          if (local) {
+            const localVideos = (local.video ? [local.video] : []).map((url: string, idx: number) => ({
+              id: `vid-${idx}`,
+              url,
+              title: local.title,
+              thumbnail: local.image
+            }));
+            setProject({ ...local, video: localVideos[0]?.url || null, videos: localVideos, behindTheScenes: [] });
+          } else {
+            setProject(null);
+          }
         }
 
         // Fetch all projects to determine next project
@@ -369,6 +412,70 @@ export function ProjectDetail() {
     );
   }
 
+  const renderVideoEmbed = (url: string, isCinema: boolean, posterImage?: string, keySuffix?: string) => {
+    if (!url) {
+      return (
+        <img
+          src={posterImage || project?.image}
+          alt={project?.title || "Project Preview"}
+          className="w-full h-full object-cover opacity-60"
+        />
+      );
+    }
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+    const vmMatch = url.match(/vimeo\.com\/(\d+)/);
+    const bunnyLegacyMatch = url.match(/iframe\.mediadelivery\.net\/embed\//);
+
+    let embedUrl = null;
+    if (ytMatch) {
+      embedUrl = isCinema 
+        ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0&playsinline=1`
+        : `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
+    } else if (vmMatch) {
+      embedUrl = isCinema 
+        ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=0&controls=1`
+        : `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
+    } else if (bunnyLegacyMatch) {
+      embedUrl = isCinema
+        ? (url.includes("?") ? `${url}&autoplay=true&muted=false` : `${url}?autoplay=true&muted=false`)
+        : (url.includes("?") ? `${url}&autoplay=true&loop=true&muted=true&background=true` : `${url}?autoplay=true&loop=true&muted=true&background=true`);
+    }
+    
+    const nativeVideoUrl = url?.replace("/play_1080p.mp4", "/play_720p.mp4");
+    
+    if (embedUrl) {
+      return (
+        <iframe
+          key={`iframe-${url}-${keySuffix || ''}`}
+          src={embedUrl}
+          className={`w-full h-full ${isCinema ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover pointer-events-none opacity-60'}`}
+          style={{ border: "none", transform: isCinema ? "scale(1)" : "scale(1.35)", transformOrigin: "center" }}
+          allow="autoplay; fullscreen; picture-in-picture"
+          title={project?.title || "Video"}
+        />
+      );
+    } else {
+      return (
+        <HlsVideo 
+          key={`hls-${url}-${keySuffix || ''}`}
+          ref={isCinema ? videoRef : undefined}
+          src={nativeVideoUrl}
+          autoPlay
+          loop={!isCinema} 
+          muted={!isCinema} 
+          controls={isCinema}
+          playsInline
+          lazyLoad={false}
+          preload="auto"
+          className={`w-full h-full transition-opacity duration-500 ${isCinema ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover opacity-60 pointer-events-none'}`} 
+          poster={posterImage || project?.image}
+        />
+      );
+    }
+  };
+
+  const currentCinemaVideo = (project?.videos && project.videos[selectedVideoIndex]) || (project?.videos && project.videos[0]) || { url: project?.video, title: project?.title };
+
   return (
     <div id="project-detail-container" className="min-h-screen bg-black relative">
       {/* Back Button Overlay */}
@@ -395,25 +502,28 @@ export function ProjectDetail() {
           className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
           style={isCinemaMode ? { y: 0, opacity: 1 } : { y: bgY, opacity: heroOpacity }}
         >
-          {/* Cinema Controls (Exit and Rotate) */}
+          {/* Cinema Top Controls */}
           {isCinemaMode && (
             <div 
-              className={`absolute z-[10000] flex items-center gap-3 transition-all duration-300 pointer-events-auto ${
-                shouldRotateLandscape
-                  ? "top-6 right-6"
-                  : "top-6 right-6"
-              }`}
-              style={
-                shouldRotateLandscape
-                  ? {
-                      position: 'fixed',
-                      top: '1.5rem',
-                      right: '1.5rem',
-                      zIndex: 10001,
-                    }
-                  : undefined
-              }
+              className="absolute top-6 right-6 z-[10002] flex items-center gap-3 transition-all duration-300 pointer-events-auto"
             >
+              {project?.videos && project.videos.length > 1 && (
+                <button
+                  onClick={() => setIsPlaylistOpen(prev => !prev)}
+                  className={`px-3.5 py-2 h-11 backdrop-blur-md border rounded-full flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-all outline-none shadow-xl cursor-pointer ${
+                    isPlaylistOpen 
+                      ? "bg-[#EB5B00] text-black border-[#EB5B00]" 
+                      : "bg-black/60 hover:bg-black/90 text-white border-white/20 hover:text-[#EB5B00]"
+                  }`}
+                  title="Danh sách Video Media"
+                >
+                  <ListVideo size={16} />
+                  <span className="hidden sm:inline">Videos</span>
+                  <span className="font-mono text-[10px] bg-black/20 px-1.5 py-0.5 rounded-full">
+                    {selectedVideoIndex + 1}/{project.videos.length}
+                  </span>
+                </button>
+              )}
               {isMobile && (
                 <button
                   onClick={toggleManualOrientation}
@@ -435,7 +545,7 @@ export function ProjectDetail() {
             </div>
           )}
 
-          {/* Video Container (Rotates 90deg on mobile portrait for full screen landscape) */}
+          {/* Main Content Area */}
           <div
             className={`transition-all duration-300 flex items-center justify-center bg-black overflow-hidden ${
               shouldRotateLandscape
@@ -453,66 +563,159 @@ export function ProjectDetail() {
                 : { width: '100%', height: '100%' }
             }
           >
-            {(() => {
-              const videoUrl = project.video || null;
-              if (!videoUrl) {
-                return (
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    className="w-full h-full object-cover opacity-60"
-                  />
-                );
-              }
-              const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-              const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
-              const bunnyLegacyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
+            {isCinemaMode ? (
+              /* Cinema Mode: Main Video Player with Video Selector beside it */
+              <div className="w-full h-full flex flex-row relative bg-black overflow-hidden">
+                {/* Video Player */}
+                <div className="flex-1 h-full relative flex items-center justify-center bg-black overflow-hidden">
+                  {renderVideoEmbed(currentCinemaVideo?.url, true, currentCinemaVideo?.thumbnail, `cinema-${selectedVideoIndex}`)}
+                </div>
 
-              let embedUrl = null;
-              if (ytMatch) {
-                embedUrl = isCinemaMode 
-                  ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0&playsinline=1`
-                  : `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
-              } else if (vmMatch) {
-                embedUrl = isCinemaMode 
-                  ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=0&controls=1`
-                  : `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
-              } else if (bunnyLegacyMatch) {
-                embedUrl = isCinemaMode
-                  ? (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&muted=false` : `${videoUrl}?autoplay=true&muted=false`)
-                  : (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true` : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`);
-              }
-              
-              const nativeVideoUrl = videoUrl?.replace("/play_1080p.mp4", "/play_720p.mp4");
-              
-              if (embedUrl) {
-                return (
-                  <iframe
-                    src={embedUrl}
-                    className={`w-full h-full ${isCinemaMode ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover pointer-events-none opacity-60'}`}
-                    style={{ border: "none", transform: isCinemaMode ? "scale(1)" : "scale(1.35)", transformOrigin: "center" }}
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    title={project.title}
-                  />
-                );
-              } else {
-                return (
-                  <HlsVideo 
-                    ref={videoRef}
-                    src={nativeVideoUrl}
-                    autoPlay={!isCinemaMode}
-                    loop={!isCinemaMode} 
-                    muted={!isCinemaMode} 
-                    controls={isCinemaMode}
-                    playsInline
-                    lazyLoad={false}
-                    preload="auto"
-                    className={`w-full h-full transition-opacity duration-500 ${isCinemaMode ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover opacity-60 pointer-events-none'}`} 
-                    poster={project.image}
-                  />
-                );
-              }
-            })()}
+                {/* Video Selector Area beside player */}
+                {project?.videos && project.videos.length > 1 && (
+                  <div 
+                    className={`transition-all duration-300 z-40 flex flex-col bg-black/90 backdrop-blur-2xl border-l border-white/10 ${
+                      isPlaylistOpen 
+                        ? "w-80 md:w-96 translate-x-0" 
+                        : "w-0 translate-x-full overflow-hidden border-none"
+                    } ${
+                      "absolute right-0 top-0 h-full md:relative"
+                    }`}
+                  >
+                    {/* Header of Video Selector */}
+                    <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <ListVideo size={18} className="text-[#EB5B00]" />
+                        <div>
+                          <h3 className="text-white text-xs uppercase tracking-widest font-bold">Video Media</h3>
+                          <p className="text-white/40 text-[11px]">{project.videos.length} videos available</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setIsPlaylistOpen(false)}
+                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+                        title="Đóng danh sách"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    {/* Video Items List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+                      {project.videos.map((vid: any, idx: number) => {
+                        const isSelected = selectedVideoIndex === idx;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setSelectedVideoIndex(idx);
+                              setTimeout(() => {
+                                if (videoRef.current) {
+                                  videoRef.current.currentTime = 0;
+                                  videoRef.current.muted = false;
+                                  videoRef.current.play().catch(() => {});
+                                }
+                              }, 50);
+                            }}
+                            className={`w-full text-left p-3 rounded-xl border transition-all flex items-center gap-3.5 group cursor-pointer ${
+                              isSelected
+                                ? "bg-[#EB5B00]/15 border-[#EB5B00] shadow-[0_0_20px_rgba(235,91,0,0.2)]"
+                                : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                            }`}
+                          >
+                            {/* Thumbnail */}
+                            <div className="relative w-24 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-neutral-900 border border-white/10">
+                              {vid.thumbnail ? (
+                                <img src={vid.thumbnail} alt={vid.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                  <Film size={18} className="text-white/40" />
+                                </div>
+                              )}
+                              <div className={`absolute inset-0 flex items-center justify-center ${
+                                isSelected ? "bg-[#EB5B00]/40" : "bg-black/30 group-hover:bg-black/10"
+                              }`}>
+                                {isSelected ? (
+                                  <div className="w-6 h-6 rounded-full bg-[#EB5B00] flex items-center justify-center shadow-md">
+                                    <Play size={10} className="text-black ml-0.5" fill="currentColor" />
+                                  </div>
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Play size={10} className="text-white ml-0.5" fill="currentColor" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                  isSelected ? "bg-[#EB5B00] text-black" : "bg-white/10 text-white/60"
+                                }`}>
+                                  0{idx + 1}
+                                </span>
+                                {isSelected && (
+                                  <span className="text-[10px] font-bold text-[#EB5B00] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                                    ● Playing
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-xs md:text-sm font-semibold truncate ${
+                                isSelected ? "text-white" : "text-white/80 group-hover:text-white"
+                              }`}>
+                                {vid.title}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : project?.videos && project.videos.length > 1 ? (
+              /* Preview Mode with Multiple Videos: Infinite Running Carousel */
+              <div className="absolute inset-0 overflow-hidden flex items-center">
+                <div className="animate-marquee-carousel gap-4 md:gap-6 py-2">
+                  {/* Set 1 */}
+                  {project.videos.map((vid: any, idx: number) => (
+                    <div 
+                      key={`set1-${idx}`}
+                      onClick={() => handlePlayCinema(idx)}
+                      className="w-[85vw] sm:w-[65vw] md:w-[50vw] lg:w-[42vw] h-[100svh] flex-shrink-0 relative overflow-hidden group cursor-pointer border-x border-white/5"
+                    >
+                      {renderVideoEmbed(vid.url, false, vid.thumbnail, `set1-${idx}`)}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors pointer-events-none" />
+                      <div className="absolute top-28 left-6 md:left-8 z-20 pointer-events-none">
+                        <span className="text-[11px] font-mono tracking-widest text-white/70 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 uppercase font-semibold">
+                          0{idx + 1} / 0{project.videos.length}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Set 2 (exact duplicate for seamless continuous loop) */}
+                  {project.videos.map((vid: any, idx: number) => (
+                    <div 
+                      key={`set2-${idx}`}
+                      onClick={() => handlePlayCinema(idx)}
+                      className="w-[85vw] sm:w-[65vw] md:w-[50vw] lg:w-[42vw] h-[100svh] flex-shrink-0 relative overflow-hidden group cursor-pointer border-x border-white/5"
+                    >
+                      {renderVideoEmbed(vid.url, false, vid.thumbnail, `set2-${idx}`)}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors pointer-events-none" />
+                      <div className="absolute top-28 left-6 md:left-8 z-20 pointer-events-none">
+                        <span className="text-[11px] font-mono tracking-widest text-white/70 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 uppercase font-semibold">
+                          0{idx + 1} / 0{project.videos.length}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Preview Mode with Single Video or Image */
+              renderVideoEmbed(project?.video, false, project?.image, 'single-preview')
+            )}
           </div>
         </motion.div>
         
@@ -537,11 +740,11 @@ export function ProjectDetail() {
         </motion.div>
 
         {/* Play Button */}
-        {!isCinemaMode && project.video && (
+        {!isCinemaMode && (project.videos?.length > 0 || project.video) && (
           <div className="absolute bottom-6 right-6 md:bottom-12 md:right-12 z-20 pointer-events-none">
             <button 
-              onClick={handlePlayCinema}
-              className="w-16 h-16 md:w-20 md:h-20 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black hover:scale-105 transition-all duration-300 pointer-events-auto group outline-none shadow-lg"
+              onClick={() => handlePlayCinema(0)}
+              className="w-16 h-16 md:w-20 md:h-20 bg-black/40 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-[#EB5B00] hover:border-[#EB5B00] hover:text-black hover:scale-105 transition-all duration-300 pointer-events-auto group outline-none shadow-lg cursor-pointer"
               aria-label="Play Video Fullscreen"
             >
               <Play className="w-6 h-6 md:w-8 md:h-8 ml-1.5 group-hover:scale-110 transition-transform" fill="currentColor" />

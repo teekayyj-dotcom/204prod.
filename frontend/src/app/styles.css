@@ -314,3 +314,25 @@ textarea {
     align-items: start;
   }
 }
+
+/* Infinite Running Carousel */
+@keyframes marquee-carousel {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-carousel {
+  display: flex;
+  width: max-content;
+  animation: marquee-carousel 45s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-carousel:hover {
+  animation-play-state: paused;
+}
+
