@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, Play } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Play, X, RotateCcw } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -31,6 +31,9 @@ export function ProjectDetail() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [isCinemaMode, setIsCinemaMode] = useState(false);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [manualOrientation, setManualOrientation] = useState<'auto' | 'landscape' | 'portrait'>('auto');
 
   const scrollY = useMotionValue(0);
   const bgY = useTransform(scrollY, [0, 1000], [0, -200]);
@@ -61,27 +64,135 @@ export function ProjectDetail() {
   }, [scrollY]);
 
   useEffect(() => {
+    const updateOrientation = () => {
+      const mobile = window.innerWidth <= 820 || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsMobile(mobile);
+      setIsMobilePortrait(mobile && portrait);
+    };
+
+    updateOrientation();
+    window.addEventListener('resize', updateOrientation);
+    window.addEventListener('orientationchange', updateOrientation);
+
+    if (window.screen?.orientation) {
+      window.screen.orientation.addEventListener('change', updateOrientation);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateOrientation);
+      window.removeEventListener('orientationchange', updateOrientation);
+      if (window.screen?.orientation) {
+        window.screen.orientation.removeEventListener('change', updateOrientation);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isCinemaMode) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isCinemaMode]);
+
+  useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setIsCinemaMode(false);
+      const isFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      if (!isFs && isCinemaMode) {
+        handleExitCinema();
       }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, [isCinemaMode]);
 
-  const handlePlayCinema = () => {
+  const handlePlayCinema = async () => {
     setIsCinemaMode(true);
-    if (heroRef.current?.requestFullscreen) {
-      heroRef.current.requestFullscreen();
+    setManualOrientation('auto');
+
+    // 1. Try native fullscreen on hero section (Android Chrome, Desktop, etc.)
+    const el = heroRef.current;
+    if (el) {
+      const req = el.requestFullscreen || (el as any).webkitRequestFullscreen || (el as any).mozRequestFullScreen || (el as any).msRequestFullscreen;
+      if (req) {
+        try {
+          await req.call(el);
+        } catch (e) {
+          console.warn("Fullscreen request error", e);
+        }
+      }
     }
-    // For native video, resetting time and unmuting
+
+    // 2. Try Screen Orientation Lock API (locks to landscape on Android Chrome)
+    try {
+      if (window.screen?.orientation && (window.screen.orientation as any).lock) {
+        await (window.screen.orientation as any).lock('landscape');
+      } else if ((window.screen as any)?.lockOrientation) {
+        (window.screen as any).lockOrientation('landscape');
+      }
+    } catch (e) {
+      console.warn("Screen orientation lock error", e);
+    }
+
+    // 3. Unmute and play native video if present
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.muted = false;
       videoRef.current.play().catch(e => console.error("Play failed:", e));
     }
   };
+
+  const handleExitCinema = async () => {
+    setIsCinemaMode(false);
+    setManualOrientation('auto');
+
+    // Unlock screen orientation if locked
+    try {
+      if (window.screen?.orientation && (window.screen.orientation as any).unlock) {
+        (window.screen.orientation as any).unlock();
+      } else if ((window.screen as any)?.unlockOrientation) {
+        (window.screen as any).unlockOrientation();
+      }
+    } catch (e) {
+      console.warn("Screen orientation unlock error", e);
+    }
+
+    // Exit native fullscreen if active
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+      try {
+        const exit = document.exitFullscreen || (document as any).webkitExitFullscreen;
+        if (exit) await exit.call(document);
+      } catch (e) {
+        console.warn("Exit fullscreen error", e);
+      }
+    }
+
+    // Mute and restore background loop for native video
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.controls = false;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const toggleManualOrientation = () => {
+    setManualOrientation(prev => {
+      if (prev === 'auto') return isMobilePortrait ? 'portrait' : 'landscape';
+      return prev === 'landscape' ? 'portrait' : 'landscape';
+    });
+  };
+
+  const shouldRotateLandscape = isCinemaMode && (
+    manualOrientation === 'landscape' || (manualOrientation === 'auto' && isMobilePortrait)
+  );
 
   useLayoutEffect(() => {
     const scrollRoot = document.querySelector('[data-client-scroll-root="true"]');
@@ -272,71 +383,137 @@ export function ProjectDetail() {
       )}
 
       {/* Full Height Video / Hero Section */}
-      <section ref={heroRef} className="sticky top-0 w-full h-[100svh] bg-black overflow-hidden z-0">
+      <section 
+        ref={heroRef} 
+        className={
+          isCinemaMode 
+            ? "fixed inset-0 w-screen h-screen bg-black overflow-hidden z-[9999] flex items-center justify-center" 
+            : "sticky top-0 w-full h-[100svh] bg-black overflow-hidden z-0"
+        }
+      >
         <motion.div 
-          className="absolute inset-0"
-          style={{ y: bgY, opacity: heroOpacity }}
+          className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
+          style={isCinemaMode ? { y: 0, opacity: 1 } : { y: bgY, opacity: heroOpacity }}
         >
-          {(() => {
-            const videoUrl = project.video || null;
-            if (!videoUrl) {
-              return (
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  className="w-full h-full object-cover opacity-60"
-                />
-              );
-            }
-            const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
-            const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
-            const bunnyLegacyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
+          {/* Cinema Controls (Exit and Rotate) */}
+          {isCinemaMode && (
+            <div 
+              className={`absolute z-[10000] flex items-center gap-3 transition-all duration-300 pointer-events-auto ${
+                shouldRotateLandscape
+                  ? "top-6 right-6"
+                  : "top-6 right-6"
+              }`}
+              style={
+                shouldRotateLandscape
+                  ? {
+                      position: 'fixed',
+                      top: '1.5rem',
+                      right: '1.5rem',
+                      zIndex: 10001,
+                    }
+                  : undefined
+              }
+            >
+              {isMobile && (
+                <button
+                  onClick={toggleManualOrientation}
+                  className="w-11 h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
+                  title="Xoay hướng màn hình"
+                  aria-label="Toggle Screen Orientation"
+                >
+                  <RotateCcw size={18} />
+                </button>
+              )}
+              <button
+                onClick={handleExitCinema}
+                className="w-11 h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
+                title="Thoát chế độ toàn màn hình"
+                aria-label="Exit Cinema Mode"
+              >
+                <X size={22} />
+              </button>
+            </div>
+          )}
 
-            let embedUrl = null;
-            if (ytMatch) {
-              embedUrl = isCinemaMode 
-                ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0&playsinline=1`
-                : `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
-            } else if (vmMatch) {
-              embedUrl = isCinemaMode 
-                ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=0&controls=1`
-                : `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
-            } else if (bunnyLegacyMatch) {
-              embedUrl = isCinemaMode
-                ? (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&muted=false` : `${videoUrl}?autoplay=true&muted=false`)
-                : (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true` : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`);
+          {/* Video Container (Rotates 90deg on mobile portrait for full screen landscape) */}
+          <div
+            className={`transition-all duration-300 flex items-center justify-center bg-black overflow-hidden ${
+              shouldRotateLandscape
+                ? "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90"
+                : "w-full h-full relative"
+            }`}
+            style={
+              shouldRotateLandscape
+                ? {
+                    width: '100svh',
+                    height: '100svw',
+                    maxWidth: '100svh',
+                    maxHeight: '100svw',
+                  }
+                : { width: '100%', height: '100%' }
             }
-            
-            const nativeVideoUrl = videoUrl?.replace("/play_1080p.mp4", "/play_720p.mp4");
-            
-            if (embedUrl) {
-              return (
-                <iframe
-                  src={embedUrl}
-                  className={`w-full h-full object-cover ${isCinemaMode ? 'opacity-100 pointer-events-auto' : 'pointer-events-none opacity-60'}`}
-                  style={{ border: "none", transform: isCinemaMode ? "scale(1)" : "scale(1.35)", transformOrigin: "center" }}
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  title={project.title}
-                />
-              );
-            } else {
-              return (
-                <HlsVideo 
-                  ref={videoRef}
-                  src={nativeVideoUrl}
-                  autoPlay={!isCinemaMode}
-                  loop={!isCinemaMode} 
-                  muted={!isCinemaMode} 
-                  controls={isCinemaMode}
-                  playsInline
-                  lazyLoad={false}
-                  preload="auto"
-                  className={`w-full h-full object-cover transition-opacity duration-500 ${isCinemaMode ? 'opacity-100 pointer-events-auto' : 'opacity-60 pointer-events-none'}`} 
-                  poster={project.image}
-                />
-              );
-            }
-          })()}
+          >
+            {(() => {
+              const videoUrl = project.video || null;
+              if (!videoUrl) {
+                return (
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    className="w-full h-full object-cover opacity-60"
+                  />
+                );
+              }
+              const ytMatch = videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+              const vmMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+              const bunnyLegacyMatch = videoUrl.match(/iframe\.mediadelivery\.net\/embed\//);
+
+              let embedUrl = null;
+              if (ytMatch) {
+                embedUrl = isCinemaMode 
+                  ? `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&controls=1&showinfo=0&rel=0&playsinline=1`
+                  : `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0&playsinline=1&enablejsapi=1`;
+              } else if (vmMatch) {
+                embedUrl = isCinemaMode 
+                  ? `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=0&controls=1`
+                  : `https://player.vimeo.com/video/${vmMatch[1]}?autoplay=1&muted=1&loop=1&controls=0&background=1`;
+              } else if (bunnyLegacyMatch) {
+                embedUrl = isCinemaMode
+                  ? (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&muted=false` : `${videoUrl}?autoplay=true&muted=false`)
+                  : (videoUrl.includes("?") ? `${videoUrl}&autoplay=true&loop=true&muted=true&background=true` : `${videoUrl}?autoplay=true&loop=true&muted=true&background=true`);
+              }
+              
+              const nativeVideoUrl = videoUrl?.replace("/play_1080p.mp4", "/play_720p.mp4");
+              
+              if (embedUrl) {
+                return (
+                  <iframe
+                    src={embedUrl}
+                    className={`w-full h-full ${isCinemaMode ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover pointer-events-none opacity-60'}`}
+                    style={{ border: "none", transform: isCinemaMode ? "scale(1)" : "scale(1.35)", transformOrigin: "center" }}
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    title={project.title}
+                  />
+                );
+              } else {
+                return (
+                  <HlsVideo 
+                    ref={videoRef}
+                    src={nativeVideoUrl}
+                    autoPlay={!isCinemaMode}
+                    loop={!isCinemaMode} 
+                    muted={!isCinemaMode} 
+                    controls={isCinemaMode}
+                    playsInline
+                    lazyLoad={false}
+                    preload="auto"
+                    className={`w-full h-full transition-opacity duration-500 ${isCinemaMode ? 'object-contain opacity-100 pointer-events-auto' : 'object-cover opacity-60 pointer-events-none'}`} 
+                    poster={project.image}
+                  />
+                );
+              }
+            })()}
+          </div>
         </motion.div>
         
         {/* Title Overlay */}
