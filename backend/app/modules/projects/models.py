@@ -16,6 +16,7 @@ class Client(Base):
 
     slug: Mapped[str] = mapped_column(String(120), primary_key=True)
     name: Mapped[str] = mapped_column(String(180), nullable=False, index=True)
+    web_display_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
     logo_media_id: Mapped[str | None] = mapped_column(
         String(160),
         ForeignKey("media_assets.id", ondelete="SET NULL"),

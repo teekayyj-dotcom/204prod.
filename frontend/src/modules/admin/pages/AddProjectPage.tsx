@@ -251,7 +251,7 @@ export function AddProjectPage() {
                                 <div className="flex gap-2">
                                     <select {...register("client", { required: "Client is required" })} className="flex-1 px-3 py-2.5 rounded-lg outline-none appearance-none" style={{ ...inputStyle, borderColor: errors.client ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.client ? "#D84040" : "#3A2A2A")}>
                                         <option value="">Select client</option>
-                                        {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                                        {dbClients.map((c) => <option key={c.slug} value={c.slug}>{c.name}{c.web_display_name ? ` (Web: ${c.web_display_name})` : ""}</option>)}
                                     </select>
                                     <button 
                                         type="button" 

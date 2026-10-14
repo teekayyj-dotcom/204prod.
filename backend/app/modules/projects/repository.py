@@ -5,10 +5,40 @@ from app.modules.projects.schemas import ProjectDetail
 
 
 def _map_to_detail(p: Project) -> ProjectDetail:
+    unique_credits = []
+    unique_structured_credits = []
+    seen_credits = set()
+    if getattr(p, "credits", None):
+        for c in p.credits:
+            key = (c.role.strip().lower(), c.name.strip().lower(), c.crew_id)
+            if key not in seen_credits:
+                seen_credits.add(key)
+                unique_credits.append(f"{c.role}: {c.name}")
+                unique_structured_credits.append({"role": c.role, "name": c.name, "crew_id": c.crew_id})
+
+    unique_gallery = []
+    seen_gallery = set()
+    if getattr(p, "gallery_images", None):
+        for g in p.gallery_images:
+            if g.media_asset and g.media_asset_id not in seen_gallery:
+                seen_gallery.add(g.media_asset_id)
+                unique_gallery.append({
+                    "id": g.media_asset_id,
+                    "url": g.media_asset.url,
+                    "thumbnail_url": g.media_asset.thumbnail_url or (f"https://vz-f1a07f87-b02.b-cdn.net/{g.media_asset.bunny_video_id}/thumbnail.jpg" if g.media_asset.bunny_video_id else None),
+                    "bunny_video_id": g.media_asset.bunny_video_id,
+                    "name": g.media_asset.alt or g.media_asset.caption or g.media_asset.id,
+                    "size": f"{round(g.media_asset.file_size / (1024 * 1024), 2)} MB" if g.media_asset.file_size else "0.0 MB",
+                    "type": g.media_asset.kind,
+                    "uploaded": g.media_asset.created_at.strftime("%Y-%m-%d") if g.media_asset.created_at else "",
+                    "published": g.published,
+                    "folder": g.media_asset.folder,
+                })
+
     return ProjectDetail(
         title=p.title,
         slug=p.slug,
-        client=p.client.name if p.client else p.client_slug,
+        client=(p.client.web_display_name or "") if p.client else "",
         client_slug=p.client_slug,
         client_logo=(p.client.logo_media.thumbnail_url or p.client.logo_media.url) if p.client and p.client.logo_media else None,
         year=p.year,
@@ -30,24 +60,9 @@ def _map_to_detail(p: Project) -> ProjectDetail:
         due_date=p.due_date.isoformat() if p.due_date else None,
         dueDate=p.due_date.isoformat() if p.due_date else None,
         summary=p.summary or "",
-        credits=[f"{c.role}: {c.name}" for c in p.credits] if getattr(p, "credits", None) else [],
-        structured_credits=[{"role": c.role, "name": c.name, "crew_id": c.crew_id} for c in p.credits] if getattr(p, "credits", None) else [],
-        gallery=[
-            {
-                "id": g.media_asset_id,
-                "url": g.media_asset.url,
-                "thumbnail_url": g.media_asset.thumbnail_url or (f"https://vz-f1a07f87-b02.b-cdn.net/{g.media_asset.bunny_video_id}/thumbnail.jpg" if g.media_asset.bunny_video_id else None),
-                "bunny_video_id": g.media_asset.bunny_video_id,
-                "name": g.media_asset.alt or g.media_asset.caption or g.media_asset.id,
-                "size": f"{round(g.media_asset.file_size / (1024 * 1024), 2)} MB" if g.media_asset.file_size else "0.0 MB",
-                "type": g.media_asset.kind,
-                "uploaded": g.media_asset.created_at.strftime("%Y-%m-%d") if g.media_asset.created_at else "",
-                "published": g.published,
-                "folder": g.media_asset.folder,
-            }
-            for g in p.gallery_images
-            if g.media_asset
-        ] if getattr(p, "gallery_images", None) else []
+        credits=unique_credits,
+        structured_credits=unique_structured_credits,
+        gallery=unique_gallery
     )
 
 
@@ -183,6 +198,7 @@ def _map_client_to_summary(c: Client, db: Session = None) -> ClientSummary:
     return ClientSummary(
         slug=c.slug,
         name=c.name,
+        web_display_name=c.web_display_name,
         logo_media_id=c.logo_media_id,
         logo_media_url=c.logo_media.url if c.logo_media else None,
         website=c.website,

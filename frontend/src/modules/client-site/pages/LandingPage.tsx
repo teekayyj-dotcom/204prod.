@@ -10,7 +10,7 @@ interface Project {
   title: string;
   year: number;
   featured: boolean;
-  client?: { name: string };
+  client?: { name?: string; web_display_name?: string } | string;
   cover_image?: string;
   cover_media?: { url: string; kind: string };
   video_url?: string;
@@ -434,8 +434,8 @@ export function LandingPage() {
             `}</style>
             <div className="animate-item-client text-white/80 text-lg md:text-xl tracking-widest uppercase mb-2 transition-colors group-hover:text-[#FF0000]">
               {typeof currentProject.client === "object"
-                ? currentProject.client?.name
-                : currentProject.client || "Client"}
+                ? currentProject.client?.web_display_name || ""
+                : currentProject.client || ""}
             </div>
 
             <div className="animate-item-title">

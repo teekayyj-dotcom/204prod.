@@ -40,6 +40,7 @@ export function AddClientPage() {
         defaultValues: { status: "Active", since: String(new Date().getFullYear()) },
     });
     const nameValue = watch("name") || "";
+    const webDisplayNameValue = watch("web_display_name") || "";
     const contactValue = watch("contact") || "";
     const budgetValue = watch("budget") || "";
     const industryValue = watch("industry") || "";
@@ -89,6 +90,7 @@ export function AddClientPage() {
 
             const payload = {
                 name: data.name,
+                web_display_name: data.web_display_name || null,
                 slug: data.slug || null,
                 logo_media_id: logoMediaId,
                 website: data.website || null,
@@ -180,22 +182,32 @@ export function AddClientPage() {
                             </div>
                         </div>
 
-                        {/* Company + Contact */}
+                        {/* Company + Web Display Name */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <Building2 size={13} color="#D84040"/> Company Name *
+                                    <Building2 size={13} color="#D84040"/> Tên doanh nghiệp *
                                 </label>
-                                <input {...register("name", { required: "Company name is required" })} placeholder="e.g. Apex Media" className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, borderColor: errors.name ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.name ? "#D84040" : "#3A2A2A")}/>
+                                <input {...register("name", { required: "Company name is required" })} placeholder="vd: Công ty TNHH Apex Media" className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, borderColor: errors.name ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.name ? "#D84040" : "#3A2A2A")}/>
                                 {errors.name && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.name.message}</p>}
+                                <p style={{ color: "#777", fontSize: "11px" }} className="mt-1">Tên nội bộ trong CRM (không hiển thị lên web)</p>
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
-                                    <User size={13} color="#D84040"/> Contact Person *
+                                    <Globe size={13} color="#D84040"/> Tên hiển thị web <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
                                 </label>
-                                <input {...register("contact", { required: "Contact person is required" })} placeholder="e.g. Derek Flynn" className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, borderColor: errors.contact ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.contact ? "#D84040" : "#3A2A2A")}/>
-                                {errors.contact && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.contact.message}</p>}
+                                <input {...register("web_display_name")} placeholder="vd: Apex Media (hiển thị trên web)" className="px-3 py-2.5 rounded-lg outline-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}/>
+                                <p style={{ color: "#777", fontSize: "11px" }} className="mt-1">Tên hiển thị công khai trên website</p>
                             </div>
+                        </div>
+
+                        {/* Contact Person */}
+                        <div>
+                            <label className="flex items-center gap-2 mb-2" style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }}>
+                                <User size={13} color="#D84040"/> Người liên hệ / Contact Person *
+                            </label>
+                            <input {...register("contact", { required: "Contact person is required" })} placeholder="e.g. Derek Flynn" className="px-3 py-2.5 rounded-lg outline-none" style={{ ...inputStyle, borderColor: errors.contact ? "#D84040" : "#3A2A2A" }} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = errors.contact ? "#D84040" : "#3A2A2A")}/>
+                            {errors.contact && <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">{errors.contact.message}</p>}
                         </div>
 
                         {/* Email + Phone */}
@@ -329,6 +341,15 @@ export function AddClientPage() {
                                 </div>
                                 <div>
                                     <p style={{ color: "#EEEEEE", fontSize: "14px", fontWeight: 600 }}>{nameValue || "Company Name"}</p>
+                                    {webDisplayNameValue ? (
+                                        <p style={{ color: "#D84040", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }} className="mt-0.5">
+                                            <Globe size={11} /> Web: {webDisplayNameValue}
+                                        </p>
+                                    ) : (
+                                        <p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="mt-0.5">
+                                            Chưa đặt tên hiển thị web
+                                        </p>
+                                    )}
                                     <p style={{ color: "#888", fontSize: "12px" }}>{contactValue || "Contact person"}</p>
                                 </div>
                             </div>

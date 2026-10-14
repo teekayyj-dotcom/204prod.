@@ -2581,7 +2581,17 @@ export function ProjectDetailPage() {
             setExpenses(expensesData || []);
             setInvoices(invoicesData || []);
             setFeedbacks(feedbackData || []);
-            setGalleryImages(projData.gallery || []);
+            const rawGallery = projData.gallery || [];
+            const seenGalleryKeys = new Set<string>();
+            const uniqueGallery: any[] = [];
+            for (const img of rawGallery) {
+                const key = img.id || img.url;
+                if (key && !seenGalleryKeys.has(key)) {
+                    seenGalleryKeys.add(key);
+                    uniqueGallery.push(img);
+                }
+            }
+            setGalleryImages(uniqueGallery);
             
             const formatTimeAgo = (dateStr: string) => {
                 const diff = Date.now() - new Date(dateStr).getTime();
@@ -2625,14 +2635,30 @@ export function ProjectDetailPage() {
 
             const loadedCredits = projData.structured_credits || projData.credits || [];
             if (loadedCredits.length > 0) {
-                const parsedCrew = loadedCredits.map((cred, idx) => {
+                const seenCrewKeys = new Set<string>();
+                const parsedCrew: any[] = [];
+                loadedCredits.forEach((cred: any, idx: number) => {
+                    let name = "";
+                    let role = "";
+                    let crewId: number | undefined = undefined;
                     if (typeof cred === 'string') {
                         const parts = cred.split(":");
-                        const role = parts[0]?.trim() || "";
-                        const name = parts[1]?.trim() || "";
-                        return { id: `cred-${idx}-${Date.now()}`, name, role };
+                        role = parts[0]?.trim() || "";
+                        name = parts[1]?.trim() || "";
                     } else {
-                        return { id: `cred-${idx}-${Date.now()}`, name: cred.name, role: cred.role, crewId: cred.crew_id };
+                        name = cred.name?.trim() || "";
+                        role = cred.role?.trim() || "";
+                        crewId = cred.crew_id;
+                    }
+                    const key = `${name.toLowerCase()}|${role.toLowerCase()}`;
+                    if (!seenCrewKeys.has(key)) {
+                        seenCrewKeys.add(key);
+                        parsedCrew.push({
+                            id: `cred-${idx}-${Date.now()}-${Math.random()}`,
+                            name,
+                            role,
+                            crewId
+                        });
                     }
                 });
                 setAssignedCrew(parsedCrew);
@@ -2745,10 +2771,19 @@ export function ProjectDetailPage() {
                     const renamedBts = new File([img.file], `BTS ${data.title} ${i + 1}.jpg`, { type: img.file.type });
                     const mediaAsset = await uploadMediaPipeline(renamedBts, "projects", fetchApi, undefined, data.client, project.slug, "behind the scenes", true);
                     finalGalleryMediaIds.push(mediaAsset.id);
-                } else {
+                } else if (img.id) {
                     finalGalleryMediaIds.push(img.id);
                 }
             }
+            const uniqueGalleryMediaIds = Array.from(new Set(finalGalleryMediaIds.filter(Boolean)));
+
+            const seenSaveCredits = new Set<string>();
+            const uniqueAssignedCrew = assignedCrew.filter((c: any) => {
+                const key = `${(c.name || '').trim().toLowerCase()}|${(c.role || '').trim().toLowerCase()}`;
+                if (seenSaveCredits.has(key)) return false;
+                seenSaveCredits.add(key);
+                return true;
+            });
 
             const payload = {
                 title: data.title,
@@ -2764,8 +2799,8 @@ export function ProjectDetailPage() {
                 video_url: finalVideoUrl,
                 dueDate: data.dueDate || null,
                 budget: data.budget || "TBD",
-                credits: assignedCrew.map((c: any) => `${c.role}: ${c.name}`),
-                structured_credits: assignedCrew.map((c: any) => {
+                credits: uniqueAssignedCrew.map((c: any) => `${c.role}: ${c.name}`),
+                structured_credits: uniqueAssignedCrew.map((c: any) => {
                     const realMember = c.crewId ? dbCrew.find((m: any) => m.id === c.crewId) : dbCrew.find((m: any) => m.name.toLowerCase() === c.name.toLowerCase());
                     return {
                         role: c.role,
@@ -2773,7 +2808,7 @@ export function ProjectDetailPage() {
                         crew_id: realMember ? realMember.id : null
                     };
                 }),
-                gallery_media_ids: finalGalleryMediaIds,
+                gallery_media_ids: uniqueGalleryMediaIds,
             };
             const updated = await fetchApi(`/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) });
             setProject(updated);
@@ -2796,7 +2831,18 @@ export function ProjectDetailPage() {
 
     const handleCancel = () => {
         reset(); setThumbnailPreview(null); setThumbnailFile(null);
-        setUploadedVideo(null); setGalleryImages(project.gallery || []);
+        setUploadedVideo(null); 
+        const rawCancelGallery = project.gallery || [];
+        const seenCancelKeys = new Set<string>();
+        const uniqueCancelGallery: any[] = [];
+        for (const img of rawCancelGallery) {
+            const key = img.id || img.url;
+            if (key && !seenCancelKeys.has(key)) {
+                seenCancelKeys.add(key);
+                uniqueCancelGallery.push(img);
+            }
+        }
+        setGalleryImages(uniqueCancelGallery);
         setIsFeatured(!!project.featured);
         setIsPublished(!!project.published);
         setIsEditing(false);
@@ -3145,7 +3191,7 @@ export function ProjectDetailPage() {
                                     {isEditing ? (
                                         <div className="flex gap-2">
                                             <select {...register("client")} className="flex-1 px-3 py-2 rounded-lg outline-none appearance-none" style={inputStyle} onFocus={(e) => (e.target.style.borderColor = "#D84040")} onBlur={(e) => (e.target.style.borderColor = "#3A2A2A")}>
-                                                {dbClients.map((c: any) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                                                {dbClients.map((c: any) => <option key={c.slug} value={c.slug}>{c.name}{c.web_display_name ? ` (Web: ${c.web_display_name})` : ""}</option>)}
                                             </select>
                                             <button 
                                                 type="button" 
@@ -3159,7 +3205,18 @@ export function ProjectDetailPage() {
                                                 <Plus size={18} />
                                             </button>
                                         </div>
-                                    ) : (<p style={{ color: "#EEEEEE", fontSize: "14px" }}>{project.client}</p>)}
+                                    ) : (
+                                        <div>
+                                            <p style={{ color: "#EEEEEE", fontSize: "14px" }}>
+                                                {dbClients.find((c: any) => c.slug === project.client_slug)?.name || project.client || "—"}
+                                            </p>
+                                            {project.client && (
+                                                <p style={{ color: "#D84040", fontSize: "11px" }}>
+                                                    Web: {project.client}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-2 mb-1.5" style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }}>

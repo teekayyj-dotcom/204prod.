@@ -146,6 +146,7 @@ export function ClientProfilePage() {
 
                 reset({
                     name: data.name,
+                    web_display_name: data.web_display_name || "",
                     contact: initialCrm.poc_list[0]?.name || data.contact || "",
                     email: initialCrm.poc_list[0]?.email || data.email || "",
                     phone: initialCrm.poc_list[0]?.phone || data.phone || "",
@@ -222,6 +223,7 @@ export function ClientProfilePage() {
 
             const payload = {
                 name: data.name,
+                web_display_name: data.web_display_name || null,
                 logo_media_id: logoMediaId,
                 website: data.website || null,
                 contact: primaryContactName,
@@ -534,6 +536,15 @@ export function ClientProfilePage() {
                         </div>
                         <div className="mb-1">
                             <h2 style={{ color: "#EEEEEE", fontSize: "20px", fontWeight: 700 }}>{watched.name}</h2>
+                            {watched.web_display_name ? (
+                                <p style={{ color: "#D84040", fontSize: "12px", fontWeight: 500 }} className="mt-0.5 flex items-center gap-1">
+                                    <Globe size={11} /> Tên web: {watched.web_display_name}
+                                </p>
+                            ) : (
+                                <p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="mt-0.5 flex items-center gap-1">
+                                    <Globe size={11} /> Chưa đặt tên hiển thị web
+                                </p>
+                            )}
                             <p style={{ color: "#888", fontSize: "13px" }} className="mt-0.5">{watched.industry || "Chưa cập nhật lĩnh vực"}</p>
                         </div>
                     </div>
@@ -595,14 +606,31 @@ export function ClientProfilePage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1 flex items-center gap-1">
-                                        Tên công ty
+                                        Tên doanh nghiệp
                                     </label>
                                     {isEditing ? (
                                         <input {...register("name")} className="px-3 py-2 rounded-lg outline-none" style={inputStyle} />
                                     ) : (
                                         <p style={{ color: "#EEEEEE", fontSize: "14px" }}>{watched.name || "—"}</p>
                                     )}
+                                    <p style={{ color: "#555", fontSize: "10px", marginTop: "4px" }}>Tên nội bộ, không hiển thị trên website</p>
                                 </div>
+                                <div>
+                                    <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1 flex items-center gap-1">
+                                        <Globe size={12} style={{ color: "#D84040" }} /> Tên hiển thị web
+                                    </label>
+                                    {isEditing ? (
+                                        <input {...register("web_display_name")} placeholder="vd: Apex Media (hiển thị trên website)" className="px-3 py-2 rounded-lg outline-none" style={inputStyle} />
+                                    ) : (
+                                        <p style={{ color: "#EEEEEE", fontSize: "14px" }}>
+                                            {watched.web_display_name || <span style={{ color: "#777", fontStyle: "italic" }}>Chưa thiết lập (không hiển thị lên web)</span>}
+                                        </p>
+                                    )}
+                                    <p style={{ color: "#555", fontSize: "10px", marginTop: "4px" }}>Hiển thị trên website công khai (tên doanh nghiệp sẽ không hiển thị lên web)</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label style={{ color: "#888", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.07em" }} className="mb-1 flex items-center gap-1">
                                         Lĩnh vực kinh doanh

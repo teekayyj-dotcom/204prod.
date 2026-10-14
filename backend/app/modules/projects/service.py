@@ -76,27 +76,40 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
     
     if project.credits:
         from app.modules.projects.models import ProjectCredit
-        for i, cred_str in enumerate(project.credits):
+        seen_cred = set()
+        sort_idx = 0
+        for cred_str in project.credits:
             if ":" in cred_str:
                 role, name = cred_str.split(":", 1)
-                db_credit = ProjectCredit(
-                    project_slug=slug,
-                    role=role.strip(),
-                    name=name.strip(),
-                    sort_order=i
-                )
-                db.add(db_credit)
+                role_clean = role.strip()
+                name_clean = name.strip()
+                key = (role_clean.lower(), name_clean.lower())
+                if key not in seen_cred:
+                    seen_cred.add(key)
+                    db_credit = ProjectCredit(
+                        project_slug=slug,
+                        role=role_clean,
+                        name=name_clean,
+                        sort_order=sort_idx
+                    )
+                    db.add(db_credit)
+                    sort_idx += 1
 
     if project.gallery_media_ids:
         from app.modules.projects.models import ProjectGalleryImage
-        for i, media_id in enumerate(project.gallery_media_ids):
-            db_gallery_image = ProjectGalleryImage(
-                project_slug=slug,
-                media_asset_id=media_id,
-                sort_order=i,
-                is_featured=False
-            )
-            db.add(db_gallery_image)
+        seen_gallery = set()
+        sort_idx = 0
+        for media_id in project.gallery_media_ids:
+            if media_id and media_id not in seen_gallery:
+                seen_gallery.add(media_id)
+                db_gallery_image = ProjectGalleryImage(
+                    project_slug=slug,
+                    media_asset_id=media_id,
+                    sort_order=sort_idx,
+                    is_featured=False
+                )
+                db.add(db_gallery_image)
+                sort_idx += 1
 
     db.commit()
     db.refresh(db_project)
@@ -156,44 +169,65 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
     if project.structured_credits is not None:
         from app.modules.projects.models import ProjectCredit
         db.query(ProjectCredit).filter(ProjectCredit.project_slug == existing_project.slug).delete()
-        for i, cred in enumerate(project.structured_credits):
-            db_credit = ProjectCredit(
-                project_slug=existing_project.slug,
-                role=cred.role.strip(),
-                name=cred.name.strip(),
-                crew_id=cred.crew_id,
-                sort_order=i
-            )
-            db.add(db_credit)
+        seen_credits = set()
+        sort_idx = 0
+        for cred in project.structured_credits:
+            role_clean = cred.role.strip()
+            name_clean = cred.name.strip()
+            key = (role_clean.lower(), name_clean.lower(), cred.crew_id)
+            if key not in seen_credits:
+                seen_credits.add(key)
+                db_credit = ProjectCredit(
+                    project_slug=existing_project.slug,
+                    role=role_clean,
+                    name=name_clean,
+                    crew_id=cred.crew_id,
+                    sort_order=sort_idx
+                )
+                db.add(db_credit)
+                sort_idx += 1
     elif project.credits is not None:
         from app.modules.projects.models import ProjectCredit
         # Delete existing credits
         db.query(ProjectCredit).filter(ProjectCredit.project_slug == existing_project.slug).delete()
         # Add new ones
-        for i, cred_str in enumerate(project.credits):
+        seen_cred_str = set()
+        sort_idx = 0
+        for cred_str in project.credits:
             if ":" in cred_str:
                 role, name = cred_str.split(":", 1)
-                db_credit = ProjectCredit(
-                    project_slug=existing_project.slug,
-                    role=role.strip(),
-                    name=name.strip(),
-                    sort_order=i
-                )
-                db.add(db_credit)
+                role_clean = role.strip()
+                name_clean = name.strip()
+                key = (role_clean.lower(), name_clean.lower())
+                if key not in seen_cred_str:
+                    seen_cred_str.add(key)
+                    db_credit = ProjectCredit(
+                        project_slug=existing_project.slug,
+                        role=role_clean,
+                        name=name_clean,
+                        sort_order=sort_idx
+                    )
+                    db.add(db_credit)
+                    sort_idx += 1
 
     if project.gallery_media_ids is not None:
         from app.modules.projects.models import ProjectGalleryImage
         # Delete existing gallery images
         db.query(ProjectGalleryImage).filter(ProjectGalleryImage.project_slug == existing_project.slug).delete()
         # Add new ones
-        for i, media_id in enumerate(project.gallery_media_ids):
-            db_gallery_image = ProjectGalleryImage(
-                project_slug=existing_project.slug,
-                media_asset_id=media_id,
-                sort_order=i,
-                is_featured=False
-            )
-            db.add(db_gallery_image)
+        seen_gallery = set()
+        sort_idx = 0
+        for media_id in project.gallery_media_ids:
+            if media_id and media_id not in seen_gallery:
+                seen_gallery.add(media_id)
+                db_gallery_image = ProjectGalleryImage(
+                    project_slug=existing_project.slug,
+                    media_asset_id=media_id,
+                    sort_order=sort_idx,
+                    is_featured=False
+                )
+                db.add(db_gallery_image)
+                sort_idx += 1
         
     db.commit()
     db.refresh(existing_project)
@@ -228,6 +262,7 @@ def create_client(db: Session, client: ClientCreate) -> Client:
     db_client = Client(
         slug=slug,
         name=client.name,
+        web_display_name=client.web_display_name,
         logo_media_id=client.logo_media_id,
         website=client.website,
         contact=client.contact,
@@ -360,6 +395,8 @@ def update_client(db: Session, slug: str, client: ClientUpdate) -> Client | None
     
     if client.name is not None:
         db_client.name = client.name
+    if client.web_display_name is not None:
+        db_client.web_display_name = client.web_display_name
     if client.logo_media_id is not None:
         db_client.logo_media_id = client.logo_media_id
     if client.website is not None:

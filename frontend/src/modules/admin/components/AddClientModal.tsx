@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { X, Plus, Loader2, User, Building2, Phone, Mail, CheckCircle2 } from "lucide-react";
+import { X, Plus, Loader2, User, Building2, Phone, Mail, CheckCircle2, Globe } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 
 interface FormData {
     name: string;
+    web_display_name: string;
     contact: string;
     phone: string;
     email: string;
@@ -32,6 +33,7 @@ export function AddClientModal({ onClose, onAdd }: Props) {
             
             const payload = {
                 name: data.name,
+                web_display_name: data.web_display_name || null,
                 slug,
                 contact: data.contact || null,
                 phone: data.phone || null,
@@ -104,10 +106,10 @@ export function AddClientModal({ onClose, onAdd }: Props) {
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             <div>
                                 <label style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="flex items-center gap-2 mb-1.5">
-                                    <Building2 size={14} color="#D84040"/> Tên Client / Doanh nghiệp *
+                                    <Building2 size={14} color="#D84040"/> Tên doanh nghiệp *
                                 </label>
                                 <input
-                                    {...register("name", { required: "Tên Client là bắt buộc" })}
+                                    {...register("name", { required: "Tên doanh nghiệp là bắt buộc" })}
                                     className="w-full px-3 py-2.5 rounded-lg outline-none"
                                     style={{
                                         background: "#151010",
@@ -115,13 +117,27 @@ export function AddClientModal({ onClose, onAdd }: Props) {
                                         color: "#EEEEEE",
                                         fontSize: "14px",
                                     }}
-                                    placeholder="Ví dụ: 204PROD."
+                                    placeholder="Tên nội bộ doanh nghiệp"
                                 />
                                 {errors.name && (
                                     <p style={{ color: "#D84040", fontSize: "11px" }} className="mt-1">
                                         {errors.name.message}
                                     </p>
                                 )}
+                                <p style={{ color: "#777", fontSize: "11px", marginTop: "4px" }}>Tên nội bộ trong CRM (không hiển thị lên web)</p>
+                            </div>
+
+                            <div>
+                                <label style={{ color: "#EEEEEE", fontSize: "13px", fontWeight: 500 }} className="flex items-center gap-2 mb-1.5">
+                                    <Globe size={14} color="#D84040"/> Tên hiển thị web <span style={{ color: "#888", fontWeight: 400 }}>(Tùy chọn)</span>
+                                </label>
+                                <input
+                                    {...register("web_display_name")}
+                                    className="w-full px-3 py-2.5 rounded-lg outline-none"
+                                    style={{ background: "#151010", border: "1px solid #3A2A2A", color: "#EEEEEE", fontSize: "14px" }}
+                                    placeholder="vd: Apex Media (hiển thị trên web)"
+                                />
+                                <p style={{ color: "#777", fontSize: "11px", marginTop: "4px" }}>Tên thương hiệu hiển thị công khai trên website (tên doanh nghiệp sẽ không hiển thị)</p>
                             </div>
 
                             <div className="mb-4">

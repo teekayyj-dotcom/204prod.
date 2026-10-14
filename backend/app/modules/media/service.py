@@ -276,19 +276,26 @@ def finalize_media_asset(
     if folder in ("project/gallery", "demo") and project_slug:
         from app.modules.projects.models import ProjectGalleryImage
         from sqlalchemy import func
-        max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == project_slug).scalar()
-        next_sort = 0 if max_sort is None else max_sort + 1
-        gallery_item = ProjectGalleryImage(
-            project_slug=project_slug,
-            media_asset_id=saved_asset.id,
-            caption=caption or alt,
-            sort_order=next_sort,
-            published=False
-        )
-        db.add(gallery_item)
-        db.commit()
-        
-        db.commit()
+        exists = db.query(ProjectGalleryImage).filter(
+            ProjectGalleryImage.project_slug == project_slug,
+            ProjectGalleryImage.media_asset_id == saved_asset.id
+        ).first()
+        if exists:
+            if caption or alt:
+                exists.caption = caption or alt
+            db.commit()
+        else:
+            max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == project_slug).scalar()
+            next_sort = 0 if max_sort is None else max_sort + 1
+            gallery_item = ProjectGalleryImage(
+                project_slug=project_slug,
+                media_asset_id=saved_asset.id,
+                caption=caption or alt,
+                sort_order=next_sort,
+                published=False
+            )
+            db.add(gallery_item)
+            db.commit()
         
     if folder == "final video" and project_slug:
         from app.modules.projects.models import Project

@@ -11,7 +11,7 @@ class ProjectCreditDetail(BaseModel):
 class ProjectSummary(BaseModel):
     title: str
     slug: str
-    client: str
+    client: str = ""
     client_slug: str | None = None
     client_logo: str | None = None
     year: int
@@ -103,6 +103,7 @@ class ProjectUpdate(BaseModel):
 class ClientSummary(BaseModel):
     slug: str
     name: str
+    web_display_name: str | None = None
     logo_media_id: str | None = None
     logo_media_url: str | None = None
     website: str | None = None
@@ -122,6 +123,7 @@ class ClientSummary(BaseModel):
 
 class ClientCreate(BaseModel):
     name: str
+    web_display_name: str | None = None
     slug: str | None = None
     logo_media_id: str | None = None
     website: str | None = None
@@ -136,6 +138,7 @@ class ClientCreate(BaseModel):
 
 class ClientUpdate(BaseModel):
     name: str | None = None
+    web_display_name: str | None = None
     logo_media_id: str | None = None
     website: str | None = None
     contact: str | None = None

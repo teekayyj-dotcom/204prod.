@@ -270,8 +270,8 @@ export function ProjectDetail() {
             video: videoList[0]?.url || null,
             videos: videoList,
             isVertical,
-            behindTheScenes: data.gallery || [],
-            credits: data.structured_credits || []
+            behindTheScenes: (data.gallery || []).filter((g: any, idx: number, arr: any[]) => arr.findIndex((x: any) => (x.id && x.id === g.id) || (x.url && x.url === g.url)) === idx),
+            credits: (data.structured_credits || []).filter((c: any, idx: number, arr: any[]) => arr.findIndex((x: any) => x.name === c.name && x.role === c.role) === idx)
           });
         } else {
           // Fallback to local mock data

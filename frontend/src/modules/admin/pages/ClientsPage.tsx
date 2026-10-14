@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Users, Mail, Briefcase, TrendingUp, Plus, Loader2 } from "lucide-react";
+import { Search, Users, Mail, Briefcase, TrendingUp, Plus, Loader2, Globe } from "lucide-react";
 import { fetchApi } from "../utils/apiClient";
 const statusColors = {
     Lead: { bg: "rgba(233, 30, 99, 0.12)", text: "#E91E63" },
@@ -71,6 +71,7 @@ export function ClientsPage() {
     const statuses = ["All", "Lead", "Active", "Paused", "Completed"];
     const filtered = clients.filter((c) => {
         const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+            (c.web_display_name && c.web_display_name.toLowerCase().includes(search.toLowerCase())) ||
             c.contact.toLowerCase().includes(search.toLowerCase()) ||
             c.email.toLowerCase().includes(search.toLowerCase()) ||
             (c.industry && c.industry.toLowerCase().includes(search.toLowerCase()));
@@ -174,6 +175,15 @@ export function ClientsPage() {
                                     <h3 style={{ color: "#EEEEEE", fontSize: "15px", fontWeight: 600 }}>
                                         {client.name}
                                     </h3>
+                                    {client.web_display_name ? (
+                                        <p style={{ color: "#D84040", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }} className="mt-0.5">
+                                            <Globe size={11} /> Web: {client.web_display_name}
+                                        </p>
+                                    ) : (
+                                        <p style={{ color: "#666", fontSize: "11px", fontStyle: "italic" }} className="mt-0.5">
+                                            Chưa đặt tên hiển thị web
+                                        </p>
+                                    )}
                                     <p style={{ color: "#888", fontSize: "12px" }}>Since {client.since}</p>
                                 </div>
                             </div>

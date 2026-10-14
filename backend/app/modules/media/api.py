@@ -266,17 +266,22 @@ def save_video_to_db(
     if request.folder in ("project/gallery", "demo") and request.project_slug:
         from app.modules.projects.models import ProjectGalleryImage
         from sqlalchemy import func
-        max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == request.project_slug).scalar()
-        next_sort = 0 if max_sort is None else max_sort + 1
-        gallery_item = ProjectGalleryImage(
-            project_slug=request.project_slug,
-            media_asset_id=new_asset.id,
-            caption=request.title,
-            sort_order=next_sort,
-            published=False
-        )
-        db.add(gallery_item)
-        db.commit()
+        exists = db.query(ProjectGalleryImage).filter(
+            ProjectGalleryImage.project_slug == request.project_slug,
+            ProjectGalleryImage.media_asset_id == new_asset.id
+        ).first()
+        if not exists:
+            max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == request.project_slug).scalar()
+            next_sort = 0 if max_sort is None else max_sort + 1
+            gallery_item = ProjectGalleryImage(
+                project_slug=request.project_slug,
+                media_asset_id=new_asset.id,
+                caption=request.title,
+                sort_order=next_sort,
+                published=False
+            )
+            db.add(gallery_item)
+            db.commit()
 
     if request.folder == "final video" and request.project_slug:
         from app.modules.projects.models import Project
