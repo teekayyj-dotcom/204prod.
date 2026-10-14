@@ -32,7 +32,7 @@ export function ProjectDetail() {
 
   const [isCinemaMode, setIsCinemaMode] = useState(false);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
-  const [isPlaylistOpen, setIsPlaylistOpen] = useState(true);
+  const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -66,7 +66,7 @@ export function ProjectDetail() {
 
   useEffect(() => {
     const updateOrientation = () => {
-      const mobile = window.innerWidth <= 820 || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const mobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const portrait = window.innerHeight > window.innerWidth;
       setIsMobile(mobile);
       setIsMobilePortrait(mobile && portrait);
@@ -115,12 +115,27 @@ export function ProjectDetail() {
     };
   }, [isCinemaMode]);
 
+  const handleSelectVideo = (idx: number, closeMobileSheet = false) => {
+    setSelectedVideoIndex(idx);
+    if (closeMobileSheet) {
+      setIsPlaylistOpen(false);
+    }
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.muted = false;
+        videoRef.current.play().catch(() => {});
+      }
+    }, 50);
+  };
+
   const handlePlayCinema = async (videoIndex?: number) => {
     if (typeof videoIndex === 'number') {
       setSelectedVideoIndex(videoIndex);
     }
     setIsCinemaMode(true);
-    setIsPlaylistOpen(!isMobile);
+    const isScreenMobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsPlaylistOpen(!isScreenMobile);
 
     // 1. Try native fullscreen on hero section (Android Chrome, Desktop, etc.)
     const el = heroRef.current;
@@ -160,6 +175,7 @@ export function ProjectDetail() {
 
   const handleExitCinema = async () => {
     setIsCinemaMode(false);
+    setIsPlaylistOpen(false);
 
     // Unlock screen orientation if locked
     try {
@@ -516,43 +532,10 @@ export function ProjectDetail() {
           className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
           style={isCinemaMode ? { y: 0, opacity: 1 } : { y: bgY, opacity: heroOpacity }}
         >
-          {/* Cinema Top Controls */}
-          {isCinemaMode && (
-            <div 
-              className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[10002] flex items-center gap-2.5 transition-all duration-300 pointer-events-auto"
-            >
-              {project?.videos && project.videos.length > 1 && (
-                <button
-                  onClick={() => setIsPlaylistOpen(prev => !prev)}
-                  className={`px-3.5 py-2 h-10 sm:h-11 backdrop-blur-md border rounded-full flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-all outline-none shadow-xl cursor-pointer ${
-                    isPlaylistOpen 
-                      ? "bg-[#EB5B00] text-black border-[#EB5B00]" 
-                      : "bg-black/60 hover:bg-black/90 text-white border-white/20 hover:text-[#EB5B00]"
-                  }`}
-                  title="Danh sách Video Media"
-                >
-                  <ListVideo size={16} />
-                  <span className="hidden sm:inline">Videos</span>
-                  <span className="font-mono text-[10px] bg-black/20 px-1.5 py-0.5 rounded-full">
-                    {selectedVideoIndex + 1}/{project.videos.length}
-                  </span>
-                </button>
-              )}
-              <button
-                onClick={handleExitCinema}
-                className="w-10 h-10 sm:w-11 sm:h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
-                title="Thoát chế độ toàn màn hình"
-                aria-label="Exit Cinema Mode"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          )}
-
           {/* Main Content Area */}
           <div className="w-full h-full relative flex items-center justify-center bg-black overflow-hidden">
             {isCinemaMode ? (
-              /* Cinema Mode: Main Video Player with Video Selector beside it */
+              /* Cinema Mode: Main Video Player with Video Selector beside it (Desktop) or Bottom Sheet (Mobile) */
               <div className="w-full h-full flex flex-row relative bg-black overflow-hidden">
                 {/* Full-bleed ambient backdrop for vertical videos in cinema mode */}
                 {isVertical && currentCinemaVideo?.thumbnail && (
@@ -561,24 +544,53 @@ export function ProjectDetail() {
                   </div>
                 )}
 
-                {/* Video Player */}
-                <div className="flex-1 h-full relative flex items-center justify-center bg-black/90 overflow-hidden z-10">
+                {/* Video Player Area */}
+                <div className="flex-1 w-full h-full relative flex items-center justify-center bg-black overflow-hidden z-10">
+                  {/* Cinema Top Controls (Floating inside player area, never overlaps sidebars) */}
+                  <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-2 sm:gap-2.5 transition-all duration-300 pointer-events-auto">
+                    {project?.videos && project.videos.length > 1 && (
+                      <button
+                        onClick={() => setIsPlaylistOpen(prev => !prev)}
+                        className={`px-3 py-1.5 sm:px-3.5 sm:py-2 h-9 sm:h-11 backdrop-blur-md border rounded-full flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-all outline-none shadow-xl cursor-pointer ${
+                          isPlaylistOpen 
+                            ? "bg-[#EB5B00] text-black border-[#EB5B00]" 
+                            : "bg-black/60 hover:bg-black/90 text-white border-white/20 hover:text-[#EB5B00]"
+                        }`}
+                        title="Danh sách Video Media"
+                      >
+                        <ListVideo size={16} />
+                        <span className="hidden sm:inline">Videos</span>
+                        <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-full ${
+                          isPlaylistOpen ? "bg-black/20 text-black font-bold" : "bg-white/20 text-white"
+                        }`}>
+                          {selectedVideoIndex + 1}/{project.videos.length}
+                        </span>
+                      </button>
+                    )}
+                    <button
+                      onClick={handleExitCinema}
+                      className="w-9 h-9 sm:w-11 sm:h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
+                      title="Thoát chế độ toàn màn hình"
+                      aria-label="Exit Cinema Mode"
+                    >
+                      <X size={18} className="sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+
                   {renderVideoEmbed(currentCinemaVideo?.url, true, currentCinemaVideo?.thumbnail, `cinema-${selectedVideoIndex}`)}
                 </div>
 
-                {/* Video Selector Area beside player */}
+                {/* Desktop Video Selector Area Beside Player (lg:flex) */}
                 {project?.videos && project.videos.length > 1 && (
                   <div 
-                    className={`transition-all duration-300 z-40 flex flex-col bg-black/90 backdrop-blur-2xl border-l border-white/10 ${
+                    className={`hidden lg:flex flex-col h-full bg-neutral-950/95 backdrop-blur-2xl border-l border-white/10 transition-all duration-300 z-20 flex-shrink-0 ${
                       isPlaylistOpen 
-                        ? "w-80 md:w-96 translate-x-0" 
-                        : "w-0 translate-x-full overflow-hidden border-none"
-                    } ${
-                      "absolute right-0 top-0 h-full md:relative"
+                        ? "w-80 lg:w-96 translate-x-0" 
+                        : "w-0 translate-x-full overflow-hidden border-none pointer-events-none"
                     }`}
                   >
                     {/* Header of Video Selector */}
-                    <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                    <div className="p-5 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                       <div className="flex items-center gap-2.5">
                         <ListVideo size={18} className="text-[#EB5B00]" />
                         <div>
@@ -602,16 +614,7 @@ export function ProjectDetail() {
                         return (
                           <button
                             key={idx}
-                            onClick={() => {
-                              setSelectedVideoIndex(idx);
-                              setTimeout(() => {
-                                if (videoRef.current) {
-                                  videoRef.current.currentTime = 0;
-                                  videoRef.current.muted = false;
-                                  videoRef.current.play().catch(() => {});
-                                }
-                              }, 50);
-                            }}
+                            onClick={() => handleSelectVideo(idx, false)}
                             className={`w-full text-left p-3 rounded-xl border transition-all flex items-center gap-3.5 group cursor-pointer ${
                               isSelected
                                 ? "bg-[#EB5B00]/15 border-[#EB5B00] shadow-[0_0_20px_rgba(235,91,0,0.2)]"
@@ -667,6 +670,112 @@ export function ProjectDetail() {
                       })}
                     </div>
                   </div>
+                )}
+
+                {/* Mobile Bottom Sheet Modal for Multiple Videos (lg:hidden) */}
+                {project?.videos && project.videos.length > 1 && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className={`fixed inset-0 bg-black/70 backdrop-blur-xs z-[10010] lg:hidden transition-opacity duration-300 ${
+                        isPlaylistOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                      }`}
+                      onClick={() => setIsPlaylistOpen(false)}
+                    />
+
+                    {/* Bottom Sheet Drawer */}
+                    <div 
+                      className={`fixed inset-x-0 bottom-0 max-h-[75vh] w-full rounded-t-3xl bg-[#0d0d0e]/95 backdrop-blur-2xl border-t border-white/15 z-[10015] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out lg:hidden ${
+                        isPlaylistOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
+                      }`}
+                    >
+                      {/* Pull handle indicator */}
+                      <div className="pt-3 pb-1 flex justify-center flex-shrink-0 cursor-pointer" onClick={() => setIsPlaylistOpen(false)}>
+                        <div className="w-10 h-1 rounded-full bg-white/20" />
+                      </div>
+
+                      {/* Sheet Header */}
+                      <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between flex-shrink-0">
+                        <div className="flex items-center gap-2.5">
+                          <ListVideo size={18} className="text-[#EB5B00]" />
+                          <div>
+                            <h3 className="text-white text-xs uppercase tracking-widest font-bold">Video Media</h3>
+                            <p className="text-white/40 text-[11px]">{project.videos.length} videos available</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setIsPlaylistOpen(false)}
+                          className="w-8 h-8 rounded-full bg-white/10 active:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
+                          title="Đóng danh sách"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      {/* Sheet Video Items */}
+                      <div className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain pb-8" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        {project.videos.map((vid: any, idx: number) => {
+                          const isSelected = selectedVideoIndex === idx;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => handleSelectVideo(idx, true)}
+                              className={`w-full text-left p-3 rounded-xl border transition-all flex items-center gap-3.5 group cursor-pointer ${
+                                isSelected
+                                  ? "bg-[#EB5B00]/15 border-[#EB5B00] shadow-[0_0_20px_rgba(235,91,0,0.2)]"
+                                  : "bg-white/5 border-white/10 active:bg-white/15"
+                              }`}
+                            >
+                              {/* Thumbnail */}
+                              <div className="relative w-24 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-neutral-900 border border-white/10">
+                                {vid.thumbnail ? (
+                                  <img src={vid.thumbnail} alt={vid.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                    <Film size={18} className="text-white/40" />
+                                  </div>
+                                )}
+                                <div className={`absolute inset-0 flex items-center justify-center ${
+                                  isSelected ? "bg-[#EB5B00]/40" : "bg-black/30"
+                                }`}>
+                                  {isSelected ? (
+                                    <div className="w-6 h-6 rounded-full bg-[#EB5B00] flex items-center justify-center shadow-md">
+                                      <Play size={10} className="text-black ml-0.5" fill="currentColor" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                      <Play size={10} className="text-white ml-0.5" fill="currentColor" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                    isSelected ? "bg-[#EB5B00] text-black" : "bg-white/10 text-white/60"
+                                  }`}>
+                                    0{idx + 1}
+                                  </span>
+                                  {isSelected && (
+                                    <span className="text-[10px] font-bold text-[#EB5B00] uppercase tracking-wider animate-pulse flex items-center gap-1">
+                                      ● Playing
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-xs sm:text-sm font-semibold truncate ${
+                                  isSelected ? "text-white" : "text-white/80"
+                                }`}>
+                                  {vid.title}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             ) : project?.videos && project.videos.length > 1 ? (
