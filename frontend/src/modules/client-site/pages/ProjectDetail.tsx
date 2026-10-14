@@ -1,7 +1,7 @@
 // @ts-nocheck
-import React, { useEffect, useLayoutEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, AlertCircle, Play, X, RotateCcw, ListVideo, Film } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Play, X, ListVideo, Film } from 'lucide-react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -35,7 +35,6 @@ export function ProjectDetail() {
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(true);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [manualOrientation, setManualOrientation] = useState<'auto' | 'landscape' | 'portrait'>('auto');
 
   const scrollY = useMotionValue(0);
   const bgY = useTransform(scrollY, [0, 1000], [0, -200]);
@@ -121,8 +120,7 @@ export function ProjectDetail() {
       setSelectedVideoIndex(videoIndex);
     }
     setIsCinemaMode(true);
-    setManualOrientation('auto');
-    setIsPlaylistOpen(true);
+    setIsPlaylistOpen(!isMobile);
 
     // 1. Try native fullscreen on hero section (Android Chrome, Desktop, etc.)
     const el = heroRef.current;
@@ -137,15 +135,17 @@ export function ProjectDetail() {
       }
     }
 
-    // 2. Try Screen Orientation Lock API (locks to landscape on Android Chrome)
-    try {
-      if (window.screen?.orientation && (window.screen.orientation as any).lock) {
-        await (window.screen.orientation as any).lock('landscape');
-      } else if ((window.screen as any)?.lockOrientation) {
-        (window.screen as any).lockOrientation('landscape');
+    // 2. Try Screen Orientation Lock API on supported devices if horizontal video
+    if (!isVertical) {
+      try {
+        if (window.screen?.orientation && (window.screen.orientation as any).lock) {
+          await (window.screen.orientation as any).lock('landscape');
+        } else if ((window.screen as any)?.lockOrientation) {
+          (window.screen as any).lockOrientation('landscape');
+        }
+      } catch (e) {
+        console.warn("Screen orientation lock error", e);
       }
-    } catch (e) {
-      console.warn("Screen orientation lock error", e);
     }
 
     // 3. Unmute and play native video if present
@@ -160,7 +160,6 @@ export function ProjectDetail() {
 
   const handleExitCinema = async () => {
     setIsCinemaMode(false);
-    setManualOrientation('auto');
 
     // Unlock screen orientation if locked
     try {
@@ -190,17 +189,6 @@ export function ProjectDetail() {
       videoRef.current.play().catch(() => {});
     }
   };
-
-  const toggleManualOrientation = () => {
-    setManualOrientation(prev => {
-      if (prev === 'auto') return isMobilePortrait ? 'portrait' : 'landscape';
-      return prev === 'landscape' ? 'portrait' : 'landscape';
-    });
-  };
-
-  const shouldRotateLandscape = isCinemaMode && (
-    manualOrientation === 'landscape' || (manualOrientation === 'auto' && isMobilePortrait)
-  );
 
   useLayoutEffect(() => {
     const scrollRoot = document.querySelector('[data-client-scroll-root="true"]');
@@ -531,12 +519,12 @@ export function ProjectDetail() {
           {/* Cinema Top Controls */}
           {isCinemaMode && (
             <div 
-              className="absolute top-6 right-6 z-[10002] flex items-center gap-3 transition-all duration-300 pointer-events-auto"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[10002] flex items-center gap-2.5 transition-all duration-300 pointer-events-auto"
             >
               {project?.videos && project.videos.length > 1 && (
                 <button
                   onClick={() => setIsPlaylistOpen(prev => !prev)}
-                  className={`px-3.5 py-2 h-11 backdrop-blur-md border rounded-full flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-all outline-none shadow-xl cursor-pointer ${
+                  className={`px-3.5 py-2 h-10 sm:h-11 backdrop-blur-md border rounded-full flex items-center gap-2 text-xs font-semibold uppercase tracking-wider transition-all outline-none shadow-xl cursor-pointer ${
                     isPlaylistOpen 
                       ? "bg-[#EB5B00] text-black border-[#EB5B00]" 
                       : "bg-black/60 hover:bg-black/90 text-white border-white/20 hover:text-[#EB5B00]"
@@ -550,45 +538,19 @@ export function ProjectDetail() {
                   </span>
                 </button>
               )}
-              {isMobile && (
-                <button
-                  onClick={toggleManualOrientation}
-                  className="w-11 h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
-                  title="Xoay hướng màn hình"
-                  aria-label="Toggle Screen Orientation"
-                >
-                  <RotateCcw size={18} />
-                </button>
-              )}
               <button
                 onClick={handleExitCinema}
-                className="w-11 h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
+                className="w-10 h-10 sm:w-11 sm:h-11 bg-black/60 hover:bg-black/90 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:text-[#EB5B00] transition-all outline-none shadow-xl cursor-pointer"
                 title="Thoát chế độ toàn màn hình"
                 aria-label="Exit Cinema Mode"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </div>
           )}
 
           {/* Main Content Area */}
-          <div
-            className={`transition-all duration-300 flex items-center justify-center bg-black overflow-hidden ${
-              shouldRotateLandscape
-                ? "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90"
-                : "w-full h-full relative"
-            }`}
-            style={
-              shouldRotateLandscape
-                ? {
-                    width: '100svh',
-                    height: '100svw',
-                    maxWidth: '100svh',
-                    maxHeight: '100svw',
-                  }
-                : { width: '100%', height: '100%' }
-            }
-          >
+          <div className="w-full h-full relative flex items-center justify-center bg-black overflow-hidden">
             {isCinemaMode ? (
               /* Cinema Mode: Main Video Player with Video Selector beside it */
               <div className="w-full h-full flex flex-row relative bg-black overflow-hidden">
