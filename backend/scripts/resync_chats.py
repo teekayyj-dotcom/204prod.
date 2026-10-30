@@ -1,3 +1,9 @@
+import os
+import sys
+
+# Add backend directory to sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.modules.projects.models import Project, ProjectCredit, Client, ProjectTask
