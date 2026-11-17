@@ -291,16 +291,13 @@ export function LandingPage() {
           className="w-full relative overflow-hidden flex items-center justify-center bg-black shrink-0"
           style={{ height: "100vh" }}
         >
-          <HlsVideo
+          <iframe
             ref={heroVideoRef}
-            src="https://media.204prod.vn/09f159e3-1712-4bdb-8e5d-ebfdaeb68c1e/playlist.m3u8"
-            autoPlay
-            loop
-            muted
-            lazyLoad={false}
-            className="absolute inset-0 w-full h-[130vh] -top-[15vh] opacity-80 pointer-events-none object-cover"
-            style={{ border: "none", transform: "scale(1.15)", transformOrigin: "center" }}
-            playsInline
+            src="https://iframe.mediadelivery.net/embed/694348/80aba8eb-6db2-4c01-9aa6-ff16ffcfd4f9?autoplay=true&loop=true&muted=true&preload=true&responsive=true"
+            className="absolute inset-0 w-full h-[130vh] -top-[15vh] opacity-80 pointer-events-none"
+            style={{ border: "none", transform: "scale(1.15)", transformOrigin: "center", objectFit: "cover" }}
+            allow="autoplay; fullscreen"
+            title="Hero background video"
           />
           <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
