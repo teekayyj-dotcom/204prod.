@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from sqlalchemy.orm import Session
 from fastapi_pagination import Page
-from fastapi_pagination.customization import CustomizedPage, UseParamsFields
 from app.db.session import get_db_session
 from app.modules.projects.service import get_project, get_projects, create_project, delete_project, update_project
 from app.modules.projects.schemas import (
@@ -22,12 +21,7 @@ from app.modules.projects.schemas import (
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
-ProjectPage = CustomizedPage[
-    Page[ProjectDetail],
-    UseParamsFields(size=Query(50, ge=1, le=1000))
-]
-
-@router.get("", response_model=ProjectPage)
+@router.get("", response_model=Page[ProjectDetail])
 def list_projects_route(
     search: str | None = Query(None),
     status: str | None = Query(None),
