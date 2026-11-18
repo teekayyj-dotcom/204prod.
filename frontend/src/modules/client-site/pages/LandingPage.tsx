@@ -294,7 +294,7 @@ export function LandingPage() {
           <iframe
             ref={heroVideoRef}
             src="https://iframe.mediadelivery.net/embed/694348/9e3f09a8-81de-405e-80bc-a85e81071007?autoplay=true&loop=true&muted=true&preload=true&responsive=true"
-            className="absolute inset-0 w-full h-[130vh] -top-[15vh] opacity-80 pointer-events-none"
+            className="absolute w-[240vh] max-w-none left-[calc(50%-120vh)] h-[130vh] -top-[15vh] md:w-full md:max-w-full md:left-0 md:inset-0 opacity-80 pointer-events-none"
             style={{ border: "none", transform: "scale(1.15)", transformOrigin: "center", objectFit: "cover" }}
             allow="autoplay; fullscreen"
             title="Hero background video"
