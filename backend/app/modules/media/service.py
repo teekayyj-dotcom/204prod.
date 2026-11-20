@@ -73,13 +73,31 @@ def generate_unique_media_slug(db: Session, base_name: str, is_folder: bool = Fa
 def create_media_folder(db: Session, folder: MediaFolderCreate) -> DbMediaFolder:
     folder_id = str(uuid.uuid4())
     folder_slug = generate_unique_media_slug(db, folder.name, is_folder=True)
+    
+    client_slug = (folder.client_slug.strip() or None) if folder.client_slug else None
+    if client_slug:
+        from app.modules.projects.models import Client
+        if not db.query(Client.slug).filter(Client.slug == client_slug).first():
+            client_slug = None
+            
+    project_slug = (folder.project_slug.strip() or None) if folder.project_slug else None
+    if project_slug:
+        from app.modules.projects.models import Project
+        if not db.query(Project.slug).filter(Project.slug == project_slug).first():
+            project_slug = None
+            
+    parent_id = (folder.parent_id.strip() or None) if folder.parent_id else None
+    if parent_id:
+        if not db.query(DbMediaFolder.id).filter(DbMediaFolder.id == parent_id).first():
+            parent_id = None
+
     db_folder = DbMediaFolder(
         id=folder_id,
         slug=folder_slug,
         name=folder.name,
-        client_slug=folder.client_slug,
-        project_slug=folder.project_slug,
-        parent_id=folder.parent_id,
+        client_slug=client_slug,
+        project_slug=project_slug,
+        parent_id=parent_id,
         is_published=folder.is_published,
     )
     db.add(db_folder)
@@ -119,6 +137,19 @@ def create_media_asset_from_file(
     project_slug: str | None = None,
     folder: str | None = None
 ) -> DbMediaAsset:
+    # Sanitize and validate foreign keys against DB
+    client_slug = (client_slug.strip() or None) if client_slug else None
+    if client_slug:
+        from app.modules.projects.models import Client
+        if not db.query(Client.slug).filter(Client.slug == client_slug).first():
+            client_slug = None
+
+    project_slug = (project_slug.strip() or None) if project_slug else None
+    if project_slug:
+        from app.modules.projects.models import Project
+        if not db.query(Project.slug).filter(Project.slug == project_slug).first():
+            project_slug = None
+
     # Generate unique ID for DbMediaAsset early
     asset_id = str(uuid.uuid4())
     
@@ -237,8 +268,27 @@ def finalize_media_asset(
     caption: str | None = None,
     client_slug: str | None = None,
     project_slug: str | None = None,
-    folder: str | None = None
+    folder: str | None = None,
+    folder_id: str | None = None,
+    is_published: bool = False
 ) -> DbMediaAsset:
+    # Sanitize and validate foreign keys against DB to prevent IntegrityError 1452
+    client_slug = (client_slug.strip() or None) if client_slug else None
+    if client_slug:
+        from app.modules.projects.models import Client
+        if not db.query(Client.slug).filter(Client.slug == client_slug).first():
+            client_slug = None
+
+    project_slug = (project_slug.strip() or None) if project_slug else None
+    if project_slug:
+        from app.modules.projects.models import Project
+        if not db.query(Project.slug).filter(Project.slug == project_slug).first():
+            project_slug = None
+
+    folder_id = (folder_id.strip() or None) if folder_id else None
+    if folder_id:
+        if not db.query(DbMediaFolder.id).filter(DbMediaFolder.id == folder_id).first():
+            folder_id = None
     
     # Determine kind (image, video, document, design, archive)
     kind = "document"
@@ -268,8 +318,8 @@ def finalize_media_asset(
         client_slug=client_slug,
         project_slug=project_slug,
         folder=folder,
-        folder_id=None,
-        is_published=False,
+        folder_id=folder_id,
+        is_published=is_published,
     )
     saved_asset = save_media_asset(db, db_media_asset)
 

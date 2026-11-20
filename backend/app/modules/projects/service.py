@@ -113,6 +113,29 @@ def create_project(db: Session, project: ProjectCreate) -> Project:
 
     db.commit()
     db.refresh(db_project)
+
+    try:
+        from app.modules.media.models import MediaAsset
+        if db_project.cover_media_id:
+            db.query(MediaAsset).filter(MediaAsset.id == db_project.cover_media_id).update({
+                "project_slug": db_project.slug,
+                "client_slug": db_project.client_slug
+            })
+        if db_project.video_url:
+            v_urls = [u.strip() for u in db_project.video_url.split(",") if u.strip()]
+            if v_urls:
+                db.query(MediaAsset).filter(MediaAsset.url.in_(v_urls)).update({
+                    "project_slug": db_project.slug,
+                    "client_slug": db_project.client_slug
+                }, synchronize_session=False)
+        if project.gallery_media_ids:
+            db.query(MediaAsset).filter(MediaAsset.id.in_(project.gallery_media_ids)).update({
+                "project_slug": db_project.slug,
+                "client_slug": db_project.client_slug
+            }, synchronize_session=False)
+        db.commit()
+    except Exception as e:
+        print(f"Error associating media assets to project: {e}")
     
     try:
         from app.modules.messaging.service import sync_project_group_chat
@@ -231,6 +254,29 @@ def update_project(db: Session, slug: str, project: ProjectUpdate) -> Project | 
         
     db.commit()
     db.refresh(existing_project)
+
+    try:
+        from app.modules.media.models import MediaAsset
+        if existing_project.cover_media_id:
+            db.query(MediaAsset).filter(MediaAsset.id == existing_project.cover_media_id).update({
+                "project_slug": existing_project.slug,
+                "client_slug": existing_project.client_slug
+            })
+        if existing_project.video_url:
+            v_urls = [u.strip() for u in existing_project.video_url.split(",") if u.strip()]
+            if v_urls:
+                db.query(MediaAsset).filter(MediaAsset.url.in_(v_urls)).update({
+                    "project_slug": existing_project.slug,
+                    "client_slug": existing_project.client_slug
+                }, synchronize_session=False)
+        if project.gallery_media_ids:
+            db.query(MediaAsset).filter(MediaAsset.id.in_(project.gallery_media_ids)).update({
+                "project_slug": existing_project.slug,
+                "client_slug": existing_project.client_slug
+            }, synchronize_session=False)
+        db.commit()
+    except Exception as e:
+        print(f"Error associating media assets to project: {e}")
     
     try:
         from app.modules.messaging.service import sync_project_group_chat

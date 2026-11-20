@@ -247,6 +247,25 @@ def save_video_to_db(
     # Embed iframe URL (for preview/background display)
     embed_url = f"https://iframe.mediadelivery.net/embed/{settings.bunny_stream_library_id}/{request.video_id}"
     
+    # Validate foreign keys
+    client_slug = (request.client_slug.strip() or None) if request.client_slug else None
+    if client_slug:
+        from app.modules.projects.models import Client
+        if not db.query(Client.slug).filter(Client.slug == client_slug).first():
+            client_slug = None
+            
+    project_slug = (request.project_slug.strip() or None) if request.project_slug else None
+    if project_slug:
+        from app.modules.projects.models import Project
+        if not db.query(Project.slug).filter(Project.slug == project_slug).first():
+            project_slug = None
+
+    folder_id = (request.folder_id.strip() or None) if getattr(request, "folder_id", None) else None
+    if folder_id:
+        from app.modules.media.models import MediaFolder
+        if not db.query(MediaFolder.id).filter(MediaFolder.id == folder_id).first():
+            folder_id = None
+
     new_asset = MediaAsset(
         id=asset_id,
         kind="video",
@@ -255,26 +274,27 @@ def save_video_to_db(
         alt=request.title,
         caption=request.title,
         bunny_video_id=request.video_id,
-        client_slug=request.client_slug,
-        project_slug=request.project_slug,
+        client_slug=client_slug,
+        project_slug=project_slug,
         folder=request.folder,
+        folder_id=folder_id,
     )
     db.add(new_asset)
     db.commit()
     db.refresh(new_asset)
     
-    if request.folder in ("project/gallery", "demo") and request.project_slug:
+    if request.folder in ("project/gallery", "demo") and project_slug:
         from app.modules.projects.models import ProjectGalleryImage
         from sqlalchemy import func
         exists = db.query(ProjectGalleryImage).filter(
-            ProjectGalleryImage.project_slug == request.project_slug,
+            ProjectGalleryImage.project_slug == project_slug,
             ProjectGalleryImage.media_asset_id == new_asset.id
         ).first()
         if not exists:
-            max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == request.project_slug).scalar()
+            max_sort = db.query(func.max(ProjectGalleryImage.sort_order)).filter(ProjectGalleryImage.project_slug == project_slug).scalar()
             next_sort = 0 if max_sort is None else max_sort + 1
             gallery_item = ProjectGalleryImage(
-                project_slug=request.project_slug,
+                project_slug=project_slug,
                 media_asset_id=new_asset.id,
                 caption=request.title,
                 sort_order=next_sort,
@@ -283,9 +303,9 @@ def save_video_to_db(
             db.add(gallery_item)
             db.commit()
 
-    if request.folder == "final video" and request.project_slug:
+    if request.folder == "final video" and project_slug:
         from app.modules.projects.models import Project
-        project = db.query(Project).filter(Project.slug == request.project_slug).first()
+        project = db.query(Project).filter(Project.slug == project_slug).first()
         if project:
             current_urls = [u for u in (project.video_url or "").split(",") if u.strip()]
             if new_asset.url not in current_urls:
@@ -316,6 +336,8 @@ def finalize_media_route(
             client_slug=request.client_slug,
             project_slug=request.project_slug,
             folder=request.folder,
+            folder_id=request.folder_id,
+            is_published=request.is_published,
         )
     except Exception as e:
         raise HTTPException(

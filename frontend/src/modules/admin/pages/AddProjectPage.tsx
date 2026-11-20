@@ -104,17 +104,17 @@ export function AddProjectPage() {
 
             const { uploadMediaPipeline } = await import("../../../utils/imagePipeline");
 
-            // Upload thumbnail if selected
+            // Upload thumbnail if selected (project does not exist yet in DB, so pass undefined for projectSlug)
             if (thumbnailFile) {
                 const renamedThumb = new File([thumbnailFile], `${data.title}.jpg`, { type: thumbnailFile.type });
-                const mediaAsset = await uploadMediaPipeline(renamedThumb, "projects", fetchApi, undefined, data.client, data.slug || "", "thumbnail");
+                const mediaAsset = await uploadMediaPipeline(renamedThumb, "projects", fetchApi, undefined, data.client, undefined, "thumbnail");
                 coverMediaId = mediaAsset.id;
             }
 
-            // Upload video if selected
+            // Upload video if selected (project does not exist yet in DB, so pass undefined for projectSlug)
             let finalVideoUrl = videoUrl;
             if (uploadedVideo) {
-                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, data.slug || "", "final video");
+                const mediaAsset = await uploadMediaPipeline(uploadedVideo, "projects", fetchApi, undefined, data.client, undefined, "final video");
                 finalVideoUrl = mediaAsset.url;
             }
 
